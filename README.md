@@ -15,3 +15,4 @@ Google Folder : [Shared Google Folder link](https://drive.google.com/drive/folde
 # Project Members
 
 - Brian Nguyen
+- Fara Omidiji
