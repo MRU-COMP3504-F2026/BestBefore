@@ -1,0 +1,36 @@
+name: Branch Policy
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  branch-policy:
+    name: Branch Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR branch flow
+        shell: bash
+        run: |
+          HEAD="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+
+          echo "PR: $HEAD -> $BASE"
+
+          if [[ "$BASE" == "main" && "$HEAD" != "dev" ]]; then
+            echo "❌ Only dev may merge into main."
+            echo "Expected: dev -> main"
+            exit 1
+          fi
+
+          if [[ "$BASE" == "dev" ]]; then
+            if [[ ! "$HEAD" =~ ^(feat|fix|docs|chore|refactor|test)/.+$ ]]; then
+              echo "❌ Invalid source branch for dev."
+              exit 1
+            fi
+          fi
+
+          echo "✅ Valid branch flow."
