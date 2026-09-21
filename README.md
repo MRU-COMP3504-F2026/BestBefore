@@ -15,3 +15,4 @@ Google Folder : [Shared Google Folder link](https://drive.google.com/drive/folde
 # Project Members
 
 - Brian Nguyen : 201710008
+- Daniel Eliezer : 201758848
