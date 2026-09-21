@@ -17,3 +17,4 @@ Google Folder : [Shared Google Folder link](https://drive.google.com/drive/folde
 - Brian Nguyen : 201710008
 - Daniel Eliezer : 201758848
 - Lihini Herath : 201721155
+- Fara Omidiji : 201753708
