@@ -1,6 +1,7 @@
 # Communication Channel
 
-Discord Server : [Discord Server Invite Link](https://discord.gg/Um6jbRySf)
+Discord Server : [Discord Server Invite Link](https://discord.gg/Um6jbRySf)
+
 
 # Shared Google Folder
 
