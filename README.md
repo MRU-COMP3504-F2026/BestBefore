@@ -23,10 +23,6 @@ React + Typescript + ~~Tailwind~~ frontend with Node.js + Express backend.
 
 **Requirements:** Node.js 22+ and npm.
 
-Install dependanceies:
+**Install dependanceies:** `npm install`
 
-`npm install`
-
-Note:
-
-Read through `package.json` scripts for npm run scripts.
+**Note:** See `package.json` for npm scripts.

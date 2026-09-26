@@ -14,7 +14,7 @@
     "preview": "vite preview",
     "test:client": "vitest --config vitest.config.ts",
     "test:server": "vitest --config server/vitest.config.ts",
-    "test": "npm run test:client && npm run test:server",
+    "test": "npm run test:client -- --run && npm run test:server -- --run",
     "typecheck:client": "tsc -b tsconfig.app.json",
     "typecheck:server": "tsc --noEmit -p server/tsconfig.json",
     "typecheck": "npm run typecheck:client && npm run typecheck:server"
