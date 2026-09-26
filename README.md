@@ -14,3 +14,15 @@ Google Folder : [Shared Google Folder link](https://drive.google.com/drive/folde
 - Lihini Herath
 - Fara Omidiji
 - Armandeep Grewal
+
+# Project Scaffold
+
+React + Typescript + ~~Tailwind~~ frontend with Node.js + Express backend.
+
+## Getting Started
+
+**Requirements:** Node.js 22+ and npm.
+
+**Install dependanceies:** `npm install`
+
+**Note:** See `package.json` for npm scripts.
