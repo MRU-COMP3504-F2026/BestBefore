@@ -71,15 +71,34 @@ describe('ScanPage', () => {
     detect('012345678905')
     detect('012345678905')
 
-    const viewfinder = container.querySelector('.scan-viewfinder') as HTMLElement
-    const title = await within(viewfinder).findByText('Barcode Recognized')
-    const barcode = within(viewfinder).getByText('012345678905')
-    // The number sits directly below the message.
-    expect(title.nextElementSibling).toBe(barcode)
+    // Recognition is immediate even though the number is revealed a moment later.
     expect(log).toHaveBeenCalledWith('Scanned barcode: 012345678905')
     expect(quagga.offDetected).toHaveBeenCalled()
     await vi.waitFor(() => expect(quagga.stop).toHaveBeenCalled())
+
+    const viewfinder = container.querySelector('.scan-viewfinder') as HTMLElement
+    expect(viewfinder).toHaveClass('scan-viewfinder-locked')
+    expect(viewfinder.querySelector('.scan-line')).not.toBeInTheDocument()
+    const barcode = await within(viewfinder).findByText('012345678905')
+    // The number sits directly below the message.
+    expect(within(viewfinder).getByText('Barcode Recognized').nextElementSibling).toBe(barcode)
     log.mockRestore()
+  })
+
+  it('can be closed mid-animation without errors', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error')
+    renderScan()
+    await screen.findByText('Scanning for barcode…')
+    detect('012345678905')
+    detect('012345678905')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    expect(screen.getByText('Home')).toBeInTheDocument()
+    expect(error).not.toHaveBeenCalled()
+    error.mockRestore()
   })
 
   it('ignores a single unconfirmed read', async () => {
@@ -103,6 +122,9 @@ describe('ScanPage', () => {
 
     expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
     expect(quagga.init).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('Barcode Recognized')).not.toBeInTheDocument()
+    expect(document.querySelector('.scan-recognized')).not.toBeInTheDocument()
+    expect(document.querySelector('.scan-viewfinder-locked')).not.toBeInTheDocument()
   })
 
   it('stays in the scanner on success instead of showing a full-screen result', async () => {

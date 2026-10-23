@@ -7,11 +7,23 @@ import Quagga, { type QuaggaJSResultObject } from '@ericblade/quagga2'
 
 export type TorchState = 'unsupported' | 'off' | 'on'
 
+/**
+ * What the camera saw at the moment of recognition, in Quagga's canvas coordinates
+ * (same aspect ratio as the video). `frame` is a still of the last video frame and
+ * `box` the located barcode's corners; either is null when it wasn't available.
+ */
+export type RecognitionCapture = {
+  width: number
+  height: number
+  frame: string | null
+  box: [number, number][] | null
+}
+
 export type ScannerState =
   | { status: 'starting' }
   | { status: 'scanning'; torch: TorchState; struggling: boolean }
   | { status: 'paused' }
-  | { status: 'recognized'; barcode: string }
+  | { status: 'recognized'; barcode: string; capture?: RecognitionCapture }
   | { status: 'not-recognized' }
   | { status: 'error'; message: string }
 
@@ -47,6 +59,33 @@ function describeCameraError(err: unknown): string {
     return 'The camera is in use by another app. Close it and try again.'
   }
   return "The camera couldn't be started. Please try again."
+}
+
+// Copies the current video frame before the camera stops, so the viewfinder can keep showing it.
+function captureRecognition(
+  target: HTMLElement,
+  result: QuaggaJSResultObject,
+): RecognitionCapture | undefined {
+  // Quagga's working canvas lives in the target; its size is the box's coordinate space.
+  const buffer = target.querySelector<HTMLCanvasElement>('canvas.imgBuffer')
+  if (!buffer?.width || !buffer.height) return undefined
+  const { width, height } = buffer
+
+  let frame: string | null = null
+  const video = target.querySelector('video')
+  if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    const still = document.createElement('canvas')
+    still.width = width
+    still.height = height
+    const ctx = still.getContext('2d')
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, width, height)
+      frame = still.toDataURL('image/jpeg', 0.85)
+    }
+  }
+
+  const box = result.box?.length ? result.box.map(([x, y]) => [x, y] as [number, number]) : null
+  return frame || box ? { width, height, frame, box } : undefined
 }
 
 function hasTorch(): boolean {
@@ -92,7 +131,13 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       if (matches < REQUIRED_MATCHES) return
 
       console.log(`Scanned barcode: ${code}`)
-      finish({ status: 'recognized', barcode: code })
+      let capture: RecognitionCapture | undefined
+      try {
+        capture = captureRecognition(target, result)
+      } catch {
+        // The still is only cosmetic; the recognition stands without it.
+      }
+      finish({ status: 'recognized', barcode: code, capture })
     }
 
     enqueue(async () => {

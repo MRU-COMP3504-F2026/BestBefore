@@ -7,9 +7,9 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Button from '../components/Button'
+import ScanRecognized from '../components/ScanRecognized'
 import {
   BarcodeIcon,
-  CheckIcon,
   CircleAlertIcon,
   FlashlightIcon,
   FlashlightOffIcon,
@@ -84,18 +84,17 @@ export default function ScanPage() {
   const torch = scanner.status === 'scanning' ? scanner.torch : 'unsupported'
 
   // Recognition results stay inside the viewfinder; full-screen results are for product lookup.
-  let result: { tone: 'success' | 'danger'; title: string; detail: string } | null = null
-  if (isCamera && scanner.status === 'recognized') {
-    result = { tone: 'success', title: 'Barcode Recognized', detail: scanner.barcode }
-  } else if (isCamera && scanner.status === 'not-recognized') {
-    result = {
-      tone: 'danger',
+  const recognized = isCamera && scanner.status === 'recognized' ? scanner : null
+  let failure: { title: string; detail: string } | null = null
+  if (isCamera && scanner.status === 'not-recognized') {
+    failure = {
       title: 'Barcode Not Recognized',
       detail: 'Try more light, hold steady, or move a little closer.',
     }
   } else if (isCamera && scanner.status === 'error') {
-    result = { tone: 'danger', title: 'Camera Unavailable', detail: scanner.message }
+    failure = { title: 'Camera Unavailable', detail: scanner.message }
   }
+  const hasResult = !!recognized || !!failure
 
   let statusTitle = 'Starting camera…'
   let statusHint = 'Position the barcode within the frame.'
@@ -147,13 +146,14 @@ export default function ScanPage() {
         )}
 
         <motion.div
-          className="scan-viewfinder"
+          className={`scan-viewfinder${recognized ? ' scan-viewfinder-locked' : ''}`}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {/* Quagga2 mounts the live <video> in here. */}
-          <div ref={videoRef} className="scan-video" hidden={!isCamera || isPaused || !!result} />
+          <div ref={videoRef} className="scan-video" hidden={!isCamera || isPaused || hasResult} />
+          {recognized && <ScanRecognized barcode={recognized.barcode} capture={recognized.capture} />}
           {corners.map((corner) => (
             <motion.span
               key={corner.className}
@@ -163,22 +163,28 @@ export default function ScanPage() {
               transition={{ type: 'spring', stiffness: 400, damping: 18, delay: 0.15 }}
             />
           ))}
-          {result && (
+          {failure && (
             <motion.div
-              className={`scan-result scan-result-${result.tone}`}
+              className="scan-result scan-result-danger"
               role="status"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}
             >
-              <span className="scan-result-icon" aria-hidden="true">
-                {result.tone === 'success' ? <CheckIcon /> : <CircleAlertIcon />}
-              </span>
-              <p className="scan-result-title">{result.title}</p>
-              <p className="scan-result-detail">{result.detail}</p>
+              <motion.span
+                className="scan-result-icon"
+                aria-hidden="true"
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={spring}
+              >
+                <CircleAlertIcon />
+              </motion.span>
+              <p className="scan-result-title">{failure.title}</p>
+              <p className="scan-result-detail">{failure.detail}</p>
             </motion.div>
           )}
-          {!isCameraScanning && !result && (
+          {!isCameraScanning && !hasResult && (
             <motion.div
               className="scan-barcode"
               aria-hidden="true"
@@ -206,11 +212,9 @@ export default function ScanPage() {
         <motion.div className="scan-controls-icon" {...fadeUp(CONTROLS_DELAY)}>
           <ScanBarcodeIcon />
         </motion.div>
-        {result ? (
+        {hasResult ? (
           <motion.div className="scan-controls-item" {...fadeUp(0)}>
-            <Button onClick={scanner.restart}>
-              {scanner.status === 'recognized' ? 'Scan Again' : 'Try Again'}
-            </Button>
+            <Button onClick={scanner.restart}>{recognized ? 'Scan Again' : 'Try Again'}</Button>
           </motion.div>
         ) : isCamera ? (
           <>

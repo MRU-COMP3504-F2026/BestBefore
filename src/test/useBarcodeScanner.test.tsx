@@ -166,6 +166,45 @@ describe('useBarcodeScanner', () => {
       await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
     })
 
+    it("keeps the located box in Quagga's canvas coordinates for highlighting", async () => {
+      const { ref, result } = renderScanner()
+      const buffer = document.createElement('canvas')
+      buffer.className = 'imgBuffer'
+      buffer.width = 800
+      buffer.height = 450
+      ref.current.append(buffer)
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onDetected = quagga.onDetected.mock.lastCall![0]
+      const box = [
+        [300, 150],
+        [500, 150],
+        [500, 300],
+        [300, 300],
+      ]
+
+      act(() => {
+        onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
+        onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
+      })
+
+      // No playing video in jsdom, so there's no still frame, only the box.
+      expect(result.current).toMatchObject({
+        status: 'recognized',
+        barcode: '012345678905',
+        capture: { width: 800, height: 450, frame: null, box },
+      })
+    })
+
+    it('recognizes without a capture when Quagga has no canvas', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      detect('012345678905')
+      detect('012345678905')
+
+      expect(result.current).toMatchObject({ status: 'recognized', capture: undefined })
+    })
+
     it('fires only once even if more frames arrive after recognition', async () => {
       const { result } = renderScanner()
       await waitFor(() => expect(result.current.status).toBe('scanning'))
