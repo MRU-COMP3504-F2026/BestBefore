@@ -4,24 +4,26 @@
  */
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import Quagga, { type QuaggaJSResultObject } from '@ericblade/quagga2'
+import { barsLine, measureBars, toGray, toPoints, type Point } from './barcodeGeometry'
 
 export type TorchState = 'unsupported' | 'off' | 'on'
 
 /**
  * What the camera saw at the moment of recognition, in Quagga's canvas coordinates
- * (same aspect ratio as the video). `frame` is a still of the last video frame and
- * `box` the located barcode's corners; either is null when it wasn't available.
+ * (same aspect ratio as the video). `frame` is a still of the decoded frame, `box` the bars
+ * as measured in it and `line` where Quagga read them; each is null when unavailable.
  */
 export type RecognitionCapture = {
   width: number
   height: number
   frame: string | null
-  box: [number, number][] | null
+  box: Point[] | null
+  line: [Point, Point] | null
 }
 
 export type ScannerState =
   | { status: 'starting' }
-  | { status: 'scanning'; torch: TorchState; struggling: boolean }
+  | { status: 'scanning'; torch: TorchState; struggling: boolean; found: boolean }
   | { status: 'paused' }
   | { status: 'recognized'; barcode: string; capture?: RecognitionCapture }
   | { status: 'not-recognized' }
@@ -30,8 +32,15 @@ export type ScannerState =
 // upc_reader comes before ean_reader so UPC-A reads as 12 digits instead of a 0-padded EAN-13.
 const READERS = ['upc_reader', 'ean_reader', 'upc_e_reader', 'ean_8_reader'] as const
 
+// Quagga processes frames on the main thread, as often as every animation frame by default.
+// Capping it leaves the main thread free for a smooth preview; two reads still take ~130ms.
+export const SCANS_PER_SECOND = 15
+
 // Quagga can misread a single frame, so a code must be read this many times in a row.
 const REQUIRED_MATCHES = 2
+
+// How long a single read keeps the "barcode found" hint up while waiting for a confirming one.
+const FOUND_HOLD_MS = 800
 
 // After this long without a read, the scanner suggests better lighting or positioning.
 export const STRUGGLING_AFTER_MS = 10_000
@@ -61,32 +70,72 @@ function describeCameraError(err: unknown): string {
   return "The camera couldn't be started. Please try again."
 }
 
-// Copies the current video frame before the camera stops, so the viewfinder can keep showing it.
-function captureRecognition(
-  target: HTMLElement,
-  result: QuaggaJSResultObject,
-): RecognitionCapture | undefined {
-  // Quagga's working canvas size is the box's coordinate space. It is only attached to the
-  // page for image input, so read it from Quagga rather than from the target.
+// Keeps the frame Quagga decoded and the barcode's outline, so the viewfinder can show them
+// after the camera stops.
+function captureRecognition(result: QuaggaJSResultObject): RecognitionCapture | undefined {
+  // Quagga draws each frame it processes into this canvas before decoding it, and reports
+  // the result before grabbing the next one, so it still holds the exact decoded frame.
+  // Its size is also the coordinate space of the result's line and box.
   const buffer = Quagga.canvas?.dom.image
   if (!buffer?.width || !buffer.height) return undefined
   const { width, height } = buffer
 
   let frame: string | null = null
-  const video = target.querySelector('video')
-  if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-    const still = document.createElement('canvas')
-    still.width = width
-    still.height = height
-    const ctx = still.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, width, height)
-      frame = still.toDataURL('image/jpeg', 0.85)
-    }
+  try {
+    frame = buffer.toDataURL('image/jpeg', 0.85)
+  } catch {
+    // The still is only cosmetic; the outline can show without it.
   }
 
-  const box = result.box?.length ? result.box.map(([x, y]) => [x, y] as [number, number]) : null
-  return frame || box ? { width, height, frame, box } : undefined
+  // Quagga's own box is only a rough location, so the outline is measured from the frame.
+  const line = barsLine(result)
+  let box: Point[] | null = null
+  if (line) {
+    const pixels = buffer.getContext('2d')?.getImageData(0, 0, width, height)
+    if (pixels) box = measureBars(toGray(pixels), line)
+  }
+  return frame || box || line ? { width, height, frame, box, line } : undefined
+}
+
+function strokePath(ctx: CanvasRenderingContext2D, points: Point[] | null, close: boolean) {
+  if (!points?.length) return
+  ctx.beginPath()
+  points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
+  if (close) ctx.closePath()
+  ctx.stroke()
+}
+
+/**
+ * Draws what Quagga is doing on its overlay canvas, which sits over the video: faint
+ * outlines for every region the locator suspects, then the region it decoded and the
+ * stretch of bars it read. Called with no result to clear it.
+ */
+function drawOverlay(result: QuaggaJSResultObject | undefined, readColor: string) {
+  const canvas = Quagga.canvas?.dom.overlay
+  const ctx = Quagga.canvas?.ctx.overlay
+  if (!canvas || !ctx) return
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  if (!result) return
+
+  // The canvas is scaled to fill the viewfinder, so line widths follow its resolution.
+  const unit = Math.max(1, Math.max(canvas.width, canvas.height) / 400)
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+  ctx.lineWidth = unit
+  for (const box of result.boxes ?? []) {
+    if (box !== result.box) strokePath(ctx, toPoints(box), true)
+  }
+
+  if (result.codeResult?.code) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.lineWidth = unit * 1.5
+    strokePath(ctx, toPoints(result.box), true)
+    ctx.strokeStyle = readColor
+    ctx.lineWidth = unit * 3
+    strokePath(ctx, barsLine(result), false)
+  }
 }
 
 function hasTorch(): boolean {
@@ -111,16 +160,41 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
     let active = true
     let lastCode = ''
     let matches = 0
+    let lastReadAt = -Infinity
+    let found = false
     let strugglingTimer: ReturnType<typeof setTimeout> | undefined
     let timeoutTimer: ReturnType<typeof setTimeout> | undefined
+    const readColor =
+      getComputedStyle(target).getPropertyValue('--color-success-light').trim() || '#a8dcc4'
 
-    const finish = (next: ScannerState) => {
+    // Stopping the camera releases its track, which also turns the torch off.
+    const stop = () => {
       active = false
       clearTimeout(strugglingTimer)
       clearTimeout(timeoutTimer)
       Quagga.offDetected(onDetected)
+      Quagga.offProcessed(onProcessed)
+      drawOverlay(undefined, readColor)
       enqueue(() => Quagga.stop())
+    }
+
+    const finish = (next: ScannerState) => {
+      stop()
       setState(next)
+    }
+
+    // Runs for every frame Quagga processes, before onDetected for frames it could read.
+    const onProcessed = (result?: QuaggaJSResultObject) => {
+      if (!active) return
+      drawOverlay(result, readColor)
+
+      const now = performance.now()
+      if (result?.codeResult?.code) lastReadAt = now
+      const nowFound = now - lastReadAt < FOUND_HOLD_MS
+      if (nowFound !== found) {
+        found = nowFound
+        setState((s) => (s.status === 'scanning' ? { ...s, found: nowFound } : s))
+      }
     }
 
     const onDetected = (result: QuaggaJSResultObject) => {
@@ -134,9 +208,9 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       console.log(`Scanned barcode: ${code}`)
       let capture: RecognitionCapture | undefined
       try {
-        capture = captureRecognition(target, result)
+        capture = captureRecognition(result)
       } catch {
-        // The still is only cosmetic; the recognition stands without it.
+        // The capture is only cosmetic; the recognition stands without it.
       }
       finish({ status: 'recognized', barcode: code, capture })
     }
@@ -158,9 +232,13 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
             type: 'LiveStream',
             target,
             constraints: { width: 1280, height: 720, facingMode: 'environment' },
+            // Quagga reads every frame back from its canvas; a CPU-backed canvas avoids
+            // stalling the GPU on each read, which made the preview stutter on phones.
+            willReadFrequently: true,
           },
           decoder: { readers: [...READERS] },
           locate: true,
+          frequency: SCANS_PER_SECOND,
         })
       } catch (err) {
         await Quagga.stop()
@@ -171,23 +249,22 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       // Closed while the camera was opening; the cleanup's queued stop releases it.
       if (!active) return
 
+      Quagga.onProcessed(onProcessed)
       Quagga.onDetected(onDetected)
       Quagga.start()
-      setState({ status: 'scanning', torch: hasTorch() ? 'off' : 'unsupported', struggling: false })
+      setState({
+        status: 'scanning',
+        torch: hasTorch() ? 'off' : 'unsupported',
+        struggling: false,
+        found: false,
+      })
       strugglingTimer = setTimeout(() => {
         setState((s) => (s.status === 'scanning' ? { ...s, struggling: true } : s))
       }, STRUGGLING_AFTER_MS)
       timeoutTimer = setTimeout(() => finish({ status: 'not-recognized' }), TIMEOUT_AFTER_MS)
     })
 
-    // Stopping the camera releases its track, which also turns the torch off.
-    return () => {
-      active = false
-      clearTimeout(strugglingTimer)
-      clearTimeout(timeoutTimer)
-      Quagga.offDetected(onDetected)
-      enqueue(() => Quagga.stop())
-    }
+    return stop
   }, [targetRef, shouldRun, run.attempt])
 
   const restart = useCallback(() => {

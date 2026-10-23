@@ -13,6 +13,8 @@ const quagga = vi.hoisted(() => ({
   stop: vi.fn(),
   onDetected: vi.fn(),
   offDetected: vi.fn(),
+  onProcessed: vi.fn(),
+  offProcessed: vi.fn(),
   CameraAccess: {
     getActiveTrack: vi.fn(),
     enableTorch: vi.fn(),
@@ -208,6 +210,17 @@ describe('ScanPage', () => {
       expect(quagga.init).toHaveBeenCalledTimes(2)
       expect(quagga.stop).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('tells the user to hold steady once a barcode is found', async () => {
+    renderScan()
+    await screen.findByText('Scanning for barcode…')
+    const onProcessed = quagga.onProcessed.mock.lastCall![0]
+
+    act(() => onProcessed({ codeResult: { code: '012345678905' } }))
+
+    expect(screen.getByText('Barcode found')).toBeInTheDocument()
+    expect(screen.getByText('Hold steady…')).toBeInTheDocument()
   })
 
   describe('lighting help', () => {

@@ -19,6 +19,10 @@ const capture: RecognitionCapture = {
     [500, 300],
     [300, 300],
   ],
+  line: [
+    [310, 220],
+    [490, 220],
+  ],
 }
 
 function phaseOf(container: HTMLElement) {
@@ -65,7 +69,7 @@ describe('ScanRecognized', () => {
     expect(PHASE_AT.recognized).toBeLessThanOrEqual(1000)
   })
 
-  it('draws the frozen frame and outlines the located barcode', () => {
+  it('draws the frozen frame, the located region and the read bars', () => {
     const { container } = render(<ScanRecognized barcode="012345678905" capture={capture} />)
 
     const svg = container.querySelector('svg')!
@@ -73,6 +77,13 @@ describe('ScanRecognized', () => {
     expect(svg).toHaveAttribute('preserveAspectRatio', 'xMidYMid slice')
     expect(svg.querySelector('image')).toHaveAttribute('href', capture.frame)
     expect(svg.querySelector('polygon')).toHaveAttribute('points', '300,150 500,150 500,300 300,300')
+    const line = svg.querySelector('line')!
+    expect(['x1', 'y1', 'x2', 'y2'].map((a) => line.getAttribute(a))).toEqual([
+      '310',
+      '220',
+      '490',
+      '220',
+    ])
   })
 
   it('falls back to the viewfinder without a capture', () => {

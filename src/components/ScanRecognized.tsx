@@ -20,8 +20,9 @@ type Props = {
 }
 
 /**
- * Recognition sequence shown inside the viewfinder: the outline locks onto the barcode
- * over the frozen frame, then the confirmation and the decoded number fade in.
+ * Recognition sequence shown inside the viewfinder: over the frozen frame, the region Quagga
+ * located and the line where it read the bars lock on (matching the live overlay), then
+ * the confirmation and the decoded number fade in.
  * Mounted only while a barcode is recognized, so unmounting cancels any pending phase.
  */
 export default function ScanRecognized({ barcode, capture }: Props) {
@@ -63,6 +64,19 @@ export default function ScanRecognized({ barcode, capture }: Props) {
               initial={enter({ opacity: 0, scale: 1.15 })}
               animate={{ opacity: 1, scale: 1 }}
               transition={spring}
+            />
+          )}
+          {capture.line && (
+            <motion.line
+              className="scan-recognized-line"
+              x1={capture.line[0][0]}
+              y1={capture.line[0][1]}
+              x2={capture.line[1][0]}
+              y2={capture.line[1][1]}
+              vectorEffect="non-scaling-stroke"
+              initial={enter({ opacity: 0 })}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
             />
           )}
         </svg>

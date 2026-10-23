@@ -101,6 +101,9 @@ export default function ScanPage() {
   if (isPaused) {
     statusTitle = 'Scanning paused'
     statusHint = 'Tap Rescan to start the camera again.'
+  } else if (scanner.status === 'scanning' && scanner.found) {
+    statusTitle = 'Barcode found'
+    statusHint = 'Hold steady…'
   } else if (scanner.status === 'scanning') {
     statusTitle = 'Scanning for barcode…'
     if (scanner.struggling) {
@@ -196,14 +199,12 @@ export default function ScanPage() {
               <span>123456 789</span>
             </motion.div>
           )}
+          {/* A CSS transform animation runs on the compositor, so Quagga's work on the main
+              thread can't make it stutter. */}
           {(isCameraScanning || isMockScanning) && (
-            <motion.span
-              className="scan-line"
-              aria-hidden="true"
-              initial={{ top: '8%' }}
-              animate={{ top: ['8%', '92%', '8%'] }}
-              transition={{ duration: 1.2, ease: 'easeInOut', repeat: Infinity }}
-            />
+            <span className="scan-line-track" aria-hidden="true">
+              <span className="scan-line" />
+            </span>
           )}
         </motion.div>
       </motion.div>

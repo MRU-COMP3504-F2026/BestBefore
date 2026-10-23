@@ -1,7 +1,12 @@
 import { StrictMode, type ReactNode } from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { QuaggaJSResultObject } from '@ericblade/quagga2'
-import { STRUGGLING_AFTER_MS, TIMEOUT_AFTER_MS, useBarcodeScanner } from '../lib/useBarcodeScanner'
+import {
+  SCANS_PER_SECOND,
+  STRUGGLING_AFTER_MS,
+  TIMEOUT_AFTER_MS,
+  useBarcodeScanner,
+} from '../lib/useBarcodeScanner'
 
 const quagga = vi.hoisted(() => ({
   init: vi.fn(),
@@ -9,7 +14,14 @@ const quagga = vi.hoisted(() => ({
   stop: vi.fn(),
   onDetected: vi.fn(),
   offDetected: vi.fn(),
-  canvas: undefined as { dom: { image: HTMLCanvasElement } } | undefined,
+  onProcessed: vi.fn(),
+  offProcessed: vi.fn(),
+  canvas: undefined as
+    | {
+        dom: { image: HTMLCanvasElement; overlay: HTMLCanvasElement | null }
+        ctx: { overlay: unknown }
+      }
+    | undefined,
   CameraAccess: {
     getActiveTrack: vi.fn(),
     enableTorch: vi.fn(),
@@ -87,6 +99,15 @@ describe('useBarcodeScanner', () => {
       )
       expect(readers).toHaveLength(4)
       expect(readers.indexOf('upc_reader')).toBeLessThan(readers.indexOf('ean_reader'))
+    })
+
+    it('caps the scan rate and reads frames from a CPU-backed canvas, for a smooth preview', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      const config = quagga.init.mock.lastCall![0]
+      expect(config.frequency).toBe(SCANS_PER_SECOND)
+      expect(config.inputStream.willReadFrequently).toBe(true)
     })
 
     it('does not open the camera while disabled', () => {
@@ -168,32 +189,52 @@ describe('useBarcodeScanner', () => {
       await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
     })
 
-    it("keeps the located box in Quagga's canvas coordinates for highlighting", async () => {
+    it("keeps the decoded frame and read line in Quagga's canvas coordinates", async () => {
       // Like a live stream: Quagga holds its working canvas without attaching it to the target.
       const buffer = document.createElement('canvas')
       buffer.width = 800
       buffer.height = 450
-      quagga.canvas = { dom: { image: buffer } }
+      buffer.toDataURL = () => 'data:image/jpeg;base64,AAAA'
+      // A blank frame: the read line is kept, but there are no bars to measure a box from.
+      const pixels = { width: 800, height: 450, data: new Uint8ClampedArray(800 * 450 * 4) }
+      buffer.getContext = (() => ({ getImageData: () => pixels })) as never
+      quagga.canvas = { dom: { image: buffer, overlay: null }, ctx: { overlay: null } }
       const { result } = renderScanner()
       await waitFor(() => expect(result.current.status).toBe('scanning'))
       const onDetected = quagga.onDetected.mock.lastCall![0]
-      const box = [
-        [300, 150],
-        [500, 150],
-        [500, 300],
-        [300, 300],
-      ]
+      const read = {
+        codeResult: { code: '012345678905', start: 100, end: 300 },
+        box: [
+          [300, 150],
+          [500, 150],
+          [500, 300],
+          [300, 300],
+        ],
+        line: [
+          { x: 200, y: 220 },
+          { x: 600, y: 220 },
+        ],
+      } as QuaggaJSResultObject
 
       act(() => {
-        onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
-        onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
+        onDetected(read)
+        onDetected(read)
       })
 
-      // No playing video in jsdom, so there's no still frame, only the box.
       expect(result.current).toMatchObject({
         status: 'recognized',
         barcode: '012345678905',
-        capture: { width: 800, height: 450, frame: null, box },
+        capture: {
+          width: 800,
+          height: 450,
+          frame: 'data:image/jpeg;base64,AAAA',
+          box: null,
+          // The scanline trimmed to the bars it read.
+          line: [
+            [300, 220],
+            [500, 220],
+          ],
+        },
       })
     })
 
@@ -219,6 +260,127 @@ describe('useBarcodeScanner', () => {
 
       expect(log).toHaveBeenCalledTimes(1)
       expect(result.current).toMatchObject({ status: 'recognized', barcode: '012345678905' })
+    })
+  })
+
+  describe('live overlay', () => {
+    function withOverlay() {
+      const overlay = document.createElement('canvas')
+      overlay.width = 800
+      overlay.height = 450
+      const ctx = {
+        clearRect: vi.fn(),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        closePath: vi.fn(),
+        stroke: vi.fn(),
+      }
+      quagga.canvas = {
+        dom: { image: document.createElement('canvas'), overlay },
+        ctx: { overlay: ctx },
+      }
+      return ctx
+    }
+
+    const candidate = [
+      [10, 10],
+      [60, 10],
+      [60, 60],
+      [10, 60],
+    ]
+    const located = [
+      [300, 150],
+      [500, 150],
+      [500, 300],
+      [300, 300],
+    ]
+    const read = {
+      codeResult: { code: '012345678905', start: 100, end: 300 },
+      box: located,
+      boxes: [candidate, located],
+      line: [
+        { x: 200, y: 220 },
+        { x: 600, y: 220 },
+      ],
+    } as unknown as QuaggaJSResultObject
+
+    function processed(result?: QuaggaJSResultObject) {
+      const onProcessed = quagga.onProcessed.mock.lastCall![0]
+      act(() => onProcessed(result))
+    }
+
+    it('outlines the regions Quagga is searching', async () => {
+      const ctx = withOverlay()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      processed({ boxes: [candidate, located] } as unknown as QuaggaJSResultObject)
+
+      expect(ctx.clearRect).toHaveBeenCalledWith(0, 0, 800, 450)
+      expect(ctx.stroke).toHaveBeenCalledTimes(2)
+      expect(result.current).toMatchObject({ status: 'scanning', found: false })
+    })
+
+    it('marks the region it read and the bars it read across', async () => {
+      const ctx = withOverlay()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      processed(read)
+
+      // The other candidate, the decoded region, then the bars line.
+      expect(ctx.stroke).toHaveBeenCalledTimes(3)
+      expect(ctx.moveTo).toHaveBeenLastCalledWith(300, 220)
+      expect(ctx.lineTo).toHaveBeenLastCalledWith(500, 220)
+    })
+
+    it('clears the overlay on frames with nothing located', async () => {
+      const ctx = withOverlay()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      processed(read)
+      ctx.stroke.mockClear()
+
+      processed(undefined)
+
+      expect(ctx.clearRect).toHaveBeenCalledTimes(2)
+      expect(ctx.stroke).not.toHaveBeenCalled()
+    })
+
+    it('shows the barcode as found after a single read, until reads stop', async () => {
+      const now = vi.spyOn(performance, 'now').mockReturnValue(1000)
+      withOverlay()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      processed(read)
+      expect(result.current).toMatchObject({ status: 'scanning', found: true })
+
+      now.mockReturnValue(1500)
+      processed(undefined)
+      expect(result.current).toMatchObject({ found: true })
+
+      now.mockReturnValue(2000)
+      processed(undefined)
+      expect(result.current).toMatchObject({ found: false })
+      now.mockRestore()
+    })
+
+    it('stops drawing and clears the overlay when scanning stops', async () => {
+      const ctx = withOverlay()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onProcessed = quagga.onProcessed.mock.lastCall![0]
+      processed(read)
+
+      act(() => result.current.cancel())
+      ctx.stroke.mockClear()
+      act(() => onProcessed(read))
+
+      expect(quagga.offProcessed).toHaveBeenCalledWith(onProcessed)
+      expect(ctx.clearRect).toHaveBeenCalledTimes(2)
+      expect(ctx.stroke).not.toHaveBeenCalled()
     })
   })
 
