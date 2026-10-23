@@ -23,6 +23,24 @@ export function listItem(index: number) {
   return fadeUp(index * 0.05)
 }
 
+// Barcode recognition presentation, in order. Only paces what the scanner shows:
+// the barcode is already stored and the camera released by the time it runs.
+export type RecognitionPhase = 'locking_on' | 'confirming' | 'revealing' | 'recognized'
+
+export const RECOGNITION_PHASES: RecognitionPhase[] = [
+  'locking_on',
+  'confirming',
+  'revealing',
+  'recognized',
+]
+
+// When each phase starts, in ms after recognition.
+export const RECOGNITION_PHASE_AT: Record<Exclude<RecognitionPhase, 'locking_on'>, number> = {
+  confirming: 200,
+  revealing: 500,
+  recognized: 850,
+}
+
 export const errorReveal = {
   initial: { opacity: 0, y: -4 },
   animate: { opacity: 1, y: 0 },

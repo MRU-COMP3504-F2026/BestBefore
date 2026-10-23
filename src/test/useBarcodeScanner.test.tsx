@@ -9,6 +9,7 @@ const quagga = vi.hoisted(() => ({
   stop: vi.fn(),
   onDetected: vi.fn(),
   offDetected: vi.fn(),
+  canvas: undefined as { dom: { image: HTMLCanvasElement } } | undefined,
   CameraAccess: {
     getActiveTrack: vi.fn(),
     enableTorch: vi.fn(),
@@ -41,6 +42,7 @@ describe('useBarcodeScanner', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    quagga.canvas = undefined
     quagga.init.mockResolvedValue(undefined)
     quagga.stop.mockResolvedValue(undefined)
     quagga.CameraAccess.getActiveTrack.mockReturnValue(null)
@@ -164,6 +166,45 @@ describe('useBarcodeScanner', () => {
 
       expect(quagga.offDetected).toHaveBeenCalledWith(onDetected)
       await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
+    })
+
+    it("keeps the located box in Quagga's canvas coordinates for highlighting", async () => {
+      // Like a live stream: Quagga holds its working canvas without attaching it to the target.
+      const buffer = document.createElement('canvas')
+      buffer.width = 800
+      buffer.height = 450
+      quagga.canvas = { dom: { image: buffer } }
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onDetected = quagga.onDetected.mock.lastCall![0]
+      const box = [
+        [300, 150],
+        [500, 150],
+        [500, 300],
+        [300, 300],
+      ]
+
+      act(() => {
+        onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
+        onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
+      })
+
+      // No playing video in jsdom, so there's no still frame, only the box.
+      expect(result.current).toMatchObject({
+        status: 'recognized',
+        barcode: '012345678905',
+        capture: { width: 800, height: 450, frame: null, box },
+      })
+    })
+
+    it('recognizes without a capture when Quagga has no canvas', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      detect('012345678905')
+      detect('012345678905')
+
+      expect(result.current).toMatchObject({ status: 'recognized', capture: undefined })
     })
 
     it('fires only once even if more frames arrive after recognition', async () => {
