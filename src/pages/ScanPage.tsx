@@ -7,9 +7,10 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Button from '../components/Button'
-import StatusView from '../components/StatusView'
 import {
   BarcodeIcon,
+  CheckIcon,
+  CircleAlertIcon,
   FlashlightIcon,
   FlashlightOffIcon,
   ScanBarcodeIcon,
@@ -78,45 +79,23 @@ export default function ScanPage() {
     </Button>
   )
 
-  if (isCamera && scanner.status === 'recognized') {
-    return (
-      <div className="scan-result">
-        <StatusView
-          tone="success"
-          title="Barcode Recognized"
-          subtitle={scanner.barcode}
-          actions={
-            <>
-              <Button onClick={scanner.restart}>Scan Again</Button>
-              {addManually}
-            </>
-          }
-        />
-      </div>
-    )
-  }
-
-  if (isCamera && scanner.status === 'error') {
-    return (
-      <div className="scan-result">
-        <StatusView
-          tone="danger"
-          title="Couldn't start the camera"
-          caption={scanner.message}
-          actions={
-            <>
-              <Button onClick={scanner.restart}>Try Again</Button>
-              {addManually}
-            </>
-          }
-        />
-      </div>
-    )
-  }
-
   const isCameraScanning = scanner.status === 'scanning' && isCamera
   const isPaused = scanner.status === 'paused' && isCamera
   const torch = scanner.status === 'scanning' ? scanner.torch : 'unsupported'
+
+  // Recognition results stay inside the viewfinder; full-screen results are for product lookup.
+  let result: { tone: 'success' | 'danger'; title: string; detail: string } | null = null
+  if (isCamera && scanner.status === 'recognized') {
+    result = { tone: 'success', title: 'Barcode Recognized', detail: scanner.barcode }
+  } else if (isCamera && scanner.status === 'not-recognized') {
+    result = {
+      tone: 'danger',
+      title: 'Barcode Not Recognized',
+      detail: 'Try more light, hold steady, or move a little closer.',
+    }
+  } else if (isCamera && scanner.status === 'error') {
+    result = { tone: 'danger', title: 'Camera Unavailable', detail: scanner.message }
+  }
 
   let statusTitle = 'Starting camera…'
   let statusHint = 'Position the barcode within the frame.'
@@ -174,7 +153,7 @@ export default function ScanPage() {
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {/* Quagga2 mounts the live <video> in here. */}
-          <div ref={videoRef} className="scan-video" hidden={!isCamera || isPaused} />
+          <div ref={videoRef} className="scan-video" hidden={!isCamera || isPaused || !!result} />
           {corners.map((corner) => (
             <motion.span
               key={corner.className}
@@ -184,7 +163,22 @@ export default function ScanPage() {
               transition={{ type: 'spring', stiffness: 400, damping: 18, delay: 0.15 }}
             />
           ))}
-          {!isCameraScanning && (
+          {result && (
+            <motion.div
+              className={`scan-result scan-result-${result.tone}`}
+              role="status"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              <span className="scan-result-icon" aria-hidden="true">
+                {result.tone === 'success' ? <CheckIcon /> : <CircleAlertIcon />}
+              </span>
+              <p className="scan-result-title">{result.title}</p>
+              <p className="scan-result-detail">{result.detail}</p>
+            </motion.div>
+          )}
+          {!isCameraScanning && !result && (
             <motion.div
               className="scan-barcode"
               aria-hidden="true"
@@ -212,7 +206,13 @@ export default function ScanPage() {
         <motion.div className="scan-controls-icon" {...fadeUp(CONTROLS_DELAY)}>
           <ScanBarcodeIcon />
         </motion.div>
-        {isCamera ? (
+        {result ? (
+          <motion.div className="scan-controls-item" {...fadeUp(0)}>
+            <Button onClick={scanner.restart}>
+              {scanner.status === 'recognized' ? 'Scan Again' : 'Try Again'}
+            </Button>
+          </motion.div>
+        ) : isCamera ? (
           <>
             <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
               <p className="scan-status-title">{statusTitle}</p>

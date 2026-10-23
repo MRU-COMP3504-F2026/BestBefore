@@ -12,6 +12,7 @@ export type ScannerState =
   | { status: 'scanning'; torch: TorchState; struggling: boolean }
   | { status: 'paused' }
   | { status: 'recognized'; barcode: string }
+  | { status: 'not-recognized' }
   | { status: 'error'; message: string }
 
 // upc_reader comes before ean_reader so UPC-A reads as 12 digits instead of a 0-padded EAN-13.
@@ -22,6 +23,9 @@ const REQUIRED_MATCHES = 2
 
 // After this long without a read, the scanner suggests better lighting or positioning.
 export const STRUGGLING_AFTER_MS = 10_000
+
+// After this long without a read, scanning stops and the barcode counts as not recognized.
+export const TIMEOUT_AFTER_MS = 30_000
 
 // Quagga is a singleton, so init/stop calls are queued to keep them from overlapping
 // (e.g. StrictMode mounting, unmounting and remounting before the camera has opened).
@@ -68,6 +72,16 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
     let lastCode = ''
     let matches = 0
     let strugglingTimer: ReturnType<typeof setTimeout> | undefined
+    let timeoutTimer: ReturnType<typeof setTimeout> | undefined
+
+    const finish = (next: ScannerState) => {
+      active = false
+      clearTimeout(strugglingTimer)
+      clearTimeout(timeoutTimer)
+      Quagga.offDetected(onDetected)
+      enqueue(() => Quagga.stop())
+      setState(next)
+    }
 
     const onDetected = (result: QuaggaJSResultObject) => {
       const code = result.codeResult.code
@@ -77,12 +91,8 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       lastCode = code
       if (matches < REQUIRED_MATCHES) return
 
-      active = false
-      clearTimeout(strugglingTimer)
-      Quagga.offDetected(onDetected)
-      enqueue(() => Quagga.stop())
       console.log(`Scanned barcode: ${code}`)
-      setState({ status: 'recognized', barcode: code })
+      finish({ status: 'recognized', barcode: code })
     }
 
     enqueue(async () => {
@@ -121,12 +131,14 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       strugglingTimer = setTimeout(() => {
         setState((s) => (s.status === 'scanning' ? { ...s, struggling: true } : s))
       }, STRUGGLING_AFTER_MS)
+      timeoutTimer = setTimeout(() => finish({ status: 'not-recognized' }), TIMEOUT_AFTER_MS)
     })
 
     // Stopping the camera releases its track, which also turns the torch off.
     return () => {
       active = false
       clearTimeout(strugglingTimer)
+      clearTimeout(timeoutTimer)
       Quagga.offDetected(onDetected)
       enqueue(() => Quagga.stop())
     }

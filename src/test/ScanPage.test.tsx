@@ -1,11 +1,11 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { QuaggaJSResultObject } from '@ericblade/quagga2'
 import ScanPage from '../pages/ScanPage'
 import ScanAddedPage from '../pages/ScanAddedPage'
 import { MOCK_PRODUCT } from '../lib/mockScan'
-import { STRUGGLING_AFTER_MS } from '../lib/useBarcodeScanner'
+import { STRUGGLING_AFTER_MS, TIMEOUT_AFTER_MS } from '../lib/useBarcodeScanner'
 
 const quagga = vi.hoisted(() => ({
   init: vi.fn(),
@@ -63,16 +63,19 @@ describe('ScanPage', () => {
     expect(quagga.start).toHaveBeenCalledTimes(1)
   })
 
-  it('stops scanning and shows the barcode, keeping leading zeros', async () => {
+  it('stops scanning and shows the barcode inside the frame, keeping leading zeros', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    renderScan()
+    const { container } = renderScan()
     await screen.findByText('Scanning for barcode…')
 
     detect('012345678905')
     detect('012345678905')
 
-    expect(await screen.findByRole('heading', { name: 'Barcode Recognized' })).toBeInTheDocument()
-    expect(screen.getByText('012345678905')).toBeInTheDocument()
+    const viewfinder = container.querySelector('.scan-viewfinder') as HTMLElement
+    const title = await within(viewfinder).findByText('Barcode Recognized')
+    const barcode = within(viewfinder).getByText('012345678905')
+    // The number sits directly below the message.
+    expect(title.nextElementSibling).toBe(barcode)
     expect(log).toHaveBeenCalledWith('Scanned barcode: 012345678905')
     expect(quagga.offDetected).toHaveBeenCalled()
     await vi.waitFor(() => expect(quagga.stop).toHaveBeenCalled())
@@ -102,15 +105,58 @@ describe('ScanPage', () => {
     expect(quagga.init).toHaveBeenCalledTimes(2)
   })
 
-  it('shows a permission error and retries on Try Again', async () => {
-    quagga.init.mockRejectedValueOnce(Object.assign(new Error('denied'), { name: 'NotAllowedError' }))
+  it('stays in the scanner on success instead of showing a full-screen result', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
     renderScan()
+    await screen.findByText('Scanning for barcode…')
 
-    expect(await screen.findByText(/Camera access was denied/)).toBeInTheDocument()
+    detect('012345678905')
+    detect('012345678905')
+
+    await screen.findByText('Barcode Recognized')
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    expect(screen.queryByText('Item Added!')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add Item Manually' })).toBeInTheDocument()
+  })
+
+  it('shows a permission error inside the frame and retries on Try Again', async () => {
+    quagga.init.mockRejectedValueOnce(Object.assign(new Error('denied'), { name: 'NotAllowedError' }))
+    const { container } = renderScan()
+
+    const viewfinder = container.querySelector('.scan-viewfinder') as HTMLElement
+    expect(await within(viewfinder).findByText('Camera Unavailable')).toBeInTheDocument()
+    expect(within(viewfinder).getByText(/Camera access was denied/)).toBeInTheDocument()
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Try Again' }))
 
     expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
+  })
+
+  describe('recognition timeout', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows Barcode Not Recognized inside the frame and retries on Try Again', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { container } = renderScan()
+      await screen.findByText('Scanning for barcode…')
+
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS))
+
+      const viewfinder = container.querySelector('.scan-viewfinder') as HTMLElement
+      expect(within(viewfinder).getByText('Barcode Not Recognized')).toBeInTheDocument()
+      expect(screen.queryByText('Failed')).not.toBeInTheDocument()
+      await vi.waitFor(() => expect(quagga.stop).toHaveBeenCalled())
+
+      await userEvent.click(screen.getByRole('button', { name: 'Try Again' }))
+
+      expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
+      expect(quagga.init).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('cancel and rescan', () => {

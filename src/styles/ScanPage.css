@@ -13,13 +13,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-10) var(--space-5);
+  /* Top padding clears the close and flashlight buttons (16px offset + 44px button). */
+  padding: calc(var(--space-10) + var(--space-6)) var(--space-5) var(--space-10);
   background: var(--color-primary);
 }
 
+/* Above the viewfinder, which would otherwise paint over these where they overlap. */
 .scan-close,
 .scan-torch {
   position: absolute;
+  z-index: 1;
   top: var(--space-4);
   left: var(--space-4);
   display: flex;
@@ -213,10 +216,65 @@
   }
 }
 
+/* Recognition result card, inset so the corner brackets stay visible around it. */
 .scan-result {
-  width: 100%;
-  max-width: var(--app-max-width);
-  min-height: 100svh;
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom));
+  position: absolute;
+  inset: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.scan-result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-full);
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.scan-result-success .scan-result-icon {
+  background: var(--color-success-light);
+  color: var(--color-primary-dark);
+}
+
+.scan-result-danger .scan-result-icon {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.scan-result-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.scan-result-detail {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+}
+
+/* The decoded number is the main content of a successful read. */
+.scan-result-success .scan-result-detail {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+  color: var(--color-text);
 }

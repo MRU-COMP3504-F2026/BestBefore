@@ -1,7 +1,7 @@
 import { StrictMode, type ReactNode } from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { QuaggaJSResultObject } from '@ericblade/quagga2'
-import { STRUGGLING_AFTER_MS, useBarcodeScanner } from '../lib/useBarcodeScanner'
+import { STRUGGLING_AFTER_MS, TIMEOUT_AFTER_MS, useBarcodeScanner } from '../lib/useBarcodeScanner'
 
 const quagga = vi.hoisted(() => ({
   init: vi.fn(),
@@ -360,6 +360,83 @@ describe('useBarcodeScanner', () => {
       act(() => vi.advanceTimersByTime(STRUGGLING_AFTER_MS))
 
       expect(result.current.status).toBe('paused')
+    })
+  })
+
+  describe('timeout', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('gives up as not recognized after the timeout and releases the camera', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onDetected = quagga.onDetected.mock.lastCall![0]
+
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS / 2))
+      expect(result.current.status).toBe('scanning')
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS / 2))
+
+      expect(result.current.status).toBe('not-recognized')
+      expect(quagga.offDetected).toHaveBeenCalledWith(onDetected)
+      await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
+    })
+
+    it('ignores reads that arrive after timing out', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onDetected = quagga.onDetected.mock.lastCall![0]
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS))
+
+      act(() => {
+        onDetected({ codeResult: { code: '012345678905' } })
+        onDetected({ codeResult: { code: '012345678905' } })
+      })
+
+      expect(result.current.status).toBe('not-recognized')
+      expect(log).not.toHaveBeenCalled()
+    })
+
+    it('does not fire after a successful read', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      detect('012345678905')
+      detect('012345678905')
+
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS))
+
+      expect(result.current).toMatchObject({ status: 'recognized', barcode: '012345678905' })
+      await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
+    })
+
+    it('does not fire while paused', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      act(() => result.current.cancel())
+
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS))
+
+      expect(result.current.status).toBe('paused')
+    })
+
+    it('starts a fresh timeout on restart', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS * 0.6))
+
+      act(() => result.current.restart())
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      // Past where the first timeout would have fired, but not the new one.
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS * 0.6))
+      expect(result.current.status).toBe('scanning')
+
+      act(() => vi.advanceTimersByTime(TIMEOUT_AFTER_MS * 0.5))
+      expect(result.current.status).toBe('not-recognized')
     })
   })
 
