@@ -66,8 +66,9 @@ function captureRecognition(
   target: HTMLElement,
   result: QuaggaJSResultObject,
 ): RecognitionCapture | undefined {
-  // Quagga's working canvas lives in the target; its size is the box's coordinate space.
-  const buffer = target.querySelector<HTMLCanvasElement>('canvas.imgBuffer')
+  // Quagga's working canvas size is the box's coordinate space. It is only attached to the
+  // page for image input, so read it from Quagga rather than from the target.
+  const buffer = Quagga.canvas?.dom.image
   if (!buffer?.width || !buffer.height) return undefined
   const { width, height } = buffer
 
