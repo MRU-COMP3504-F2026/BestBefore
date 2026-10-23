@@ -4,14 +4,14 @@
  */
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import Quagga, { type QuaggaJSResultObject } from '@ericblade/quagga2'
-import { barsLine, toPoints, type Point } from './barcodeGeometry'
+import { barsLine, measureBars, toGray, toPoints, type Point } from './barcodeGeometry'
 
 export type TorchState = 'unsupported' | 'off' | 'on'
 
 /**
  * What the camera saw at the moment of recognition, in Quagga's canvas coordinates
- * (same aspect ratio as the video). `frame` is a still of the decoded frame, `box` the
- * region Quagga located and `line` where it read the bars; each is null when unavailable.
+ * (same aspect ratio as the video). `frame` is a still of the decoded frame, `box` the bars
+ * as measured in it and `line` where Quagga read them; each is null when unavailable.
  */
 export type RecognitionCapture = {
   width: number
@@ -87,8 +87,13 @@ function captureRecognition(result: QuaggaJSResultObject): RecognitionCapture | 
     // The still is only cosmetic; the outline can show without it.
   }
 
-  const box = toPoints(result.box)
+  // Quagga's own box is only a rough location, so the outline is measured from the frame.
   const line = barsLine(result)
+  let box: Point[] | null = null
+  if (line) {
+    const pixels = buffer.getContext('2d')?.getImageData(0, 0, width, height)
+    if (pixels) box = measureBars(toGray(pixels), line)
+  }
   return frame || box || line ? { width, height, frame, box, line } : undefined
 }
 

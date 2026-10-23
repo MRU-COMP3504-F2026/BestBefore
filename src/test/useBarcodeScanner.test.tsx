@@ -189,12 +189,15 @@ describe('useBarcodeScanner', () => {
       await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
     })
 
-    it("keeps the decoded frame and box in Quagga's canvas coordinates for highlighting", async () => {
+    it("keeps the decoded frame and read line in Quagga's canvas coordinates", async () => {
       // Like a live stream: Quagga holds its working canvas without attaching it to the target.
       const buffer = document.createElement('canvas')
       buffer.width = 800
       buffer.height = 450
       buffer.toDataURL = () => 'data:image/jpeg;base64,AAAA'
+      // A blank frame: the read line is kept, but there are no bars to measure a box from.
+      const pixels = { width: 800, height: 450, data: new Uint8ClampedArray(800 * 450 * 4) }
+      buffer.getContext = (() => ({ getImageData: () => pixels })) as never
       quagga.canvas = { dom: { image: buffer, overlay: null }, ctx: { overlay: null } }
       const { result } = renderScanner()
       await waitFor(() => expect(result.current.status).toBe('scanning'))
@@ -225,7 +228,7 @@ describe('useBarcodeScanner', () => {
           width: 800,
           height: 450,
           frame: 'data:image/jpeg;base64,AAAA',
-          box: read.box,
+          box: null,
           // The scanline trimmed to the bars it read.
           line: [
             [300, 220],
