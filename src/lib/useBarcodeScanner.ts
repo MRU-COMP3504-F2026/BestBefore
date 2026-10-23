@@ -5,9 +5,12 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import Quagga, { type QuaggaJSResultObject } from '@ericblade/quagga2'
 
+export type TorchState = 'unsupported' | 'off' | 'on'
+
 export type ScannerState =
   | { status: 'starting' }
-  | { status: 'scanning' }
+  | { status: 'scanning'; torch: TorchState; struggling: boolean }
+  | { status: 'paused' }
   | { status: 'recognized'; barcode: string }
   | { status: 'error'; message: string }
 
@@ -16,6 +19,9 @@ const READERS = ['upc_reader', 'ean_reader', 'upc_e_reader', 'ean_8_reader'] as 
 
 // Quagga can misread a single frame, so a code must be read this many times in a row.
 const REQUIRED_MATCHES = 2
+
+// After this long without a read, the scanner suggests better lighting or positioning.
+export const STRUGGLING_AFTER_MS = 10_000
 
 // Quagga is a singleton, so init/stop calls are queued to keep them from overlapping
 // (e.g. StrictMode mounting, unmounting and remounting before the camera has opened).
@@ -39,22 +45,29 @@ function describeCameraError(err: unknown): string {
   return "The camera couldn't be started. Please try again."
 }
 
+function hasTorch(): boolean {
+  const capabilities = Quagga.CameraAccess.getActiveTrack()?.getCapabilities?.()
+  return !!capabilities && 'torch' in capabilities
+}
+
 /**
  * Runs a live Quagga2 scan inside `targetRef` and stops after the first recognized barcode.
- * Call `restart` to scan again; the camera is released on success, error, unmount and
- * when `enabled` becomes false.
+ * `cancel` pauses and `restart` scans again; the camera is released on success, error,
+ * pause, unmount and when `enabled` becomes false.
  */
 export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enabled = true) {
   const [state, setState] = useState<ScannerState>({ status: 'starting' })
-  const [attempt, setAttempt] = useState(0)
+  const [run, setRun] = useState({ attempt: 0, paused: false })
+  const shouldRun = enabled && !run.paused
 
   useEffect(() => {
     const target = targetRef.current
-    if (!enabled || !target) return
+    if (!shouldRun || !target) return
 
     let active = true
     let lastCode = ''
     let matches = 0
+    let strugglingTimer: ReturnType<typeof setTimeout> | undefined
 
     const onDetected = (result: QuaggaJSResultObject) => {
       const code = result.codeResult.code
@@ -65,6 +78,7 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       if (matches < REQUIRED_MATCHES) return
 
       active = false
+      clearTimeout(strugglingTimer)
       Quagga.offDetected(onDetected)
       enqueue(() => Quagga.stop())
       console.log(`Scanned barcode: ${code}`)
@@ -103,20 +117,39 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
 
       Quagga.onDetected(onDetected)
       Quagga.start()
-      setState({ status: 'scanning' })
+      setState({ status: 'scanning', torch: hasTorch() ? 'off' : 'unsupported', struggling: false })
+      strugglingTimer = setTimeout(() => {
+        setState((s) => (s.status === 'scanning' ? { ...s, struggling: true } : s))
+      }, STRUGGLING_AFTER_MS)
     })
 
+    // Stopping the camera releases its track, which also turns the torch off.
     return () => {
       active = false
+      clearTimeout(strugglingTimer)
       Quagga.offDetected(onDetected)
       enqueue(() => Quagga.stop())
     }
-  }, [targetRef, enabled, attempt])
+  }, [targetRef, shouldRun, run.attempt])
 
   const restart = useCallback(() => {
     setState({ status: 'starting' })
-    setAttempt((n) => n + 1)
+    setRun((r) => ({ attempt: r.attempt + 1, paused: false }))
   }, [])
 
-  return { ...state, restart }
+  const cancel = useCallback(() => {
+    setState({ status: 'paused' })
+    setRun((r) => ({ ...r, paused: true }))
+  }, [])
+
+  const toggleTorch = useCallback(() => {
+    if (state.status !== 'scanning' || state.torch === 'unsupported') return
+    const turnOn = state.torch === 'off'
+    enqueue(async () => {
+      await (turnOn ? Quagga.CameraAccess.enableTorch() : Quagga.CameraAccess.disableTorch())
+      setState((s) => (s.status === 'scanning' ? { ...s, torch: turnOn ? 'on' : 'off' } : s))
+    })
+  }, [state])
+
+  return { ...state, restart, cancel, toggleTorch }
 }

@@ -8,7 +8,13 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Button from '../components/Button'
 import StatusView from '../components/StatusView'
-import { BarcodeIcon, ScanBarcodeIcon, XIcon } from '../components/icons'
+import {
+  BarcodeIcon,
+  FlashlightIcon,
+  FlashlightOffIcon,
+  ScanBarcodeIcon,
+  XIcon,
+} from '../components/icons'
 import { mockScan, type ScanOutcome } from '../lib/mockScan'
 import { useBarcodeScanner } from '../lib/useBarcodeScanner'
 import { fadeUp, spring, tap } from '../lib/motion'
@@ -108,7 +114,21 @@ export default function ScanPage() {
     )
   }
 
-  const isCameraScanning = isCamera && scanner.status === 'scanning'
+  const isCameraScanning = scanner.status === 'scanning' && isCamera
+  const isPaused = scanner.status === 'paused' && isCamera
+  const torch = scanner.status === 'scanning' ? scanner.torch : 'unsupported'
+
+  let statusTitle = 'Starting camera…'
+  let statusHint = 'Position the barcode within the frame.'
+  if (isPaused) {
+    statusTitle = 'Scanning paused'
+    statusHint = 'Tap Rescan to start the camera again.'
+  } else if (scanner.status === 'scanning') {
+    statusTitle = 'Scanning for barcode…'
+    if (scanner.struggling) {
+      statusHint = 'Having trouble? Try more light, hold steady, or move a little closer.'
+    }
+  }
 
   return (
     <div className="scan">
@@ -131,6 +151,22 @@ export default function ScanPage() {
           <XIcon />
         </motion.button>
 
+        {isCameraScanning && torch !== 'unsupported' && (
+          <motion.button
+            type="button"
+            className="scan-torch"
+            aria-label={torch === 'on' ? 'Turn off flashlight' : 'Turn on flashlight'}
+            aria-pressed={torch === 'on'}
+            onClick={scanner.toggleTorch}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            whileTap={{ scale: 0.85 }}
+            transition={spring}
+          >
+            {torch === 'on' ? <FlashlightIcon /> : <FlashlightOffIcon />}
+          </motion.button>
+        )}
+
         <motion.div
           className="scan-viewfinder"
           initial={{ scale: 0.9, opacity: 0 }}
@@ -138,7 +174,7 @@ export default function ScanPage() {
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {/* Quagga2 mounts the live <video> in here. */}
-          <div ref={videoRef} className="scan-video" hidden={!isCamera} />
+          <div ref={videoRef} className="scan-video" hidden={!isCamera || isPaused} />
           {corners.map((corner) => (
             <motion.span
               key={corner.className}
@@ -177,12 +213,26 @@ export default function ScanPage() {
           <ScanBarcodeIcon />
         </motion.div>
         {isCamera ? (
-          <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
-            <p className="scan-status-title">
-              {isCameraScanning ? 'Scanning for barcode…' : 'Starting camera…'}
-            </p>
-            <p className="scan-status-hint">Position the barcode within the frame.</p>
-          </motion.div>
+          <>
+            <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
+              <p className="scan-status-title">{statusTitle}</p>
+              <p className="scan-status-hint">{statusHint}</p>
+            </motion.div>
+            <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.09)}>
+              {isPaused ? (
+                <Button onClick={scanner.restart}>Rescan</Button>
+              ) : (
+                <div className="scan-controls-row">
+                  <Button variant="secondary" onClick={scanner.cancel}>
+                    Cancel
+                  </Button>
+                  <Button variant="secondary" onClick={scanner.restart}>
+                    Rescan
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          </>
         ) : (
           <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.06)}>
             <Button onClick={onMockScan} disabled={isMockScanning}>

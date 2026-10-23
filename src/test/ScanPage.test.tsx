@@ -5,6 +5,7 @@ import type { QuaggaJSResultObject } from '@ericblade/quagga2'
 import ScanPage from '../pages/ScanPage'
 import ScanAddedPage from '../pages/ScanAddedPage'
 import { MOCK_PRODUCT } from '../lib/mockScan'
+import { STRUGGLING_AFTER_MS } from '../lib/useBarcodeScanner'
 
 const quagga = vi.hoisted(() => ({
   init: vi.fn(),
@@ -12,6 +13,11 @@ const quagga = vi.hoisted(() => ({
   stop: vi.fn(),
   onDetected: vi.fn(),
   offDetected: vi.fn(),
+  CameraAccess: {
+    getActiveTrack: vi.fn(),
+    enableTorch: vi.fn(),
+    disableTorch: vi.fn(),
+  },
 }))
 
 vi.mock('@ericblade/quagga2', () => ({ default: quagga }))
@@ -40,6 +46,7 @@ describe('ScanPage', () => {
     vi.clearAllMocks()
     quagga.init.mockResolvedValue(undefined)
     quagga.stop.mockResolvedValue(undefined)
+    quagga.CameraAccess.getActiveTrack.mockReturnValue(null)
     Object.defineProperty(navigator, 'mediaDevices', {
       value: { getUserMedia: vi.fn() },
       configurable: true,
@@ -104,6 +111,80 @@ describe('ScanPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Try Again' }))
 
     expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
+  })
+
+  describe('cancel and rescan', () => {
+    it('pauses on Cancel and resumes on Rescan', async () => {
+      renderScan()
+      await screen.findByText('Scanning for barcode…')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(screen.getByText('Scanning paused')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+      await vi.waitFor(() => expect(quagga.stop).toHaveBeenCalled())
+
+      await userEvent.click(screen.getByRole('button', { name: 'Rescan' }))
+
+      expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
+      expect(quagga.init).toHaveBeenCalledTimes(2)
+    })
+
+    it('restarts the camera on Rescan while scanning', async () => {
+      renderScan()
+      await screen.findByText('Scanning for barcode…')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Rescan' }))
+
+      expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
+      expect(quagga.init).toHaveBeenCalledTimes(2)
+      expect(quagga.stop).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('lighting help', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('hides the flashlight button when the camera has no torch', async () => {
+      renderScan()
+      await screen.findByText('Scanning for barcode…')
+
+      expect(screen.queryByRole('button', { name: /flashlight/ })).not.toBeInTheDocument()
+    })
+
+    it('toggles the flashlight when supported', async () => {
+      quagga.CameraAccess.getActiveTrack.mockReturnValue({
+        getCapabilities: () => ({ torch: true }),
+      })
+      quagga.CameraAccess.enableTorch.mockResolvedValue(undefined)
+      quagga.CameraAccess.disableTorch.mockResolvedValue(undefined)
+      renderScan()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Turn on flashlight' }))
+
+      const off = await screen.findByRole('button', { name: 'Turn off flashlight' })
+      expect(off).toHaveAttribute('aria-pressed', 'true')
+      expect(quagga.CameraAccess.enableTorch).toHaveBeenCalled()
+
+      await userEvent.click(off)
+
+      expect(await screen.findByRole('button', { name: 'Turn on flashlight' })).toBeInTheDocument()
+      expect(quagga.CameraAccess.disableTorch).toHaveBeenCalled()
+    })
+
+    it('suggests better lighting when a scan is taking a while', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      renderScan()
+      await screen.findByText('Scanning for barcode…')
+      expect(screen.getByText('Position the barcode within the frame.')).toBeInTheDocument()
+
+      act(() => vi.advanceTimersByTime(STRUGGLING_AFTER_MS))
+
+      expect(screen.getByText(/Try more light/)).toBeInTheDocument()
+      expect(screen.getByText('Scanning for barcode…')).toBeInTheDocument()
+    })
   })
 
   describe('scanner mode toggle', () => {

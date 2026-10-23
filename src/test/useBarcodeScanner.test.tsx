@@ -1,7 +1,7 @@
 import { StrictMode, type ReactNode } from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { QuaggaJSResultObject } from '@ericblade/quagga2'
-import { useBarcodeScanner } from '../lib/useBarcodeScanner'
+import { STRUGGLING_AFTER_MS, useBarcodeScanner } from '../lib/useBarcodeScanner'
 
 const quagga = vi.hoisted(() => ({
   init: vi.fn(),
@@ -9,6 +9,11 @@ const quagga = vi.hoisted(() => ({
   stop: vi.fn(),
   onDetected: vi.fn(),
   offDetected: vi.fn(),
+  CameraAccess: {
+    getActiveTrack: vi.fn(),
+    enableTorch: vi.fn(),
+    disableTorch: vi.fn(),
+  },
 }))
 
 vi.mock('@ericblade/quagga2', () => ({ default: quagga }))
@@ -38,6 +43,7 @@ describe('useBarcodeScanner', () => {
     vi.clearAllMocks()
     quagga.init.mockResolvedValue(undefined)
     quagga.stop.mockResolvedValue(undefined)
+    quagga.CameraAccess.getActiveTrack.mockReturnValue(null)
     Object.defineProperty(navigator, 'mediaDevices', {
       value: { getUserMedia: vi.fn() },
       configurable: true,
@@ -245,6 +251,171 @@ describe('useBarcodeScanner', () => {
       detect('012345678905')
 
       expect(result.current.status).toBe('scanning')
+    })
+  })
+
+  describe('torch', () => {
+    function withTorchSupport() {
+      quagga.CameraAccess.getActiveTrack.mockReturnValue({
+        getCapabilities: () => ({ torch: true }),
+      })
+      quagga.CameraAccess.enableTorch.mockResolvedValue(undefined)
+      quagga.CameraAccess.disableTorch.mockResolvedValue(undefined)
+    }
+
+    it('is unsupported when there is no active track', async () => {
+      const { result } = renderScanner()
+
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'unsupported' }))
+    })
+
+    it('is unsupported when the camera has no torch capability', async () => {
+      quagga.CameraAccess.getActiveTrack.mockReturnValue({ getCapabilities: () => ({}) })
+      const { result } = renderScanner()
+
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'unsupported' }))
+    })
+
+    it('starts off when supported and toggles on and off', async () => {
+      withTorchSupport()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'off' }))
+
+      act(() => result.current.toggleTorch())
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'on' }))
+      expect(quagga.CameraAccess.enableTorch).toHaveBeenCalledTimes(1)
+
+      act(() => result.current.toggleTorch())
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'off' }))
+      expect(quagga.CameraAccess.disableTorch).toHaveBeenCalledTimes(1)
+    })
+
+    it('stays off if the torch cannot be turned on', async () => {
+      withTorchSupport()
+      quagga.CameraAccess.enableTorch.mockRejectedValueOnce(new Error('no torch'))
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'off' }))
+
+      act(() => result.current.toggleTorch())
+
+      await waitFor(() => expect(quagga.CameraAccess.enableTorch).toHaveBeenCalled())
+      expect(result.current).toMatchObject({ status: 'scanning', torch: 'off' })
+    })
+
+    it('does nothing when unsupported', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      act(() => result.current.toggleTorch())
+
+      expect(quagga.CameraAccess.enableTorch).not.toHaveBeenCalled()
+    })
+
+    it('resets to off when the scanner restarts', async () => {
+      withTorchSupport()
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'off' }))
+      act(() => result.current.toggleTorch())
+      await waitFor(() => expect(result.current).toMatchObject({ torch: 'on' }))
+
+      act(() => result.current.restart())
+
+      await waitFor(() => expect(result.current).toMatchObject({ status: 'scanning', torch: 'off' }))
+    })
+  })
+
+  describe('struggling hint', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('flags a slow scan after the threshold without stopping', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current).toMatchObject({ struggling: false }))
+
+      act(() => vi.advanceTimersByTime(STRUGGLING_AFTER_MS))
+
+      expect(result.current).toMatchObject({ status: 'scanning', struggling: true })
+      expect(quagga.stop).not.toHaveBeenCalled()
+    })
+
+    it('starts over on restart', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      act(() => vi.advanceTimersByTime(STRUGGLING_AFTER_MS))
+
+      act(() => result.current.restart())
+
+      await waitFor(() => expect(result.current).toMatchObject({ status: 'scanning', struggling: false }))
+    })
+
+    it('does not fire after the scanner has stopped', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+
+      act(() => result.current.cancel())
+      act(() => vi.advanceTimersByTime(STRUGGLING_AFTER_MS))
+
+      expect(result.current.status).toBe('paused')
+    })
+  })
+
+  describe('cancel', () => {
+    it('pauses and releases the camera', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onDetected = quagga.onDetected.mock.lastCall![0]
+
+      act(() => result.current.cancel())
+
+      expect(result.current.status).toBe('paused')
+      expect(quagga.offDetected).toHaveBeenCalledWith(onDetected)
+      await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
+      expect(quagga.init).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores detections after pausing', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      const onDetected = quagga.onDetected.mock.lastCall![0]
+
+      act(() => result.current.cancel())
+      act(() => {
+        onDetected({ codeResult: { code: '012345678905' } })
+        onDetected({ codeResult: { code: '012345678905' } })
+      })
+
+      expect(result.current.status).toBe('paused')
+      expect(log).not.toHaveBeenCalled()
+    })
+
+    it('stays paused instead of scanning if cancelled while the camera is opening', async () => {
+      let finishInit!: () => void
+      quagga.init.mockReturnValueOnce(new Promise<void>((resolve) => (finishInit = resolve)))
+      const { result } = renderScanner()
+      await waitFor(() => expect(quagga.init).toHaveBeenCalled())
+
+      act(() => result.current.cancel())
+      finishInit()
+
+      await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
+      expect(result.current.status).toBe('paused')
+      expect(quagga.start).not.toHaveBeenCalled()
+    })
+
+    it('resumes scanning on restart', async () => {
+      const { result } = renderScanner()
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      act(() => result.current.cancel())
+
+      act(() => result.current.restart())
+
+      expect(result.current.status).toBe('starting')
+      await waitFor(() => expect(result.current.status).toBe('scanning'))
+      expect(quagga.init).toHaveBeenCalledTimes(2)
     })
   })
 
