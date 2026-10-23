@@ -4,13 +4,14 @@
  */
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import Quagga, { type QuaggaJSResultObject } from '@ericblade/quagga2'
+import { barcodeOutline } from './barcodeOutline'
 
 export type TorchState = 'unsupported' | 'off' | 'on'
 
 /**
  * What the camera saw at the moment of recognition, in Quagga's canvas coordinates
- * (same aspect ratio as the video). `frame` is a still of the last video frame and
- * `box` the located barcode's corners; either is null when it wasn't available.
+ * (same aspect ratio as the video). `frame` is a still of the decoded frame and `box` the
+ * outline around the barcode's bars; either is null when it wasn't available.
  */
 export type RecognitionCapture = {
   width: number
@@ -61,31 +62,24 @@ function describeCameraError(err: unknown): string {
   return "The camera couldn't be started. Please try again."
 }
 
-// Copies the current video frame before the camera stops, so the viewfinder can keep showing it.
-function captureRecognition(
-  target: HTMLElement,
-  result: QuaggaJSResultObject,
-): RecognitionCapture | undefined {
-  // Quagga's working canvas size is the box's coordinate space. It is only attached to the
-  // page for image input, so read it from Quagga rather than from the target.
+// Keeps the frame Quagga decoded and the barcode's outline, so the viewfinder can show them
+// after the camera stops.
+function captureRecognition(result: QuaggaJSResultObject): RecognitionCapture | undefined {
+  // Quagga draws each frame it processes into this canvas before decoding it, and reports
+  // the result before grabbing the next one, so it still holds the exact decoded frame.
+  // Its size is also the coordinate space of the result's line and box.
   const buffer = Quagga.canvas?.dom.image
   if (!buffer?.width || !buffer.height) return undefined
   const { width, height } = buffer
 
   let frame: string | null = null
-  const video = target.querySelector('video')
-  if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-    const still = document.createElement('canvas')
-    still.width = width
-    still.height = height
-    const ctx = still.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, width, height)
-      frame = still.toDataURL('image/jpeg', 0.85)
-    }
+  try {
+    frame = buffer.toDataURL('image/jpeg', 0.85)
+  } catch {
+    // The still is only cosmetic; the outline can show without it.
   }
 
-  const box = result.box?.length ? result.box.map(([x, y]) => [x, y] as [number, number]) : null
+  const box = barcodeOutline(result)
   return frame || box ? { width, height, frame, box } : undefined
 }
 
@@ -134,9 +128,9 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       console.log(`Scanned barcode: ${code}`)
       let capture: RecognitionCapture | undefined
       try {
-        capture = captureRecognition(target, result)
+        capture = captureRecognition(result)
       } catch {
-        // The still is only cosmetic; the recognition stands without it.
+        // The capture is only cosmetic; the recognition stands without it.
       }
       finish({ status: 'recognized', barcode: code, capture })
     }

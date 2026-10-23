@@ -168,11 +168,12 @@ describe('useBarcodeScanner', () => {
       await waitFor(() => expect(quagga.stop).toHaveBeenCalledTimes(1))
     })
 
-    it("keeps the located box in Quagga's canvas coordinates for highlighting", async () => {
+    it("keeps the decoded frame and box in Quagga's canvas coordinates for highlighting", async () => {
       // Like a live stream: Quagga holds its working canvas without attaching it to the target.
       const buffer = document.createElement('canvas')
       buffer.width = 800
       buffer.height = 450
+      buffer.toDataURL = () => 'data:image/jpeg;base64,AAAA'
       quagga.canvas = { dom: { image: buffer } }
       const { result } = renderScanner()
       await waitFor(() => expect(result.current.status).toBe('scanning'))
@@ -189,11 +190,11 @@ describe('useBarcodeScanner', () => {
         onDetected({ codeResult: { code: '012345678905' }, box } as QuaggaJSResultObject)
       })
 
-      // No playing video in jsdom, so there's no still frame, only the box.
+      // Without a decode line the outline falls back to Quagga's box.
       expect(result.current).toMatchObject({
         status: 'recognized',
         barcode: '012345678905',
-        capture: { width: 800, height: 450, frame: null, box },
+        capture: { width: 800, height: 450, frame: 'data:image/jpeg;base64,AAAA', box },
       })
     })
 
