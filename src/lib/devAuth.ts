@@ -1,6 +1,7 @@
-// Local-dev bypass: set VITE_DISABLE_AUTH=true in .env.local to skip login entirely.
-// Only honoured by the Vite dev server; production builds always have auth on.
-export const AUTH_DISABLED = import.meta.env.DEV && import.meta.env.VITE_DISABLE_AUTH === 'true'
+// Dev/preview bypass: set VITE_DISABLE_AUTH=true (.env.local locally, Vercel's Preview env for
+// previews) to skip login entirely. Never honoured in Vercel production builds.
+export const AUTH_DISABLED =
+  import.meta.env.VITE_DISABLE_AUTH === 'true' && import.meta.env.VITE_VERCEL_ENV !== 'production'
 
 export const DEV_USER = {
   id: 'dev-user',

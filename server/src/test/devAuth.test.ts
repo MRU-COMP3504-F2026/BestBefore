@@ -16,19 +16,19 @@ describe('GET /api/me with VITE_DISABLE_AUTH', () => {
     expect(response.body).toEqual({ user: DEV_USER })
   })
 
-  it('is ignored in production', async () => {
+  it('applies on Vercel preview deployments', async () => {
     vi.stubEnv('VITE_DISABLE_AUTH', 'true')
-    vi.stubEnv('NODE_ENV', 'production')
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.stubEnv('VERCEL_ENV', 'preview')
 
     const response = await request(app).get('/api/me')
 
-    expect(response.status).toBe(401)
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual({ user: DEV_USER })
   })
 
-  it('is ignored on Vercel', async () => {
+  it('is ignored on Vercel production', async () => {
     vi.stubEnv('VITE_DISABLE_AUTH', 'true')
-    vi.stubEnv('VERCEL', '1')
+    vi.stubEnv('VERCEL_ENV', 'production')
     vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     const response = await request(app).get('/api/me')

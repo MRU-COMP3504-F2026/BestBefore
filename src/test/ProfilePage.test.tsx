@@ -4,6 +4,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ProfilePage from '../pages/ProfilePage'
 import { signOut } from '../lib/authClient'
 
+const devAuth = vi.hoisted(() => ({ AUTH_DISABLED: false }))
+
+vi.mock('../lib/devAuth', () => ({
+  get AUTH_DISABLED() {
+    return devAuth.AUTH_DISABLED
+  },
+}))
+
 vi.mock('../lib/authClient', () => ({
   useAuthSession: () => ({
     data: { user: { name: 'Your Name', email: 'you@example.com' } },
@@ -24,6 +32,10 @@ function renderProfile() {
 }
 
 describe('ProfilePage', () => {
+  afterEach(() => {
+    devAuth.AUTH_DISABLED = false
+  })
+
   it('renders the user details, household row and log out', () => {
     renderProfile()
 
@@ -42,5 +54,12 @@ describe('ProfilePage', () => {
 
     expect(signOut).toHaveBeenCalled()
     expect(await screen.findByText('Login')).toBeInTheDocument()
+  })
+
+  it('disables log out while auth is disabled', () => {
+    devAuth.AUTH_DISABLED = true
+    renderProfile()
+
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeDisabled()
   })
 })

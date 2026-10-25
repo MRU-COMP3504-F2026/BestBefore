@@ -9,12 +9,12 @@ export const DEV_USER: AuthUser = {
 
 let warnedInProduction = false
 
-// Local-dev bypass, shared with the client via VITE_DISABLE_AUTH in .env.local.
-// Read per request so tests can toggle it. Never honoured in production or on Vercel.
+// Dev/preview bypass, shared with the client via VITE_DISABLE_AUTH.
+// Read per request so tests can toggle it. Never honoured on Vercel production.
 export function isAuthDisabled(): boolean {
   if (process.env.VITE_DISABLE_AUTH !== 'true') return false
 
-  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  if (process.env.VERCEL_ENV === 'production') {
     if (!warnedInProduction) {
       console.warn('VITE_DISABLE_AUTH is set in production; ignoring it.')
       warnedInProduction = true
