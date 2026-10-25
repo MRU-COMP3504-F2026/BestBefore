@@ -9,7 +9,7 @@ import { motion } from 'motion/react'
 import Button from '../components/Button'
 import PageHeader from '../components/PageHeader'
 import { ChevronRightIcon, HouseIcon, UserIcon } from '../components/icons'
-import { authClient, signOut } from '../lib/authClient'
+import { signOut, useAuthSession } from '../lib/authClient'
 import { spring, tap } from '../lib/motion'
 import '../styles/ProfilePage.css'
 
@@ -18,7 +18,7 @@ const household = 'My Household'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { data: session } = authClient.useSession()
+  const { data: session } = useAuthSession()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const user = {

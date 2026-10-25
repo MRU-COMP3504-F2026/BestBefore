@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import RequireAuth from '../components/RequireAuth'
-import { authClient } from '../lib/authClient'
+import { useAuthSession } from '../lib/authClient'
 
-vi.mock('../lib/authClient', () => ({ authClient: { useSession: vi.fn() } }))
+vi.mock('../lib/authClient', () => ({ useAuthSession: vi.fn() }))
 
-type SessionState = ReturnType<typeof authClient.useSession>
+type SessionState = ReturnType<typeof useAuthSession>
 
 function renderProtected(session: { data: unknown; isPending: boolean }) {
-  vi.mocked(authClient.useSession).mockReturnValue(session as SessionState)
+  vi.mocked(useAuthSession).mockReturnValue(session as SessionState)
   render(
     <MemoryRouter initialEntries={['/items']}>
       <Routes>

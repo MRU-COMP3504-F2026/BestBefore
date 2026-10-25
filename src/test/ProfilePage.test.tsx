@@ -5,12 +5,10 @@ import ProfilePage from '../pages/ProfilePage'
 import { signOut } from '../lib/authClient'
 
 vi.mock('../lib/authClient', () => ({
-  authClient: {
-    useSession: () => ({
-      data: { user: { name: 'Your Name', email: 'you@example.com' } },
-      isPending: false,
-    }),
-  },
+  useAuthSession: () => ({
+    data: { user: { name: 'Your Name', email: 'you@example.com' } },
+    isPending: false,
+  }),
   signOut: vi.fn(async () => ({ ok: true })),
 }))
 

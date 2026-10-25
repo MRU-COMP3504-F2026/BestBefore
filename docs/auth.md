@@ -50,6 +50,19 @@ Not needed: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (self-hosted Better Auth onl
 Locally, the server and drizzle-kit load `.env.local` then `.env` (`server/src/env.ts`); Vite reads `.env.local` itself.
 On Vercel, set all three for Production and Preview. `VITE_NEON_AUTH_URL` is baked in at build time, so redeploy after changing it.
 
+## Disabling auth for local dev
+
+Add `VITE_DISABLE_AUTH=true` to `.env.local` (default in `.env.example` is `false`) and restart `npm run dev`.
+
+- **Client** (`src/lib/devAuth.ts`): `RequireAuth` lets every route through, `useAuthSession()` returns a fixed
+  dev user (`dev-user` / `dev@bestbefore.local`), and `signIn` / `signUp` / `signOut` succeed without calling Neon.
+  Only the Vite dev server honours the flag; `vite build` output always has auth on.
+- **Server** (`server/src/auth/devAuth.ts`): `requireAuth` skips JWT checks and sets `res.locals.user` to the
+  same dev user. Ignored (with a warning) when `NODE_ENV=production` or `VERCEL` is set.
+
+Neon credentials aren't needed with the flag on. Use `useAuthSession()` rather than `authClient.useSession()`
+in components so the bypass applies.
+
 ## Sign-up rate limit (1 per IP per 24h)
 
 Sign-ups go straight from the browser to Neon, so the limit is enforced by Neon Auth's blocking

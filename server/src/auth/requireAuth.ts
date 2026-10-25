@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import { jwtVerify } from 'jose'
+import { DEV_USER, isAuthDisabled } from './devAuth.js'
 import { getNeonAuthKeys } from './neonAuth.js'
 
 export type AuthUser = {
@@ -16,6 +17,12 @@ declare module 'express-serve-static-core' {
 
 // Verifies the Neon Auth JWT sent as `Authorization: Bearer <token>`.
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (isAuthDisabled()) {
+    res.locals.user = DEV_USER
+    next()
+    return
+  }
+
   const header = req.headers.authorization
   const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined
 
