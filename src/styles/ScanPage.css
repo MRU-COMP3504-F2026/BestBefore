@@ -475,11 +475,25 @@
   object-fit: cover;
 }
 
-/* Waiting on the backend; a slow pulse instead of the success check. */
+/* Waiting on the backend: a pulsing icon inside a spinning ring instead of the success check. */
 .scan-recognized-message .scan-ai-pending {
+  position: relative;
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  animation: scan-ai-pulse 1.4s ease-in-out infinite alternate;
+
+  svg {
+    animation: scan-ai-pulse 1.4s ease-in-out infinite alternate;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--color-success-light);
+    border-radius: var(--radius-full);
+    animation: scan-ai-spin 0.9s linear infinite;
+  }
 }
 
 @keyframes scan-ai-pulse {
@@ -488,6 +502,47 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes scan-ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A soft band of light sweeping across the still while it's being looked at. A transform
+   animation, so it stays smooth on the compositor. */
+.scan-ai-shimmer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 50%;
+    background: linear-gradient(
+      100deg,
+      transparent,
+      rgba(255, 255, 255, 0.18),
+      transparent
+    );
+    animation: scan-ai-sweep 1.6s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes scan-ai-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
   }
 }
 
@@ -534,8 +589,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scan-recognized-message .scan-ai-pending {
+  /* The ring stays as a still marker; the sweep and pulse stop. */
+  .scan-recognized-message .scan-ai-pending svg,
+  .scan-recognized-message .scan-ai-pending::after,
+  .scan-ai-shimmer::before {
     animation: none;
+  }
+
+  .scan-ai-shimmer {
+    display: none;
   }
 
   /* A still line across the middle still shows the scanner is active. */

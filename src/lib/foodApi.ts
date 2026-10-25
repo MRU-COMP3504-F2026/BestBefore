@@ -20,7 +20,7 @@ export type FoodIdentification = z.infer<typeof identificationSchema>
 export type IdentifiedFood = Extract<FoodIdentification, { identified: true }>['food']
 
 // A little longer than the server's own Gemini timeout, so its 504 arrives first.
-export const IDENTIFY_TIMEOUT_MS = 20_000
+export const IDENTIFY_TIMEOUT_MS = 30_000
 
 export class FoodIdentifyError extends Error {}
 

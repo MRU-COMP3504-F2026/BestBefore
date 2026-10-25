@@ -1,10 +1,10 @@
-import { ApiError, GoogleGenAI } from '@google/genai'
+import { ApiError, GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { geminiResponseSchema, normalizeGeminiFood, type FoodIdentification } from './foodSchema.js'
 
 // Any vision-capable Flash model works; override with GEMINI_MODEL.
 export const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest'
 
-export const GEMINI_TIMEOUT_MS = 15_000
+export const GEMINI_TIMEOUT_MS = 25_000
 
 const PROMPT = `Identify the single main food item in this photo.
 Respond with JSON only, matching the schema.
@@ -72,7 +72,9 @@ export async function identifyFoodImage(image: Buffer, mimeType: string): Promis
       config: {
         responseMimeType: 'application/json',
         responseSchema: geminiResponseSchema,
-        temperature: 0,
+        // Naming one food needs no reasoning, and thinking is what makes calls slow.
+        // Temperature stays at the model default: lowering it can make Gemini 3 loop.
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
         // No maxOutputTokens: on thinking models it also caps the thinking, which can
         // leave no room for the answer.
         abortSignal: abort.signal,

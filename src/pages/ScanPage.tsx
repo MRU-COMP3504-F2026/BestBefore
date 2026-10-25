@@ -270,6 +270,7 @@ export default function ScanPage() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.25 }}
               />
+              <span className="scan-ai-shimmer" aria-hidden="true" />
               <div className="scan-recognized-message" role="status">
                 <span className="scan-result-icon scan-ai-pending" aria-hidden="true">
                   <SparklesIcon />
