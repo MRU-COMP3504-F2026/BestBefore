@@ -5,6 +5,12 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
 
+  // Vercel sets VERCEL_ENV (production | preview | development) at build time. Vite only exposes
+  // VITE_* vars to the client, so pass it through for the dev auth bypass (src/lib/devAuth.ts).
+  define: {
+    'import.meta.env.VITE_VERCEL_ENV': JSON.stringify(process.env.VERCEL_ENV ?? ''),
+  },
+
   server: {
       proxy: {
         '/api': {

@@ -3,8 +3,9 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
-import { useId, type InputHTMLAttributes, type ReactNode, type Ref } from 'react'
+import { useId, useState, type InputHTMLAttributes, type ReactNode, type Ref } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
+import { EyeIcon, EyeOffIcon } from './icons'
 import { errorReveal } from '../lib/motion'
 import '../styles/TextField.css'
 
@@ -25,8 +26,12 @@ export default function TextField({
   labelAction,
   id,
   required,
+  type,
+  disabled,
   ...rest
 }: TextFieldProps) {
+  const [showPassword, setShowPassword] = useState(false)
+  const isPassword = type === 'password'
   const generatedId = useId()
   const inputId = id ?? generatedId
   const hintId = `${inputId}-hint`
@@ -47,13 +52,29 @@ export default function TextField({
         </label>
         {labelAction}
       </div>
-      <input
-        id={inputId}
-        required={required}
-        aria-invalid={error ? 'true' : 'false'}
-        aria-describedby={describedBy}
-        {...rest}
-      />
+      <div className="text-field-input">
+        <input
+          id={inputId}
+          type={isPassword && showPassword ? 'text' : type}
+          required={required}
+          disabled={disabled}
+          aria-invalid={error ? 'true' : 'false'}
+          aria-describedby={describedBy}
+          {...rest}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            className="text-field-toggle"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-controls={inputId}
+            disabled={disabled}
+            onClick={() => setShowPassword((shown) => !shown)}
+          >
+            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+          </button>
+        )}
+      </div>
       {hint && (
         <p id={hintId} className="text-field-hint">
           {hint}

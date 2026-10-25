@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Logo from '../components/Logo'
 import TextField from '../components/TextField'
-import { mockRegister } from '../lib/mockAuth'
+import { signUp } from '../lib/authClient'
 import { errorReveal } from '../lib/motion'
 import '../styles/Auth.css'
 
@@ -39,9 +39,9 @@ export default function Register() {
 
   const onSubmit = async (values: RegisterValues) => {
     setFormError(null)
-    const result = await mockRegister(values.email)
+    const result = await signUp(values.email, values.password)
     if (result.ok) {
-      navigate('/')
+      navigate('/', { replace: true })
     } else {
       setFormError(result.error)
     }
