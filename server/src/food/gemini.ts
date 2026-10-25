@@ -1,5 +1,5 @@
 import { ApiError, GoogleGenAI } from '@google/genai'
-import { geminiResponseJsonSchema, normalizeGeminiFood, type FoodIdentification } from './foodSchema.js'
+import { geminiResponseSchema, normalizeGeminiFood, type FoodIdentification } from './foodSchema.js'
 
 // Any vision-capable Flash model works; override with GEMINI_MODEL.
 export const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest'
@@ -19,11 +19,19 @@ export type GeminiErrorCode = 'not_configured' | 'timeout' | 'rate_limited' | 'b
 
 export class GeminiError extends Error {
   code: GeminiErrorCode
+  // Gemini's own status and message, for the server log. Never includes the image or key.
+  detail?: string
 
-  constructor(code: GeminiErrorCode) {
+  constructor(code: GeminiErrorCode, detail?: string) {
     super(code)
     this.code = code
+    this.detail = detail
   }
+}
+
+function describeUpstream(err: unknown): string {
+  if (err instanceof ApiError) return `${err.status} ${err.message.slice(0, 300)}`
+  return err instanceof Error ? `${err.name}: ${err.message.slice(0, 300)}` : 'unknown error'
 }
 
 let client: GoogleGenAI | undefined
@@ -52,21 +60,26 @@ export async function identifyFoodImage(image: Buffer, mimeType: string): Promis
       ],
       config: {
         responseMimeType: 'application/json',
-        responseJsonSchema: geminiResponseJsonSchema,
+        responseSchema: geminiResponseSchema,
         temperature: 0,
-        maxOutputTokens: 256,
+        // No maxOutputTokens: on thinking models it also caps the thinking, which can
+        // leave no room for the answer.
         abortSignal: abort.signal,
       },
     })
 
     const result = normalizeGeminiFood(response.text)
-    if (!result) throw new GeminiError('bad_response')
+    if (!result) {
+      const finish = response.candidates?.[0]?.finishReason ?? 'none'
+      throw new GeminiError('bad_response', `finishReason ${finish}`)
+    }
     return result
   } catch (err) {
     if (err instanceof GeminiError) throw err
     if (abort.signal.aborted) throw new GeminiError('timeout')
-    if (err instanceof ApiError && err.status === 429) throw new GeminiError('rate_limited')
-    throw new GeminiError('upstream')
+    const detail = describeUpstream(err)
+    if (err instanceof ApiError && err.status === 429) throw new GeminiError('rate_limited', detail)
+    throw new GeminiError('upstream', detail)
   } finally {
     clearTimeout(timer)
   }

@@ -1,3 +1,4 @@
+import { Type, type Schema } from '@google/genai'
 import { z } from 'zod'
 
 // What Gemini is asked to return for one photo. Anything it can't see is null rather than
@@ -24,19 +25,21 @@ export type IdentifiedFood = {
 // What POST /api/food/identify responds with.
 export type FoodIdentification = { identified: true; food: IdentifiedFood } | { identified: false }
 
-// Same shape as geminiFoodSchema, as the JSON Schema Gemini's structured output takes.
-const nullableString = { type: ['string', 'null'] }
-export const geminiResponseJsonSchema = {
-  type: 'object',
+// Same shape as geminiFoodSchema, in the OpenAPI-style schema Gemini's structured output takes.
+const nullableString = { type: Type.STRING, nullable: true }
+const FOOD_FIELDS = ['identified', 'name', 'category', 'quantity', 'unit', 'ripeness']
+export const geminiResponseSchema: Schema = {
+  type: Type.OBJECT,
   properties: {
-    identified: { type: 'boolean' },
+    identified: { type: Type.BOOLEAN },
     name: nullableString,
     category: nullableString,
-    quantity: { type: ['integer', 'null'] },
+    quantity: { type: Type.INTEGER, nullable: true },
     unit: nullableString,
     ripeness: nullableString,
   },
-  required: ['identified', 'name', 'category', 'quantity', 'unit', 'ripeness'],
+  required: FOOD_FIELDS,
+  propertyOrdering: FOOD_FIELDS,
 }
 
 // Trims to a short display string; blank or missing becomes null.

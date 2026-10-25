@@ -48,8 +48,9 @@ foodRouter.post(
       res.json(await identifyFoodImage(req.body, mimeType))
     } catch (err) {
       const code = err instanceof GeminiError ? err.code : 'upstream'
-      // Only the error code; never the image or key.
-      console.warn(`Food identify failed: ${code}`)
+      const detail = err instanceof GeminiError && err.detail ? ` (${err.detail})` : ''
+      // Gemini's error, never the image or key.
+      console.warn(`Food identify failed: ${code}${detail}`)
       const { status, error } = GEMINI_ERRORS[code]
       res.status(status).json({ error })
     } finally {
