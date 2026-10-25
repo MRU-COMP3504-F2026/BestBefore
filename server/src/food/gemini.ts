@@ -36,9 +36,20 @@ function describeUpstream(err: unknown): string {
 
 let client: GoogleGenAI | undefined
 
+// Why the key isn't there, for the server log: variable names and deployment only, no values.
+function describeMissingKey(apiKey: string | undefined): string {
+  const similar = Object.keys(process.env).filter((name) => /gemini|genai/i.test(name))
+  return [
+    `GEMINI_API_KEY ${apiKey === undefined ? 'missing' : 'empty'}`,
+    `similar names: ${similar.join(', ') || 'none'}`,
+    `VERCEL_ENV=${process.env.VERCEL_ENV ?? 'unset'}`,
+    `branch=${process.env.VERCEL_GIT_COMMIT_REF ?? 'unset'}`,
+  ].join('; ')
+}
+
 function getClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new GeminiError('not_configured')
+  const apiKey = process.env.GEMINI_API_KEY?.trim()
+  if (!apiKey) throw new GeminiError('not_configured', describeMissingKey(process.env.GEMINI_API_KEY))
   client ??= new GoogleGenAI({ apiKey })
   return client
 }
