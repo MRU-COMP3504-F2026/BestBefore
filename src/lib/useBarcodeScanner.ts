@@ -56,7 +56,13 @@ function enqueue(task: () => Promise<void>) {
   queue = queue.then(task).catch(() => {})
 }
 
-function describeCameraError(err: unknown): string {
+// Resolves once queued Quagga work, including a pending stop, has finished. Anything else
+// that opens the camera waits on this so two streams are never open at once.
+export function whenScannerIdle(): Promise<void> {
+  return queue
+}
+
+export function describeCameraError(err: unknown): string {
   const name = err instanceof Error ? err.name : ''
   if (name === 'NotAllowedError' || name === 'SecurityError') {
     return 'Camera access was denied. Allow camera access in your browser settings and try again.'

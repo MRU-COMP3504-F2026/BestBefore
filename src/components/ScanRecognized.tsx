@@ -15,17 +15,25 @@ import {
 import type { RecognitionCapture } from '../lib/useBarcodeScanner'
 
 type Props = {
-  barcode: string
+  // Defaults match a barcode read; AI Vision passes its own wording.
+  title?: string
+  detail: string
+  variant?: 'barcode' | 'food'
   capture?: RecognitionCapture
 }
 
 /**
  * Recognition sequence shown inside the viewfinder: over the frozen frame, the region Quagga
  * located and the line where it read the bars lock on (matching the live overlay), then
- * the confirmation and the decoded number fade in.
- * Mounted only while a barcode is recognized, so unmounting cancels any pending phase.
+ * the confirmation and the decoded number (or the identified food) fade in.
+ * Mounted only while a result is shown, so unmounting cancels any pending phase.
  */
-export default function ScanRecognized({ barcode, capture }: Props) {
+export default function ScanRecognized({
+  title = 'Barcode Recognized',
+  detail,
+  variant = 'barcode',
+  capture,
+}: Props) {
   const reduceMotion = useReducedMotion()
   const [phase, setPhase] = useState<RecognitionPhase>('locking_on')
 
@@ -109,18 +117,18 @@ export default function ScanRecognized({ barcode, capture }: Props) {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.2 }}
             >
-              Barcode Recognized
+              {title}
             </motion.p>
           </>
         )}
         {reached('revealing') && (
           <motion.p
-            className="scan-recognized-code"
+            className={variant === 'food' ? 'scan-recognized-food' : 'scan-recognized-code'}
             initial={enter({ opacity: 0, y: 8 })}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            {barcode}
+            {detail}
           </motion.p>
         )}
       </div>
