@@ -2,7 +2,7 @@
  * Icons from Lucide (https://lucide.dev), v0.460.0
  * Source: https://github.com/lucide-icons/lucide/tree/main/icons
  * Icons used: house, scan-barcode, list, chevron-right, leaf, milk, egg, shopping-basket, user,
- *   x, barcode, check, circle-alert, chevron-left, plus, flashlight, flashlight-off
+ *   x, barcode, check, circle-alert, chevron-left, plus, flashlight, flashlight-off, eye, eye-off
  * License: ISC (https://github.com/lucide-icons/lucide/blob/main/LICENSE)
  * Copyright (c) Lucide Contributors 2022; portions Copyright (c) Cole Bemis 2013-2022 (Feather, MIT).
  */
@@ -197,6 +197,26 @@ export function PlusIcon(props: IconProps) {
     <Icon {...props}>
       <path d="M5 12h14" />
       <path d="M12 5v14" />
+    </Icon>
+  )
+}
+
+export function EyeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+      <circle cx="12" cy="12" r="3" />
+    </Icon>
+  )
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+      <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+      <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+      <path d="m2 2 20 20" />
     </Icon>
   )
 }

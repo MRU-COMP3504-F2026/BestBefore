@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import TextField from '../components/TextField'
 
 describe('TextField', () => {
@@ -35,5 +36,24 @@ describe('TextField', () => {
     render(<TextField label="Password" labelAction={<a href="#">Forgot password?</a>} />)
 
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toBeInTheDocument()
+  })
+
+  it('toggles password visibility', async () => {
+    render(<TextField label="Password" type="password" />)
+
+    const input = screen.getByLabelText('Password')
+    expect(input).toHaveAttribute('type', 'password')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show password' }))
+    expect(input).toHaveAttribute('type', 'text')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hide password' }))
+    expect(input).toHaveAttribute('type', 'password')
+  })
+
+  it('only shows the visibility toggle on password fields', () => {
+    render(<TextField label="Email" type="email" />)
+
+    expect(screen.queryByRole('button', { name: 'Show password' })).not.toBeInTheDocument()
   })
 })
