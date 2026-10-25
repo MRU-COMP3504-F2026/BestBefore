@@ -15,7 +15,13 @@ Respond with JSON only, matching the schema.
 Set "identified" to false, with every other field null, when the photo is too unclear,
 shows no food, or shows several different foods with no clear main item.`
 
-export type GeminiErrorCode = 'not_configured' | 'timeout' | 'rate_limited' | 'bad_response' | 'upstream'
+export type GeminiErrorCode =
+  | 'not_configured'
+  | 'timeout'
+  | 'rate_limited'
+  | 'overloaded'
+  | 'bad_response'
+  | 'upstream'
 
 export class GeminiError extends Error {
   code: GeminiErrorCode
@@ -92,6 +98,8 @@ export async function identifyFoodImage(image: Buffer, mimeType: string): Promis
     if (abort.signal.aborted) throw new GeminiError('timeout')
     const detail = describeUpstream(err)
     if (err instanceof ApiError && err.status === 429) throw new GeminiError('rate_limited', detail)
+    // Google's side is overloaded for this model; temporary, and the user retries by hand.
+    if (err instanceof ApiError && err.status === 503) throw new GeminiError('overloaded', detail)
     throw new GeminiError('upstream', detail)
   } finally {
     clearTimeout(timer)

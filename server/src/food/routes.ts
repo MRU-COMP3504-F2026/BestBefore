@@ -10,6 +10,10 @@ const GEMINI_ERRORS: Record<GeminiErrorCode, { status: number; error: string }> 
   not_configured: { status: 503, error: 'AI recognition is not configured.' },
   timeout: { status: 504, error: 'AI recognition took too long. Please try again.' },
   rate_limited: { status: 429, error: 'AI recognition is busy right now. Please try again shortly.' },
+  overloaded: {
+    status: 503,
+    error: 'The AI model is overloaded right now. Please try again in a moment.',
+  },
   bad_response: { status: 502, error: 'AI recognition returned an unexpected answer. Please try again.' },
   upstream: { status: 502, error: 'AI recognition is unavailable. Please try again.' },
 }

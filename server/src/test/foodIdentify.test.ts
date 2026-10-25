@@ -124,6 +124,16 @@ describe('POST /api/food/identify', () => {
     expect(generateContent).toHaveBeenCalledTimes(1)
   })
 
+  it('returns 503 when the Gemini model is overloaded, without retrying', async () => {
+    generateContent.mockRejectedValue(new ApiError({ message: 'high demand', status: 503 }))
+
+    const response = await identify()
+
+    expect(response.status).toBe(503)
+    expect(response.body.error).toMatch(/overloaded/)
+    expect(generateContent).toHaveBeenCalledTimes(1)
+  })
+
   it('returns 502 for other Gemini errors, without retrying', async () => {
     generateContent.mockRejectedValue(new Error('boom'))
 
