@@ -1,4 +1,4 @@
-import { ApiError, GoogleGenAI, ThinkingLevel } from '@google/genai'
+import { ApiError, GoogleGenAI } from '@google/genai'
 import { geminiResponseSchema, normalizeGeminiFood, type FoodIdentification } from './foodSchema.js'
 
 // Any vision-capable Flash model works; override with GEMINI_MODEL.
@@ -72,9 +72,9 @@ export async function identifyFoodImage(image: Buffer, mimeType: string): Promis
       config: {
         responseMimeType: 'application/json',
         responseSchema: geminiResponseSchema,
-        // Naming one food needs no reasoning, and thinking is what makes calls slow.
-        // Temperature stays at the model default: lowering it can make Gemini 3 loop.
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        // Temperature and thinking stay at the model defaults: lowering the temperature can
+        // make Gemini 3 loop, and thinking settings are model-specific (the API rejects ones
+        // a model doesn't support with a 400).
         // No maxOutputTokens: on thinking models it also caps the thinking, which can
         // leave no room for the answer.
         abortSignal: abort.signal,
