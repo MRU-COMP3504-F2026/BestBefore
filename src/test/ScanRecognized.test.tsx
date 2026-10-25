@@ -40,7 +40,7 @@ describe('ScanRecognized', () => {
   })
 
   it('locks on, confirms, then reveals the number', () => {
-    const { container } = render(<ScanRecognized barcode="012345678905" capture={capture} />)
+    const { container } = render(<ScanRecognized detail="012345678905" capture={capture} />)
 
     expect(phaseOf(container)).toBe('locking_on')
     expect(screen.queryByText('Barcode Recognized')).not.toBeInTheDocument()
@@ -70,7 +70,7 @@ describe('ScanRecognized', () => {
   })
 
   it('draws the frozen frame, the located region and the read bars', () => {
-    const { container } = render(<ScanRecognized barcode="012345678905" capture={capture} />)
+    const { container } = render(<ScanRecognized detail="012345678905" capture={capture} />)
 
     const svg = container.querySelector('svg')!
     expect(svg).toHaveAttribute('viewBox', '0 0 800 450')
@@ -87,7 +87,7 @@ describe('ScanRecognized', () => {
   })
 
   it('falls back to the viewfinder without a capture', () => {
-    const { container } = render(<ScanRecognized barcode="012345678905" />)
+    const { container } = render(<ScanRecognized detail="012345678905" />)
 
     expect(container.querySelector('svg')).not.toBeInTheDocument()
     act(() => vi.advanceTimersByTime(PHASE_AT.recognized))
@@ -96,7 +96,7 @@ describe('ScanRecognized', () => {
 
   it('shows the final state straight away when reduced motion is preferred', () => {
     vi.mocked(useReducedMotion).mockReturnValue(true)
-    const { container } = render(<ScanRecognized barcode="012345678905" capture={capture} />)
+    const { container } = render(<ScanRecognized detail="012345678905" capture={capture} />)
 
     expect(phaseOf(container)).toBe('recognized')
     expect(screen.getByText('Barcode Recognized')).toBeInTheDocument()
@@ -105,7 +105,7 @@ describe('ScanRecognized', () => {
   })
 
   it('cancels pending phases when unmounted mid-animation', () => {
-    const { unmount } = render(<ScanRecognized barcode="012345678905" capture={capture} />)
+    const { unmount } = render(<ScanRecognized detail="012345678905" capture={capture} />)
     act(() => vi.advanceTimersByTime(PHASE_AT.confirming))
 
     unmount()

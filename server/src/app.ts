@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { requireAuth } from './auth/requireAuth.js'
 import { neonAuthWebhook } from './auth/webhook.js'
+import { foodRouter } from './food/routes.js'
 
 export const app = express()
 
@@ -22,3 +23,5 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/me', requireAuth, (_req, res) => {
   res.json({ user: res.locals.user })
 })
+
+app.use('/api/food', foodRouter)

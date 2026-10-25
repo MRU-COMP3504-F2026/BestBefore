@@ -6,6 +6,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
+import AiDevWarning from '../components/AiDevWarning'
 import Button from '../components/Button'
 import ScanRecognized from '../components/ScanRecognized'
 import {
@@ -14,10 +15,12 @@ import {
   FlashlightIcon,
   FlashlightOffIcon,
   ScanBarcodeIcon,
+  SparklesIcon,
   XIcon,
 } from '../components/icons'
 import { mockScan, type ScanOutcome } from '../lib/mockScan'
 import { useBarcodeScanner } from '../lib/useBarcodeScanner'
+import { useFoodRecognizer } from '../lib/useFoodRecognizer'
 import { fadeUp, spring, tap } from '../lib/motion'
 import '../styles/ScanPage.css'
 
@@ -37,6 +40,9 @@ const CONTROLS_DELAY = 0.3
 // Vercel exposes VITE_VERCEL_ENV to Vite builds automatically.
 const SHOW_DEV_TOGGLE = import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === 'preview'
 
+// The AI quota warning shows in the same places: locally and on previews, where AI Vision is tested.
+const SHOW_AI_WARNING = SHOW_DEV_TOGGLE
+
 type ScanMode = 'camera' | ScanOutcome
 
 const MODES: { mode: ScanMode; label: string }[] = [
@@ -45,16 +51,27 @@ const MODES: { mode: ScanMode; label: string }[] = [
   { mode: 'failure', label: 'Mock fail' },
 ]
 
+type ScanSource = 'barcode' | 'ai'
+
 export default function ScanPage() {
   const navigate = useNavigate()
   const videoRef = useRef<HTMLDivElement>(null)
+  const aiVideoRef = useRef<HTMLVideoElement>(null)
+  const [source, setSource] = useState<ScanSource>('barcode')
+  // Asked again every time AI Vision is entered; never remembered.
+  const [aiConfirmed, setAiConfirmed] = useState(false)
   const [mode, setMode] = useState<ScanMode>('camera')
   const [isMockScanning, setIsMockScanning] = useState(false)
-  const isCamera = mode === 'camera'
+  const isAi = source === 'ai'
+  const isCamera = !isAi && mode === 'camera'
   const scanner = useBarcodeScanner(videoRef, isCamera)
+  const showAiWarning = isAi && SHOW_AI_WARNING && !aiConfirmed
+  // The AI camera waits until the warning is confirmed.
+  const recognizer = useFoodRecognizer(aiVideoRef, isAi && !showAiWarning)
+  const ai = isAi && !showAiWarning ? recognizer : null
 
   const onMockScan = async () => {
-    if (isCamera) return
+    if (mode === 'camera') return
     setIsMockScanning(true)
     const result = await mockScan(mode)
     if (result.ok) {
@@ -67,6 +84,18 @@ export default function ScanPage() {
   const onModeChange = (next: ScanMode) => {
     setMode(next)
     if (next === 'camera') scanner.restart()
+  }
+
+  const onSourceChange = (next: ScanSource) => {
+    if (next === source) return
+    setSource(next)
+    setMode('camera')
+    if (next === 'ai') {
+      setAiConfirmed(false)
+      recognizer.retake()
+    } else {
+      scanner.restart()
+    }
   }
 
   const addManually = (
@@ -85,6 +114,8 @@ export default function ScanPage() {
 
   // Recognition results stay inside the viewfinder; full-screen results are for product lookup.
   const recognized = isCamera && scanner.status === 'recognized' ? scanner : null
+  const identified = ai?.status === 'identified' ? ai : null
+  const identifying = ai?.status === 'identifying' ? ai : null
   let failure: { title: string; detail: string } | null = null
   if (isCamera && scanner.status === 'not-recognized') {
     failure = {
@@ -93,12 +124,37 @@ export default function ScanPage() {
     }
   } else if (isCamera && scanner.status === 'error') {
     failure = { title: 'Camera Unavailable', detail: scanner.message }
+  } else if (ai?.status === 'not-identified') {
+    failure = {
+      title: 'Unable to Identify Food',
+      detail: 'Center one food item in good light and try again.',
+    }
+  } else if (ai?.status === 'failed') {
+    failure = { title: 'Unable to Identify Food', detail: ai.message }
+  } else if (ai?.status === 'error') {
+    failure = { title: 'Camera Unavailable', detail: ai.message }
   }
-  const hasResult = !!recognized || !!failure
+  const hasResult = !!recognized || !!identified || !!failure
+  const onRetry = isAi ? recognizer.retake : scanner.restart
+  let retryLabel = 'Try Again'
+  if (recognized) retryLabel = 'Scan Again'
+  else if (identified) retryLabel = 'Retake Photo'
 
   let statusTitle = 'Starting camera…'
   let statusHint = 'Position the barcode within the frame.'
-  if (isPaused) {
+  if (isAi) {
+    statusHint = 'Center one food item in the frame.'
+    if (showAiWarning) {
+      statusTitle = 'AI Vision (Beta)'
+      statusHint = 'Confirm the notice to start the camera.'
+    } else if (identifying) {
+      statusTitle = 'Identifying food…'
+      statusHint = 'This usually takes a few seconds.'
+    } else if (ai?.status === 'ready') {
+      statusTitle = 'Center one food item'
+      statusHint = 'Then tap Identify Food. Each photo is one AI request.'
+    }
+  } else if (isPaused) {
     statusTitle = 'Scanning paused'
     statusHint = 'Tap Rescan to start the camera again.'
   } else if (scanner.status === 'scanning' && scanner.found) {
@@ -110,6 +166,14 @@ export default function ScanPage() {
       statusHint = 'Having trouble? Try more light, hold steady, or move a little closer.'
     }
   }
+
+  const viewfinderClasses = [
+    'scan-viewfinder',
+    (recognized || identified) && 'scan-viewfinder-locked',
+    isAi && 'scan-viewfinder-ai',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className="scan">
@@ -148,15 +212,72 @@ export default function ScanPage() {
           </motion.button>
         )}
 
+        <div className="scan-source" role="group" aria-label="Scan with">
+          <motion.button
+            type="button"
+            aria-pressed={!isAi}
+            disabled={isMockScanning}
+            onClick={() => onSourceChange('barcode')}
+            whileTap={tap}
+            transition={spring}
+          >
+            Barcode
+          </motion.button>
+          <motion.button
+            type="button"
+            aria-pressed={isAi}
+            disabled={isMockScanning}
+            onClick={() => onSourceChange('ai')}
+            whileTap={tap}
+            transition={spring}
+          >
+            <SparklesIcon />
+            AI Vision <span className="scan-source-beta">(Beta)</span>
+          </motion.button>
+        </div>
+
         <motion.div
-          className={`scan-viewfinder${recognized ? ' scan-viewfinder-locked' : ''}`}
+          className={viewfinderClasses}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           {/* Quagga2 mounts the live <video> in here. */}
           <div ref={videoRef} className="scan-video" hidden={!isCamera || isPaused || hasResult} />
-          {recognized && <ScanRecognized barcode={recognized.barcode} capture={recognized.capture} />}
+          {/* AI Vision's live preview. Only the still taken on Identify Food is uploaded. */}
+          {isAi && (
+            <div className="scan-video" hidden={ai?.status !== 'ready'}>
+              <video ref={aiVideoRef} muted playsInline aria-hidden="true" />
+            </div>
+          )}
+          {recognized && <ScanRecognized detail={recognized.barcode} capture={recognized.capture} />}
+          {identified && (
+            <ScanRecognized
+              title="This is probably"
+              detail={identified.food.name}
+              variant="food"
+              capture={identified.still}
+            />
+          )}
+          {identifying && (
+            <div className="scan-recognized">
+              {identifying.still.frame && (
+                <img className="scan-ai-still" src={identifying.still.frame} alt="" />
+              )}
+              <motion.div
+                className="scan-recognized-scrim"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+              />
+              <div className="scan-recognized-message" role="status">
+                <span className="scan-result-icon scan-ai-pending" aria-hidden="true">
+                  <SparklesIcon />
+                </span>
+                <p className="scan-recognized-title">Identifying food…</p>
+              </div>
+            </div>
+          )}
           {corners.map((corner) => (
             <motion.span
               key={corner.className}
@@ -187,7 +308,7 @@ export default function ScanPage() {
               <p className="scan-result-detail">{failure.detail}</p>
             </motion.div>
           )}
-          {!isCameraScanning && !hasResult && (
+          {!isAi && !isCameraScanning && !hasResult && (
             <motion.div
               className="scan-barcode"
               aria-hidden="true"
@@ -197,6 +318,17 @@ export default function ScanPage() {
             >
               <BarcodeIcon />
               <span>123456 789</span>
+            </motion.div>
+          )}
+          {isAi && !hasResult && !identifying && ai?.status !== 'ready' && (
+            <motion.div
+              className="scan-ai-placeholder"
+              aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25, delay: 0.3 }}
+            >
+              <SparklesIcon />
             </motion.div>
           )}
           {/* A CSS transform animation runs on the compositor, so Quagga's work on the main
@@ -211,12 +343,24 @@ export default function ScanPage() {
 
       <div className="scan-controls">
         <motion.div className="scan-controls-icon" {...fadeUp(CONTROLS_DELAY)}>
-          <ScanBarcodeIcon />
+          {isAi ? <SparklesIcon /> : <ScanBarcodeIcon />}
         </motion.div>
         {hasResult ? (
           <motion.div className="scan-controls-item" {...fadeUp(0)}>
-            <Button onClick={scanner.restart}>{recognized ? 'Scan Again' : 'Try Again'}</Button>
+            <Button onClick={onRetry}>{retryLabel}</Button>
           </motion.div>
+        ) : isAi ? (
+          <>
+            <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
+              <p className="scan-status-title">{statusTitle}</p>
+              <p className="scan-status-hint">{statusHint}</p>
+            </motion.div>
+            <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.09)}>
+              <Button onClick={recognizer.identify} disabled={ai?.status !== 'ready'}>
+                {identifying ? 'Identifying…' : 'Identify Food'}
+              </Button>
+            </motion.div>
+          </>
         ) : isCamera ? (
           <>
             <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
@@ -249,7 +393,7 @@ export default function ScanPage() {
           {addManually}
         </motion.div>
 
-        {SHOW_DEV_TOGGLE && (
+        {SHOW_DEV_TOGGLE && !isAi && (
           <motion.div
             className="scan-dev"
             role="group"
@@ -273,6 +417,13 @@ export default function ScanPage() {
           </motion.div>
         )}
       </div>
+
+      {showAiWarning && (
+        <AiDevWarning
+          onCancel={() => onSourceChange('barcode')}
+          onContinue={() => setAiConfirmed(true)}
+        />
+      )}
     </div>
   )
 }
