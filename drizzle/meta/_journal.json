@@ -8,6 +8,13 @@
       "when": 1792898231203,
       "tag": "0000_condemned_miracleman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792979043273,
+      "tag": "0001_unknown_talkback",
+      "breakpoints": true
     }
   ]
 }
