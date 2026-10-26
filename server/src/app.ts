@@ -4,6 +4,7 @@ import cors from 'cors'
 import { requireAuth } from './auth/requireAuth.js'
 import { neonAuthWebhook } from './auth/webhook.js'
 import { foodRouter } from './food/routes.js'
+import { inventoryRouter } from './inventory/routes.js'
 
 export const app = express()
 
@@ -25,3 +26,4 @@ app.get('/api/me', requireAuth, (_req, res) => {
 })
 
 app.use('/api/food', foodRouter)
+app.use('/api/inventory', inventoryRouter)
