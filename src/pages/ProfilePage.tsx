@@ -3,7 +3,7 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Button from '../components/Button'
@@ -18,6 +18,9 @@ import '../styles/ProfilePage.css'
 const household = 'My Household'
 
 export default function ProfilePage() {
+  useEffect(() => {
+    document.title = 'BestBefore | My Profile'
+  }, [])
   const navigate = useNavigate()
   const { data: session } = useAuthSession()
   const [isLoggingOut, setIsLoggingOut] = useState(false)

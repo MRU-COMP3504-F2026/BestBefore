@@ -1,8 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import StatusView from '../components/StatusView'
+import { useEffect } from 'react'
 
 export default function ScanFailedPage() {
+  useEffect(() => {
+    document.title = 'BestBefore | Scan Failed'
+  }, [])
   const navigate = useNavigate()
 
   return (

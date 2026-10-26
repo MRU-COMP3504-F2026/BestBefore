@@ -2,6 +2,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import StatusView from '../components/StatusView'
 import type { ScannedProduct } from '../lib/mockScan'
+import { useEffect } from 'react'
 
 type AddedState = {
   product?: ScannedProduct
@@ -9,6 +10,9 @@ type AddedState = {
 } | null
 
 export default function ScanAddedPage() {
+  useEffect(() => {
+    document.title = 'BestBefore | Item Added'
+  }, [])
   const navigate = useNavigate()
   const state = useLocation().state as AddedState
   const product = state?.product

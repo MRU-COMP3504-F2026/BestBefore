@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,6 +15,10 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>
 
 export default function ForgotPassword() {
+  useEffect(() => {
+    document.title = 'BestBefore | Forgot Password'
+  }, [])
+
   const [sentTo, setSentTo] = useState<string | null>(null)
   const {
     register,

@@ -4,11 +4,16 @@ import InventoryList from '../components/InventoryList'
 import ProfileButton from '../components/ProfileButton'
 import { BasketIcon, ScanBarcodeIcon } from '../components/icons'
 import '../styles/HomePage.css'
+import { useEffect } from 'react'
 
 // Home previews only the soonest-expiring items; My Items shows them all.
 const HOME_ITEM_LIMIT = 3
 
 export default function HomePage() {
+  useEffect(() => {
+    document.title = 'BestBefore | Home'
+  }, [])
+
   const navigate = useNavigate()
 
   return (
