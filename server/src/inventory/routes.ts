@@ -28,7 +28,9 @@ inventoryRouter.get('/', requireAuth, async (_req, res) => {
 
     res.json({ items })
   } catch (err) {
-    console.error('Inventory list failed:', err instanceof Error ? err.message : err)
+    // Drizzle's message is only the SQL; the Postgres reason is on `cause`.
+    const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
+    console.error(`Inventory list failed: ${err instanceof Error ? err.message : err}${cause}`)
     res.status(500).json({ error: "Couldn't load your items. Please try again." })
   }
 })
