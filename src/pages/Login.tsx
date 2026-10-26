@@ -7,11 +7,11 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import Logo from '../components/Logo'
 import TextField from '../components/TextField'
-import { mockLogin } from '../lib/mockAuth'
+import { signIn } from '../lib/authClient'
 import { errorReveal } from '../lib/motion'
 import '../styles/Auth.css'
 
@@ -24,6 +24,8 @@ type LoginValues = z.infer<typeof loginSchema>
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from ?? '/'
   const [formError, setFormError] = useState<string | null>(null)
   const {
     register,
@@ -33,9 +35,9 @@ export default function Login() {
 
   const onSubmit = async (values: LoginValues) => {
     setFormError(null)
-    const result = await mockLogin(values.email)
+    const result = await signIn(values.email, values.password)
     if (result.ok) {
-      navigate('/')
+      navigate(from, { replace: true })
     } else {
       setFormError(result.error)
     }

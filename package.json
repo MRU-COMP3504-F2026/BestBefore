@@ -20,16 +20,21 @@
     "typecheck": "npm run typecheck:client && npm run typecheck:server",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx server/src/db/seed.ts"
   },
   "dependencies": {
+    "@ericblade/quagga2": "^1.13.0",
+    "@google/genai": "^2.31.0",
     "@hookform/resolvers": "^5.9.1",
+    "@neondatabase/auth": "^0.6.0-beta",
     "@neondatabase/serverless": "^1.2.0",
     "@tanstack/react-query": "^5.104.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",
     "drizzle-orm": "^0.45.4",
     "express": "^5.2.1",
+    "jose": "^6.2.13",
     "motion": "^14.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

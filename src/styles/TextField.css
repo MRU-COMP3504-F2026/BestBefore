@@ -34,6 +34,53 @@
   }
 }
 
+.text-field-input {
+  position: relative;
+  display: flex;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Leave room for the show/hide button. */
+  &:has(.text-field-toggle) input {
+    padding-right: 48px;
+  }
+}
+
+.text-field-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 0 10px 10px 0;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
 .text-field-label-row {
   display: flex;
   justify-content: space-between;

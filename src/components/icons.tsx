@@ -2,7 +2,8 @@
  * Icons from Lucide (https://lucide.dev), v0.460.0
  * Source: https://github.com/lucide-icons/lucide/tree/main/icons
  * Icons used: house, scan-barcode, list, chevron-right, leaf, milk, egg, shopping-basket, user,
- *   x, barcode, check, circle-alert, chevron-left, plus
+ *   x, barcode, check, circle-alert, chevron-left, plus, flashlight, flashlight-off, eye, eye-off,
+ *   sparkles
  * License: ISC (https://github.com/lucide-icons/lucide/blob/main/LICENSE)
  * Copyright (c) Lucide Contributors 2022; portions Copyright (c) Cole Bemis 2013-2022 (Feather, MIT).
  */
@@ -171,11 +172,64 @@ export function ChevronLeftIcon(props: IconProps) {
   )
 }
 
+export function FlashlightIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12z" />
+      <line x1="6" x2="18" y1="6" y2="6" />
+      <line x1="12" x2="12" y1="12" y2="12" />
+    </Icon>
+  )
+}
+
+export function FlashlightOffIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M16 16v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4" />
+      <path d="M7 2h11v4c0 2-2 2-2 4v1" />
+      <line x1="11" x2="18" y1="6" y2="6" />
+      <line x1="2" x2="22" y1="2" y2="22" />
+    </Icon>
+  )
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <path d="M5 12h14" />
       <path d="M12 5v14" />
+    </Icon>
+  )
+}
+
+export function EyeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+      <circle cx="12" cy="12" r="3" />
+    </Icon>
+  )
+}
+
+export function EyeOffIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+      <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+      <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+      <path d="m2 2 20 20" />
+    </Icon>
+  )
+}
+
+export function SparklesIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+      <path d="M20 3v4" />
+      <path d="M22 5h-4" />
+      <path d="M4 17v2" />
+      <path d="M5 18H3" />
     </Icon>
   )
 }

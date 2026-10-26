@@ -11,14 +11,20 @@
   position: relative;
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   align-items: center;
   justify-content: center;
-  padding: var(--space-10) var(--space-5);
+  /* Top padding clears the close and flashlight buttons (16px offset + 44px button). */
+  padding: calc(var(--space-10) + var(--space-6)) var(--space-5) var(--space-10);
   background: var(--color-primary);
 }
 
-.scan-close {
+/* Above the viewfinder, which would otherwise paint over these where they overlap. */
+.scan-close,
+.scan-torch {
   position: absolute;
+  z-index: 1;
   top: var(--space-4);
   left: var(--space-4);
   display: flex;
@@ -39,6 +45,65 @@
   }
 }
 
+.scan-torch {
+  left: auto;
+  right: var(--space-4);
+}
+
+/* Barcode / AI Vision segmented toggle, above the viewfinder. */
+.scan-source {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.18);
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 36px;
+    padding: 0 var(--space-4);
+    border: none;
+    border-radius: var(--radius-full);
+    background: none;
+    color: #fff;
+    font: inherit;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease-out,
+      color 0.15s ease-out;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    &[aria-pressed='true'] {
+      background: #fff;
+      color: var(--color-primary-dark);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+  }
+}
+
+.scan-source-beta {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
 .scan-viewfinder {
   position: relative;
   display: flex;
@@ -49,6 +114,35 @@
   aspect-ratio: 4 / 3;
   border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.12);
+}
+
+.scan-video {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  canvas {
+    display: none;
+  }
+
+  /* Quagga2's overlay, where the scanner draws what it is locating and reading. It has the
+     video's aspect ratio, so the same cover fit keeps the drawings on the image. */
+  canvas.drawingBuffer {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
 }
 
 .scan-corner {
@@ -91,6 +185,7 @@
 }
 
 .scan-barcode {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -107,14 +202,47 @@
   }
 }
 
-.scan-line {
+/* The area the scanline sweeps (8%–92% of the viewfinder), plus room for its glow. It clips
+   the moving element below, which would otherwise hang out of the viewfinder. */
+.scan-line-track {
+  --glow-room: 16px;
   position: absolute;
+  top: calc(8% - var(--glow-room));
+  bottom: calc(8% - var(--glow-room));
   left: 6%;
   right: 6%;
-  height: 3px;
-  border-radius: var(--radius-full);
-  background: #fff;
-  box-shadow: 0 0 12px 2px rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* As tall as the sweep with the line drawn along its top edge, so translating it by 100%
+   of its own height carries the line from the top of the sweep to the bottom. */
+.scan-line {
+  position: absolute;
+  inset: var(--glow-room) 0;
+  animation: scan-sweep 2.4s ease-in-out infinite alternate;
+  will-change: transform;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -1.5px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: var(--radius-full);
+    background: #fff;
+    box-shadow: 0 0 12px 2px rgba(255, 255, 255, 0.7);
+  }
+}
+
+@keyframes scan-sweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
 }
 
 .scan-controls {
@@ -139,9 +267,30 @@
   width: 100%;
 }
 
+.scan-status {
+  text-align: center;
+}
+
+.scan-status-title {
+  font-weight: 600;
+}
+
+.scan-status-hint {
+  margin-top: var(--space-1);
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+}
+
+.scan-controls-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
 .scan-dev {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   margin-top: var(--space-2);
   padding: var(--space-1) var(--space-2);
@@ -164,5 +313,304 @@
       color: var(--color-primary-dark);
       font-weight: 600;
     }
+  }
+}
+
+/* Recognition result card, inset so the corner brackets stay visible around it. */
+.scan-result {
+  position: absolute;
+  inset: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.scan-result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-full);
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.scan-result-danger .scan-result-icon {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.scan-result-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.scan-result-detail {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+}
+
+/* Corners take the success color as soon as the scanner locks on. */
+.scan-viewfinder-locked .scan-corner {
+  border-color: var(--color-success-light);
+  transition: border-color 0.15s ease-out;
+}
+
+/* Recognition sequence: frozen frame, barcode outline, then the confirmation over a scrim. */
+.scan-recognized {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.scan-recognized-frame,
+.scan-recognized-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Same marks as the live overlay: the located region in white, the read bars in green. */
+.scan-recognized-box {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.scan-recognized-line {
+  stroke: var(--color-success-light);
+  stroke-width: 5px;
+  stroke-linecap: round;
+  animation: scan-lock-on 0.2s ease-out;
+}
+
+@keyframes scan-lock-on {
+  from {
+    stroke: #fff;
+  }
+}
+
+.scan-recognized-scrim {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.scan-recognized-message {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: 0 var(--space-4);
+  color: #fff;
+  text-align: center;
+
+  .scan-result-icon {
+    background: var(--color-success-light);
+    color: var(--color-primary-dark);
+  }
+}
+
+.scan-recognized-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* The decoded number is the main content of a successful read. */
+.scan-recognized-code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+}
+
+/* AI Vision (Beta): lighter corners frame a whole item rather than a barcode. */
+.scan-viewfinder-ai .scan-corner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
+
+.scan-ai-placeholder {
+  position: relative;
+  display: flex;
+  color: rgba(255, 255, 255, 0.7);
+
+  svg {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+.scan-ai-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Waiting on the backend: a pulsing icon inside a spinning ring instead of the success check. */
+.scan-recognized-message .scan-ai-pending {
+  position: relative;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+
+  svg {
+    animation: scan-ai-pulse 1.4s ease-in-out infinite alternate;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--color-success-light);
+    border-radius: var(--radius-full);
+    animation: scan-ai-spin 0.9s linear infinite;
+  }
+}
+
+@keyframes scan-ai-pulse {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scan-ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A soft band of light sweeping across the still while it's being looked at. A transform
+   animation, so it stays smooth on the compositor. */
+.scan-ai-shimmer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 50%;
+    background: linear-gradient(
+      100deg,
+      transparent,
+      rgba(255, 255, 255, 0.18),
+      transparent
+    );
+    animation: scan-ai-sweep 1.6s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes scan-ai-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+/* The identified food's name, in place of the decoded number. */
+.scan-recognized-food {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.scan-ai-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.scan-ai-warning-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 360px;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  text-align: center;
+
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  p {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The ring stays as a still marker; the sweep and pulse stop. */
+  .scan-recognized-message .scan-ai-pending svg,
+  .scan-recognized-message .scan-ai-pending::after,
+  .scan-ai-shimmer::before {
+    animation: none;
+  }
+
+  .scan-ai-shimmer {
+    display: none;
+  }
+
+  /* A still line across the middle still shows the scanner is active. */
+  .scan-line {
+    animation: none;
+    transform: translateY(50%);
+  }
+
+  .scan-recognized-line {
+    animation: none;
+  }
+
+  .scan-viewfinder-locked .scan-corner {
+    transition: none;
   }
 }

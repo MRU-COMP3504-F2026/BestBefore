@@ -11,10 +11,15 @@ import ScanFailedPage from '../pages/ScanFailedPage'
 import ProfilePage from '../pages/ProfilePage'
 import ItemsPage from '../pages/ItemsPage'
 import AddItemPage from '../pages/AddItemPage'
+import RequireAuth from '../components/RequireAuth'
 
 export const router = createBrowserRouter([
   {
-    element: <AppLayout />,
+    element: (
+      <RequireAuth>
+        <AppLayout />
+      </RequireAuth>
+    ),
     children: [
       {
         path: '/',
@@ -44,7 +49,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/scan',
-    element: <ScanPage />,
+    element: (
+      <RequireAuth>
+        <ScanPage />
+      </RequireAuth>
+    ),
   },
   {
     path: '/login',
