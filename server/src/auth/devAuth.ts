@@ -1,10 +1,11 @@
 import type { AuthUser } from './requireAuth.js'
 
-// Must match DEV_USER in src/lib/devAuth.ts.
+// Must match DEV_USER in src/lib/devAuth.ts. The real dev@devtest.ca account on the dev
+// Neon branch, so rows it owns satisfy the neon_auth.user foreign keys.
 export const DEV_USER: AuthUser = {
-  id: 'dev-user',
-  email: 'dev@bestbefore.local',
-  name: 'Dev User',
+  id: '6b6d7eaa-7675-4b0a-8942-66ffeb0830a3',
+  email: 'dev@devtest.ca',
+  name: 'dev',
 }
 
 let warnedInProduction = false

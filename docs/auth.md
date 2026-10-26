@@ -59,7 +59,7 @@ On Vercel, set all three for Production and Preview. `VITE_NEON_AUTH_URL` is bak
 What it does:
 
 - **Client** (`src/lib/devAuth.ts`): `RequireAuth` lets every route through, `useAuthSession()` returns a fixed
-  dev user (`dev-user` / `dev@bestbefore.local`), `signIn` / `signUp` / `signOut` succeed without calling Neon,
+  dev user (the real `dev@devtest.ca` account on the dev branch, see [Test account](#test-account)), `signIn` / `signUp` / `signOut` succeed without calling Neon,
   and the Profile page's Log out button is disabled.
 - **Server** (`server/src/auth/devAuth.ts`): `requireAuth` skips JWT checks and sets `res.locals.user` to the
   same dev user.
