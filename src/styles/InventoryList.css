@@ -1,0 +1,8 @@
+.inventory-status {
+  color: var(--color-text-muted);
+  padding: var(--space-4) 0;
+}
+
+.inventory-status-error {
+  color: var(--color-danger);
+}
