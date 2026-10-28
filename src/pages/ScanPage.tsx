@@ -3,7 +3,7 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import AiDevWarning from '../components/AiDevWarning'
@@ -54,6 +54,9 @@ const MODES: { mode: ScanMode; label: string }[] = [
 type ScanSource = 'barcode' | 'ai'
 
 export default function ScanPage() {
+  useEffect(() => {
+    document.title = 'BestBefore | Scan Barcode'
+  }, [])
   const navigate = useNavigate()
   const videoRef = useRef<HTMLDivElement>(null)
   const aiVideoRef = useRef<HTMLVideoElement>(null)
