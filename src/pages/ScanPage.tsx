@@ -23,6 +23,7 @@ import { useBarcodeScanner } from '../lib/useBarcodeScanner'
 import { useFoodRecognizer } from '../lib/useFoodRecognizer'
 import { fadeUp, spring, tap } from '../lib/motion'
 import '../styles/ScanPage.css'
+import { lookupBarcodeProduct } from '../lib/productApi' //
 
 // Each corner starts pushed outward, then snaps into place ("locking on").
 const CORNER_OFFSET = 14
@@ -73,6 +74,8 @@ export default function ScanPage() {
   const recognizer = useFoodRecognizer(aiVideoRef, isAi && !showAiWarning)
   const ai = isAi && !showAiWarning ? recognizer : null
 
+  const processingBarcodeRef = useRef<string | null>(null)
+ 
   const onMockScan = async () => {
     if (mode === 'camera') return
     setIsMockScanning(true)
@@ -119,6 +122,40 @@ export default function ScanPage() {
   const recognized = isCamera && scanner.status === 'recognized' ? scanner : null
   const identified = ai?.status === 'identified' ? ai : null
   const identifying = ai?.status === 'identifying' ? ai : null
+
+  // Trigger product lookup when a barcode is recognized
+  useEffect(() => {
+    if (recognized && recognized.barcode) {
+      const barcode = recognized.barcode
+      
+      // Prevent duplicate triggers for the same barcode using a ref
+      if (processingBarcodeRef.current === barcode) return
+      processingBarcodeRef.current = barcode
+
+      lookupBarcodeProduct(barcode)
+        .then((product) => {
+          navigate('/items/new', {
+            state: {
+              product: product || { barcode, name: '', brand: '', category: '', unit: '' },
+              source: 'scan',
+            },
+          })
+        })
+        .catch(() => {
+          navigate('/items/new', {
+            state: {
+              product: { barcode, name: '', brand: '', category: '', unit: '' },
+              source: 'scan',
+            },
+          })
+        })
+        .finally(() => {
+          processingBarcodeRef.current = null
+        })
+    }
+  }, [recognized, navigate])
+ 
+
   let failure: { title: string; detail: string } | null = null
   if (isCamera && scanner.status === 'not-recognized') {
     failure = {
