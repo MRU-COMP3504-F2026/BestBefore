@@ -36,6 +36,7 @@ inventoryRouter.get('/', requireAuth, async (_req: Request, res: Response) => {
 })
 
 
+
 // import express from 'express'
 // import { asc, eq } from 'drizzle-orm'
 // import { requireAuth } from '../auth/requireAuth.js'
