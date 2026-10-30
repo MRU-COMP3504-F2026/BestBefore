@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, integer, index, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, date, integer, index, timestamp, primaryKey } from 'drizzle-orm/pg-core'
 
 // Neon Auth owns users and sessions in the `neon_auth` schema. App tables live in
 // `public` and should reference users by `neon_auth.user.id` only.
@@ -53,6 +53,22 @@ export const inventory = pgTable('inventory', {
   bestBeforeDate: date('best_before_date'),
 })
 
+
+// Associative table for mapping users to households.
+export const household_members = pgTable(
+  'household_members',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    householdId: integer('household_id')
+      .notNull()
+      .references(() => households.householdId, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.householdId] }),
+  ],
+)
 
 
 
