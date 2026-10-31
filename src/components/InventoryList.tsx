@@ -4,6 +4,7 @@
  * Copyright (c) 2024 Motion B.V.
  */
 import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import ItemCard from './ItemCard'
 import { BasketIcon, LeafIcon, MilkIcon } from './icons'
@@ -32,6 +33,7 @@ function categoryIcon(category: string | null): ReactNode {
 // The signed-in user's inventory as item cards, with loading, error and empty states.
 export default function InventoryList({ className, limit }: InventoryListProps) {
   const { data, isPending, isError } = useInventory()
+  const navigate = useNavigate();
 
   if (isPending) {
     return <p className="inventory-status">Loading your items…</p>
@@ -48,6 +50,7 @@ export default function InventoryList({ className, limit }: InventoryListProps) 
   }
 
   const items = limit === undefined ? data : data.slice(0, limit)
+ 
 
   return (
     <ul className={className}>
@@ -58,6 +61,7 @@ export default function InventoryList({ className, limit }: InventoryListProps) 
             expires={formatDate(item.bestBefore)}
             icon={categoryIcon(item.category)}
             tone={expiryTone(item.bestBefore)}
+            onClick={() => navigate(`/items/${item.id}`)}
           />
         </motion.li>
       ))}
