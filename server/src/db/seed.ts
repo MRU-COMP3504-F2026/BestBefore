@@ -84,7 +84,7 @@ const SEED_ITEMS: SeedItem[] = [
   },
   // Long shelf life, no barcode (added by hand)
   {
-    name: 'Diced Tomatoes',
+    name: 'Canned Diced Tomatoes',
     brand: null,
     barcode: null,
     category: 'Pantry',

@@ -1,0 +1,355 @@
+{
+  "fixture": "seed-items-brands",
+  "model": "gemini-flash-lite-latest",
+  "thinking": "minimal",
+  "ranAt": "2026-10-31T07:58:21.680Z",
+  "requests": 10,
+  "tokens": {
+    "input": 1529,
+    "output": 461
+  },
+  "summary": {
+    "deterministic": {
+      "accuracy": "1/12 (8.3%)",
+      "precision": "1/4 (25%)",
+      "coverage": "4/12 (33.3%)",
+      "highPrecision": "0/0"
+    },
+    "tie-break": {
+      "accuracy": "1/12 (8.3%)",
+      "precision": "1/4 (25%)",
+      "coverage": "4/12 (33.3%)",
+      "highPrecision": "0/0"
+    },
+    "expansion": {
+      "accuracy": "10/12 (83.3%)",
+      "precision": "10/12 (83.3%)",
+      "coverage": "12/12 (100%)",
+      "highPrecision": "0/0"
+    },
+    "hybrid": {
+      "accuracy": "10/12 (83.3%)",
+      "precision": "10/12 (83.3%)",
+      "coverage": "12/12 (100%)",
+      "highPrecision": "0/0"
+    }
+  },
+  "items": [
+    {
+      "id": 1,
+      "name": "Cheerios",
+      "expectedId": 374,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 374,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Ready-to-eat cereal; Breakfast cereal; Cereals; Pantry staples)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 152,
+          "outputTokens": 53,
+          "totalTokens": 205
+        },
+        "apiLatencyMs": 883.3594999999999,
+        "localLatencyMs": 0.11079999999992651,
+        "totalLatencyMs": 889.5779999999999,
+        "cached": false,
+        "accepted": true,
+        "finalId": 374,
+        "failure": null
+      }
+    },
+    {
+      "id": 2,
+      "name": "Nutella",
+      "expectedId": 615,
+      "route": "credible",
+      "deterministic": 615,
+      "hybrid": 615,
+      "resolution": "local",
+      "confidence": "low",
+      "reason": "best score -2 is under 4",
+      "diagnostics": {
+        "mode": null,
+        "model": null,
+        "usage": null,
+        "apiLatencyMs": null,
+        "localLatencyMs": 0.32549999999991996,
+        "totalLatencyMs": 0.5428999999999178,
+        "cached": false,
+        "accepted": false,
+        "finalId": 615,
+        "failure": null
+      }
+    },
+    {
+      "id": 3,
+      "name": "Pop-Tarts",
+      "expectedId": 399,
+      "route": "no_match",
+      "deterministic": 318,
+      "hybrid": 399,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Toaster pastries; Bakery snacks; Grain products; Breakfast foods)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 155,
+          "outputTokens": 49,
+          "totalTokens": 204
+        },
+        "apiLatencyMs": 1191.0554999999995,
+        "localLatencyMs": 0.3874999999998181,
+        "totalLatencyMs": 1192.8125,
+        "cached": false,
+        "accepted": true,
+        "finalId": 399,
+        "failure": null
+      }
+    },
+    {
+      "id": 4,
+      "name": "Sriracha",
+      "expectedId": 559,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 559,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Hot sauce; Condiments; Sauces and dressings; Pantry staples)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 153,
+          "outputTokens": 50,
+          "totalTokens": 203
+        },
+        "apiLatencyMs": 1007.7494999999999,
+        "localLatencyMs": 0.17479999999886786,
+        "totalLatencyMs": 1009.3855999999996,
+        "cached": false,
+        "accepted": true,
+        "finalId": 559,
+        "failure": null
+      }
+    },
+    {
+      "id": 5,
+      "name": "Triscuits",
+      "expectedId": 377,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 377,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Crackers; Baked snack products; Snacks)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 152,
+          "outputTokens": 48,
+          "totalTokens": 200
+        },
+        "apiLatencyMs": 950.1641000000018,
+        "localLatencyMs": 0.22760000000198488,
+        "totalLatencyMs": 951.2125000000015,
+        "cached": false,
+        "accepted": true,
+        "finalId": 377,
+        "failure": null
+      }
+    },
+    {
+      "id": 6,
+      "name": "Eggo",
+      "expectedId": 321,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 321,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Waffles; Frozen breakfast foods; Breakfast foods; Baked goods)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 157,
+          "outputTokens": 48,
+          "totalTokens": 205
+        },
+        "apiLatencyMs": 903.7363000000005,
+        "localLatencyMs": 0.20100000000093132,
+        "totalLatencyMs": 905.1728000000003,
+        "cached": false,
+        "accepted": true,
+        "finalId": 321,
+        "failure": null
+      }
+    },
+    {
+      "id": 7,
+      "name": "Rold Gold",
+      "expectedId": 394,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 394,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Pretzels; Salty snacks; Snacks)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 153,
+          "outputTokens": 21,
+          "totalTokens": 174
+        },
+        "apiLatencyMs": 948.670299999998,
+        "localLatencyMs": 0.2690999999977066,
+        "totalLatencyMs": 949.6078999999991,
+        "cached": false,
+        "accepted": true,
+        "finalId": 394,
+        "failure": null
+      }
+    },
+    {
+      "id": 8,
+      "name": "Kikkoman",
+      "expectedId": 360,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 360,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Soy sauce; Condiments; Sauces and marinades; Pantry staples)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 153,
+          "outputTokens": 51,
+          "totalTokens": 204
+        },
+        "apiLatencyMs": 1132.3898000000045,
+        "localLatencyMs": 0.21550000000570435,
+        "totalLatencyMs": 1133.510000000002,
+        "cached": false,
+        "accepted": true,
+        "finalId": 360,
+        "failure": null
+      }
+    },
+    {
+      "id": 9,
+      "name": "Ensure",
+      "expectedId": 651,
+      "route": "credible",
+      "deterministic": 413,
+      "hybrid": 413,
+      "resolution": "local",
+      "confidence": "low",
+      "reason": "best score 1 is under 4",
+      "diagnostics": {
+        "mode": null,
+        "model": null,
+        "usage": null,
+        "apiLatencyMs": null,
+        "localLatencyMs": 0.2554999999993015,
+        "totalLatencyMs": 0.6480000000010477,
+        "cached": false,
+        "accepted": false,
+        "finalId": 413,
+        "failure": null
+      }
+    },
+    {
+      "id": 10,
+      "name": "Fruit Roll-Ups",
+      "expectedId": 380,
+      "route": "no_match",
+      "deterministic": 635,
+      "hybrid": 380,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Fruit snacks; Confectionery; Snacks)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 153,
+          "outputTokens": 48,
+          "totalTokens": 201
+        },
+        "apiLatencyMs": 975.8164000000033,
+        "localLatencyMs": 0.5630000000019209,
+        "totalLatencyMs": 978.0979000000007,
+        "cached": false,
+        "accepted": true,
+        "finalId": 380,
+        "failure": null
+      }
+    },
+    {
+      "id": 11,
+      "name": "Nesquik",
+      "expectedId": 403,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 27,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Chocolate milk; Flavoring syrup; Dairy beverages)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 152,
+          "outputTokens": 48,
+          "totalTokens": 200
+        },
+        "apiLatencyMs": 921.7055000000037,
+        "localLatencyMs": 0.17799999999988358,
+        "totalLatencyMs": 922.8770999999979,
+        "cached": false,
+        "accepted": true,
+        "finalId": 27,
+        "failure": null
+      }
+    },
+    {
+      "id": 12,
+      "name": "Kraft Singles",
+      "expectedId": 6,
+      "route": "no_match",
+      "deterministic": null,
+      "hybrid": 6,
+      "resolution": "ai_query_expansion",
+      "confidence": "low",
+      "reason": "found through AI terms (Processed cheese; Cheese slices; Cheese)",
+      "diagnostics": {
+        "mode": "query_expansion",
+        "model": "gemini-flash-lite-latest",
+        "usage": {
+          "inputTokens": 149,
+          "outputTokens": 45,
+          "totalTokens": 194
+        },
+        "apiLatencyMs": 1185.5075999999972,
+        "localLatencyMs": 0.1172999999980675,
+        "totalLatencyMs": 1186.3470000000016,
+        "cached": false,
+        "accepted": true,
+        "finalId": 6,
+        "failure": null
+      }
+    }
+  ]
+}
