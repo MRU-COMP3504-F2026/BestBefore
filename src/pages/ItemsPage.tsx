@@ -17,6 +17,8 @@ export default function ItemsPage() {
       </Button>
 
       <InventoryList className="items-list" />
+      
+      
     </div>
   )
 }
