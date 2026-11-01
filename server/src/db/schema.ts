@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, integer, index, timestamp, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, timestamp, date, uuid, pgSchema, index, integer, primaryKey } from 'drizzle-orm/pg-core';
 
 // Neon Auth owns users and sessions in the `neon_auth` schema. App tables live in
 // `public` and should reference users by `neon_auth.user.id` only.
@@ -14,15 +14,19 @@ export const signupAttempts = pgTable(
   (table) => [index('signup_attempts_ip_hash_created_at_idx').on(table.ipHash, table.createdAt)],
 )
 
-// Stores application users
-// Changed from inventory items to match the core legacy user table 
-// in the Neon database.
-export const users = pgTable('users', {
-  userId: serial('user_id').primaryKey(),
-  email: text('email').notNull(),
-  name: text('name').notNull(),
-  password: text('password').notNull(),
-})
+// 1. Restore Neon Auth schema block
+const neonAuth = pgSchema('neon_auth');
+export const authUsers = neonAuth.table('user', {
+  id: uuid('id').primaryKey(),
+  name: text('name'),
+  email: text('email'),
+  createdAt: timestamp('created_at', { withTimezone: true }),
+}, (table) => {
+  return {
+    emailIdx: index('user_email_idx').on(table.email),
+    createdAtIdx: index('user_created_at_idx').on(table.createdAt),
+  };
+});
 
 // Stores household groups
 // Added to support household group mapping from the legacy SENG specification.
@@ -54,21 +58,15 @@ export const inventory = pgTable('inventory', {
 })
 
 
-// Associative table for mapping users to households.
-export const household_members = pgTable(
-  'household_members',
-  {
-    userId: integer('user_id')
-      .notNull()
-      .references(() => users.userId, { onDelete: 'cascade' }),
-    householdId: integer('household_id')
-      .notNull()
-      .references(() => households.householdId, { onDelete: 'cascade' }),
-  },
-  (table) => [
-    primaryKey({ columns: [table.userId, table.householdId] }),
-  ],
-)
+// Associative table with UUID userId referencing authUsers
+export const householdMembers = pgTable('household_members', {
+  householdId: uuid('household_id').notNull().references(() => households.householdId, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }), // Add reference here!
+  role: text('role').notNull().default('member'),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.householdId, t.userId] }),
+}));
 
 
 

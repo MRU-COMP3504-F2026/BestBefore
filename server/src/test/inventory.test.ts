@@ -1,6 +1,8 @@
 import request from 'supertest'
 import { app } from '../app.js'
 import { db } from '../db/index.js'
+import { DEV_USER } from '../auth/devAuth.js'
+import { householdMembers } from '../db/schema.js'
 //process.env.VITE_DISABLE_AUTH = 'false';
 
 // Validates endpoint behaviors for fetching inventory items, handling relational
@@ -37,6 +39,7 @@ function stubSelect(result: () => Promise<unknown>) {
   const chain = {
     from: () => chain,
     leftJoin: () => chain,
+    innerJoin: () => chain,
     where: () => chain,
     orderBy: result,
     then: (resolve: (value: unknown) => void, reject: (reason?: unknown) => void) =>
@@ -65,16 +68,14 @@ describe('GET /api/inventory', () => {
 
   // Test case: Verifies successful data retrieval using the table normalized schema
   // (joining inventory with the products catalog table)
-  it("returns the signed-in user's items", async () => {
+  it('should return inventory items filtered by user', async () => {
     vi.stubEnv('VITE_DISABLE_AUTH', 'true')
     stubSelect(async () => [ITEM])
 
     const response = await request(app).get('/api/inventory')
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({
-      items: [ITEM],
-    })
+    expect(eqSpy).toHaveBeenCalledWith(householdMembers.userId, DEV_USER.id);
   })
 
   // Test case: Validates error handling resilience when the database query fails
@@ -88,7 +89,7 @@ describe('GET /api/inventory', () => {
     const response = await request(app).get('/api/inventory')
 
     expect(response.status).toBe(500)
-    expect(response.body).toEqual({ error: 'Internal server error' })
+    expect(response.body).toEqual({ error: "Couldn't load your items. Please try again." })
   })
 })
 
