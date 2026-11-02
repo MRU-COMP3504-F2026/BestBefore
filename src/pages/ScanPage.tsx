@@ -23,7 +23,7 @@ import { useBarcodeScanner } from '../lib/useBarcodeScanner'
 import { useFoodRecognizer } from '../lib/useFoodRecognizer'
 import { fadeUp, spring, tap } from '../lib/motion'
 import '../styles/ScanPage.css'
-import { lookupBarcodeProduct } from '../lib/productApi' //
+import { lookupBarcodeProduct } from '../lib/productApi'
 
 // Each corner starts pushed outward, then snaps into place ("locking on").
 const CORNER_OFFSET = 14
@@ -407,7 +407,7 @@ export default function ScanPage() {
             <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
               <p className="scan-status-title">{statusTitle}</p>
               <p className="scan-status-hint">{statusHint}</p>
-            </motion.div>
+          </motion.div>
             <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.09)}>
               {isPaused ? (
                 <Button onClick={scanner.restart}>Rescan</Button>
@@ -422,19 +422,19 @@ export default function ScanPage() {
                 </div>
               )}
             </motion.div>
-          </>
+        </>
         ) : (
           <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.06)}>
             <Button onClick={onMockScan} disabled={isMockScanning}>
               {isMockScanning ? 'Scanning…' : 'Scan'}
-            </Button>
-          </motion.div>
-        )}
+          </Button>
+        </motion.div>
+      )}
         <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.12)}>
           {addManually}
-        </motion.div>
+      </motion.div>
 
-        {SHOW_DEV_TOGGLE && !isAi && (
+      {SHOW_DEV_TOGGLE && !isAi && (
           <motion.div
             className="scan-dev"
             role="group"
@@ -455,16 +455,16 @@ export default function ScanPage() {
                 {label}
               </motion.button>
             ))}
-          </motion.div>
-        )}
-      </div>
-
-      {showAiWarning && (
-        <AiDevWarning
-          onCancel={() => onSourceChange('barcode')}
-          onContinue={() => setAiConfirmed(true)}
-        />
+        </motion.div>
       )}
     </div>
+
+    {showAiWarning && (
+      <AiDevWarning
+        onCancel={() => onSourceChange('barcode')}
+        onContinue={() => setAiConfirmed(true)}
+      />
+    )}
+  </div>
   )
 }

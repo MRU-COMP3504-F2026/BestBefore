@@ -18,6 +18,14 @@ productRouter.get('/lookup/:barcode', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Barcode is required.' })
   }
 
+  // Validate that the barcode consists strictly of digits (Item 10)
+  if (!/^\d+$/.test(barcode)) {
+    return res.status(400).json({ error: 'Invalid barcode format. Must contain digits only.' })
+  }
+
+  // Encode the barcode safely for external requests
+  const encodedBarcode = encodeURIComponent(barcode)
+
   try {
     // 1. Check locally first against the products table
     const existingProduct = await db
@@ -27,7 +35,7 @@ productRouter.get('/lookup/:barcode', requireAuth, async (req, res) => {
         barcode: products.barcode,
       })
       .from(products)
-      .where(eq(products.barcode, barcode))
+      .where(eq(products.barcode, encodedBarcode))
       .limit(1)
 
     if (existingProduct.length > 0) {
@@ -35,7 +43,7 @@ productRouter.get('/lookup/:barcode', requireAuth, async (req, res) => {
     }
 
     // 2. Fallback to external provider adapters (Open Food Facts -> GO-UPC -> UPCitemdb)
-    const externalProduct = await lookupExternalProduct(barcode)
+    const externalProduct = await lookupExternalProduct(encodedBarcode)
 
     if (externalProduct) {
       return res.json({ source: 'external', product: externalProduct })

@@ -60,11 +60,10 @@ export const inventory = pgTable('inventory', {
 
 // Associative table with UUID userId referencing authUsers
 export const householdMembers = pgTable('household_members', {
-  householdId: uuid('household_id').notNull().references(() => households.householdId, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }), // Add reference here!
+  householdId: integer('household_id').notNull().references(() => households.householdId, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('member'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.householdId, t.userId] }),
 }));
-

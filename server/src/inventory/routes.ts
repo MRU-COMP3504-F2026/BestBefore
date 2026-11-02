@@ -28,8 +28,8 @@ inventoryRouter.get('/', requireAuth, async (_req: Request, res: Response) => {
       })
       .from(inventory)
       .leftJoin(products, eq(inventory.productId, products.productId))
-      .innerJoin(householdMembers, eq(householdMembers.householdId, inventory.householdId))
-      .where(eq(householdMembers.userId, res.locals.user!.id))
+      .innerJoin(householdMembers, eq(householdMembers.householdId, inventory.householdId)) // For future use
+      .where(eq(householdMembers.userId, res.locals.user!.id)) // For future use
       .orderBy(asc(inventory.bestBeforeDate), asc(inventory.inventoryId));
 
     return res.json({ items })
