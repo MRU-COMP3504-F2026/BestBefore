@@ -23,6 +23,10 @@ import { useBarcodeScanner } from '../lib/useBarcodeScanner'
 import { useFoodRecognizer } from '../lib/useFoodRecognizer'
 import { fadeUp, spring, tap } from '../lib/motion'
 import '../styles/ScanPage.css'
+import { lookupBarcode } from '../lib/productLookup'
+import { estimateBestBefore } from '../lib/estimateBestBefore'
+import { todayIsoDate } from '../lib/dates'
+
 
 // Each corner starts pushed outward, then snaps into place ("locking on").
 const CORNER_OFFSET = 14
@@ -117,6 +121,47 @@ export default function ScanPage() {
 
   // Recognition results stay inside the viewfinder; full-screen results are for product lookup.
   const recognized = isCamera && scanner.status === 'recognized' ? scanner : null
+
+  // Pull the barcode out as a plain string so the effect only re-runs when it changes.
+const recognizedBarcode = recognized?.barcode // optional chaining, checks is recognised is not null or undefined, is true it return the barcode
+
+useEffect(() => {
+  if (!recognizedBarcode) return
+
+  // Set by the cleanup below if the user taps Scan Again or leaves the page,
+  // so a slow lookup can't navigate them away afterwards.
+  let cancelled = false
+
+  void (async () => {
+    // Lookup and a 0.9s pause run together, so the "Barcode Recognized"
+    // check stays visible briefly before we leave the page.
+    const [info] = await Promise.all([
+      lookupBarcode(recognizedBarcode),
+      new Promise((resolve) => setTimeout(resolve, 900)),
+    ])
+    if (cancelled) return
+
+    const purchaseDate = todayIsoDate()
+    navigate('/items/new', {
+      state: {
+        returnTo: '/scan',
+        prefill: {
+          barcode: recognizedBarcode,
+          name: info?.name ?? '',
+          brand: info?.brand ?? '',
+          purchaseDate,
+          bestBefore: info ? (estimateBestBefore(info.categories, purchaseDate) ?? '') : '',
+        },
+      },
+    })
+  })()
+
+  return () => {
+    cancelled = true
+  }
+}, [recognizedBarcode, navigate])
+
+
   const identified = ai?.status === 'identified' ? ai : null
   const identifying = ai?.status === 'identifying' ? ai : null
   let failure: { title: string; detail: string } | null = null

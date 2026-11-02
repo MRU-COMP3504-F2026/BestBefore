@@ -48,3 +48,26 @@ function daysUntil(isoDate: string): number {
 export function expiryTone(bestBefore: string): 'green' | 'amber' {
   return daysUntil(bestBefore) <= EXPIRING_SOON_DAYS ? 'amber' : 'green'
 }
+
+// The shape the server expects when saving an item.
+// Product fields (name, brand, barcode) go to the `products` table.
+// The rest goes to the `inventory` table.
+export type NewItemInput = {
+  name: string
+  brand?: string
+  barcode?: string
+  quantity: number
+  purchaseDate: string // YYYY-MM-DD -> inventory.purchase_date
+  bestBeforeDate: string // YYYY-MM-DD -> inventory.best_before_date
+}
+
+// Sends a new item to the server. Throws if the request fails,
+// so the caller can show an error message.
+export async function createItem(input: NewItemInput) {
+  return apiFetch<unknown>('/inventory', {
+    method: 'POST',
+    
+
+    body: JSON.stringify(input),
+  })
+}
