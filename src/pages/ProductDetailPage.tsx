@@ -1,125 +1,75 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from 'react-router-dom';
-import InventoryList from "../components/InventoryList";
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import PageHeader from '../components/PageHeader'
+import { formatDate, todayIsoDate } from '../lib/dates'
+import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
+import '../styles/InventoryList.css'
 import '../styles/ProductDetailPage.css'
-import { fetchInventory, type InventoryItem } from "../lib/inventoryApi"
 
+function expiryLabel(bestBefore: string): string {
+  if (bestBefore < todayIsoDate()) return 'Expired'
+  return expiryTone(bestBefore) === 'amber' ? 'Expiring soon' : 'Fresh'
+}
 
+function detailRows(item: InventoryItem): [string, string][] {
+  return [
+    ['Purchased', formatDate(item.purchaseDate)],
+    ['Quantity', item.unit ? `${item.quantity} ${item.unit}` : String(item.quantity)],
+    ['Category', item.category ?? '—'],
+    ['Brand', item.brand ?? '—'],
+    ['Barcode', item.barcode ?? '—'],
+    ['Added', formatDate(item.createdAt.slice(0, 10))],
+  ]
+}
+
+// One inventory item, read from the same cached query as the item list.
 export default function ProductDetailPage() {
+  const { id } = useParams()
+  const { data, isPending, isError } = useInventory()
+  const item = data?.find((i) => i.id === Number(id))
 
-    
-    const { id } = useParams();
-    const [product, setProduct] = useState<InventoryItem | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const navigate = useNavigate();
+  useEffect(() => {
+    document.title = `BestBefore | ${item?.name ?? 'Item'}`
+  }, [item?.name])
 
-    useEffect(() => {
-        const fetchProduct = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-
-                const items = await fetchInventory(); 
-                const item = items.find((i) => i.id === Number(id));
-
-                if (!item) {
-                    throw new Error('Product not found');
-            }
-
-            setProduct(item);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Something went wrong');
-                setProduct(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (id) {
-            fetchProduct();
-        }
-        }, [id]);
-
+  if (isPending) {
+    return <p className="inventory-status">Loading item…</p>
+  }
+  if (isError) {
     return (
+      <p className="inventory-status inventory-status-error" role="alert">
+        Couldn't load this item. Please try again.
+      </p>
+    )
+  }
+  if (!item) {
+    return (
+      <div className="product-detail">
+        <PageHeader title="Item not found" backTo="/items" />
+        <p className="inventory-status">This item may have been removed.</p>
+      </div>
+    )
+  }
 
-        <div className="product-detail">
-            
+  const tone = expiryTone(item.bestBefore)
 
-            <h1>{product?.name ?? 'Unnamed Product'}</h1>
+  return (
+    <div className="product-detail">
+      <PageHeader title={item.name} backTo="/items" />
 
-            <div className="info-list">
-                <div className="info-row">
-                <span className="label">Brand</span>
-                <input
-                    className="value-input"
-                    value={product?.brand ?? ''}
-                    onChange={() => {}}
-                />
-            </div>
+      <section className={`product-detail-expiry product-detail-expiry-${tone}`}>
+        <span className="product-detail-expiry-label">{expiryLabel(item.bestBefore)}</span>
+        <span className="product-detail-expiry-date">Best before {formatDate(item.bestBefore)}</span>
+      </section>
 
-             <div className="info-row">
-                <span className="label">Barcode</span>
-                <input
-                    className="value-input"
-                    value={product?.barcode ?? ''}
-                    onChange={() => {}}
-                />
-            </div>
-
-            <div className="info-row">
-                <span className="label">Category</span>
-                <input
-                    className="value-input"
-                    value={product?.category ?? ''}
-                    onChange={() => {}}
-                />
-            </div>
-
-            <div className="info-row">
-                <span className="label">Quantity</span>
-                <input
-                    className="value-input"
-                    type="number"
-                    value={product?.quantity ?? ''}
-                    onChange={() => {}}
-                />
-            </div>
-
-            <div className="info-row">
-                <span className="label">Unit</span>
-                <input
-                    className="value-input"
-                    value={product?.unit ?? ''}
-                    onChange={() => {}}
-                />
-            </div>
-
-            <div className="info-row">
-                <span className="label">Purchase Date</span>
-                <input
-                    className="value-input"
-                    type="date"
-                    value={product?.purchaseDate ?? ''}
-                    onChange={() => {}}
-                />
-            </div>
-
-            <div className="info-row">
-                <span className="label">Best Before</span>
-                <input
-                    className="value-input"
-                    type="date"
-                    value={product?.bestBefore ?? ''}
-                    onChange={() => {}}
-                />
-                </div>
-            </div>
-
-            <button className="back-button" onClick={() => navigate(-1)}>
-                <span className="arrow">‹</span>
-                Back
-            </button>
-        </div>
-    );
+      <dl className="product-detail-list">
+        {detailRows(item).map(([label, value]) => (
+          <div key={label} className="product-detail-row">
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
 }
