@@ -1,5 +1,6 @@
 import request from 'supertest'
 import { app } from '../app.js'
+//process.env.VITE_DISABLE_AUTH = 'false';
 
 describe('GET /api/me', () => {
   it('rejects requests without a token', async () => {

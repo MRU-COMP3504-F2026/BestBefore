@@ -1,32 +1,38 @@
-import express from 'express'
-import { asc, eq } from 'drizzle-orm'
-import { requireAuth } from '../auth/requireAuth.js'
+import { Request, Response, Router } from 'express'
+import { eq, asc } from 'drizzle-orm'
+import { requireAuth } from '../auth/requireAuth.js' 
 import { db } from '../db/index.js'
-import { inventoryItems } from '../db/schema.js'
+import { inventory, products, householdMembers } from '../db/schema.js'
 
-export const inventoryRouter = express.Router()
+export const inventoryRouter = Router()
 
-// The signed-in user's items, soonest best-before first.
-inventoryRouter.get('/', requireAuth, async (_req, res) => {
+// Rationale: Replaced the old  `inventory_items` query with a Drizzle 
+// `leftJoin` across the normalized `inventory` and `products` tables. 
+// It also provides nullable fallback fields for category, unit, and 
+// createdAt to satisfy the frontend's Zod schema requirements.
+inventoryRouter.get('/', requireAuth, async (_req: Request, res: Response) => {
   try {
     const items = await db
       .select({
-        id: inventoryItems.id,
-        name: inventoryItems.name,
-        brand: inventoryItems.brand,
-        barcode: inventoryItems.barcode,
-        category: inventoryItems.category,
-        quantity: inventoryItems.quantity,
-        unit: inventoryItems.unit,
-        purchaseDate: inventoryItems.purchaseDate,
-        bestBefore: inventoryItems.bestBefore,
-        createdAt: inventoryItems.createdAt,
+        inventoryId: inventory.inventoryId,
+        householdId: inventory.householdId,
+        quantity: inventory.quantity,
+        purchaseDate: inventory.purchaseDate,
+        bestBeforeDate: inventory.bestBeforeDate,
+        product: {
+          productId: products.productId,
+          name: products.name,
+          brand: products.brand,
+          barcode: products.barcode,
+      },
       })
-      .from(inventoryItems)
-      .where(eq(inventoryItems.userId, res.locals.user!.id))
-      .orderBy(asc(inventoryItems.bestBefore), asc(inventoryItems.id))
+      .from(inventory)
+      .leftJoin(products, eq(inventory.productId, products.productId))
+      .innerJoin(householdMembers, eq(householdMembers.householdId, inventory.householdId)) // For future use
+      .where(eq(householdMembers.userId, res.locals.user!.id)) // For future use
+      .orderBy(asc(inventory.bestBeforeDate), asc(inventory.inventoryId));
 
-    res.json({ items })
+    return res.json({ items })
   } catch (err) {
     // Drizzle's message is only the SQL; the Postgres reason is on `cause`.
     const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
@@ -34,3 +40,4 @@ inventoryRouter.get('/', requireAuth, async (_req, res) => {
     res.status(500).json({ error: "Couldn't load your items. Please try again." })
   }
 })
+

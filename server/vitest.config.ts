@@ -10,5 +10,12 @@ export default defineConfig({
       DATABASE_URL: 'postgresql://test:test@localhost/test',
       NEON_AUTH_URL: 'https://auth.test.invalid/neondb/auth',
     },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['server/src/**'],
+      exclude: ['server/src/test/**'],
+      reportsDirectory: 'coverage/server',
+    },
   },
 })
