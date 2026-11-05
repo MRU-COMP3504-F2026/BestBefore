@@ -23,6 +23,7 @@ import { useBarcodeScanner } from '../lib/useBarcodeScanner'
 import { useFoodRecognizer } from '../lib/useFoodRecognizer'
 import { fadeUp, spring, tap } from '../lib/motion'
 import '../styles/ScanPage.css'
+import { lookupBarcodeProduct } from '../lib/productApi'
 
 // Each corner starts pushed outward, then snaps into place ("locking on").
 const CORNER_OFFSET = 14
@@ -73,6 +74,8 @@ export default function ScanPage() {
   const recognizer = useFoodRecognizer(aiVideoRef, isAi && !showAiWarning)
   const ai = isAi && !showAiWarning ? recognizer : null
 
+  const processingBarcodeRef = useRef<string | null>(null)
+ 
   const onMockScan = async () => {
     if (mode === 'camera') return
     setIsMockScanning(true)
@@ -119,6 +122,40 @@ export default function ScanPage() {
   const recognized = isCamera && scanner.status === 'recognized' ? scanner : null
   const identified = ai?.status === 'identified' ? ai : null
   const identifying = ai?.status === 'identifying' ? ai : null
+
+  // Trigger product lookup when a barcode is recognized
+  useEffect(() => {
+    if (recognized && recognized.barcode) {
+      const barcode = recognized.barcode
+      
+      // Prevent duplicate triggers for the same barcode using a ref
+      if (processingBarcodeRef.current === barcode) return
+      processingBarcodeRef.current = barcode
+
+      lookupBarcodeProduct(barcode)
+        .then((product) => {
+          navigate('/items/new', {
+            state: {
+              product: product || { barcode, name: '', brand: '', category: '', unit: '' },
+              source: 'scan',
+            },
+          })
+        })
+        .catch(() => {
+          navigate('/items/new', {
+            state: {
+              product: { barcode, name: '', brand: '', category: '', unit: '' },
+              source: 'scan',
+            },
+          })
+        })
+        .finally(() => {
+          processingBarcodeRef.current = null
+        })
+    }
+  }, [recognized, navigate])
+ 
+
   let failure: { title: string; detail: string } | null = null
   if (isCamera && scanner.status === 'not-recognized') {
     failure = {
@@ -370,7 +407,7 @@ export default function ScanPage() {
             <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
               <p className="scan-status-title">{statusTitle}</p>
               <p className="scan-status-hint">{statusHint}</p>
-            </motion.div>
+          </motion.div>
             <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.09)}>
               {isPaused ? (
                 <Button onClick={scanner.restart}>Rescan</Button>
@@ -385,19 +422,19 @@ export default function ScanPage() {
                 </div>
               )}
             </motion.div>
-          </>
+        </>
         ) : (
           <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.06)}>
             <Button onClick={onMockScan} disabled={isMockScanning}>
               {isMockScanning ? 'Scanning…' : 'Scan'}
-            </Button>
-          </motion.div>
-        )}
+          </Button>
+        </motion.div>
+      )}
         <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.12)}>
           {addManually}
-        </motion.div>
+      </motion.div>
 
-        {SHOW_DEV_TOGGLE && !isAi && (
+      {SHOW_DEV_TOGGLE && !isAi && (
           <motion.div
             className="scan-dev"
             role="group"
@@ -418,16 +455,16 @@ export default function ScanPage() {
                 {label}
               </motion.button>
             ))}
-          </motion.div>
-        )}
-      </div>
-
-      {showAiWarning && (
-        <AiDevWarning
-          onCancel={() => onSourceChange('barcode')}
-          onContinue={() => setAiConfirmed(true)}
-        />
+        </motion.div>
       )}
     </div>
+
+    {showAiWarning && (
+      <AiDevWarning
+        onCancel={() => onSourceChange('barcode')}
+        onContinue={() => setAiConfirmed(true)}
+      />
+    )}
+  </div>
   )
 }

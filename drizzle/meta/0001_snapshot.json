@@ -4,8 +4,8 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.inventory_items": {
-      "name": "inventory_items",
+    "public.inventory": {
+      "name": "inventory",
       "schema": "",
       "columns": {
         "id": {
@@ -78,8 +78,8 @@
         }
       },
       "indexes": {
-        "inventory_items_user_id_best_before_idx": {
-          "name": "inventory_items_user_id_best_before_idx",
+        "inventory_user_id_best_before_idx": {
+          "name": "inventory_user_id_best_before_idx",
           "columns": [
             {
               "expression": "user_id",
@@ -101,9 +101,9 @@
         }
       },
       "foreignKeys": {
-        "inventory_items_user_id_user_id_fk": {
-          "name": "inventory_items_user_id_user_id_fk",
-          "tableFrom": "inventory_items",
+        "inventory_user_id_user_id_fk": {
+          "name": "inventory_user_id_user_id_fk",
+          "tableFrom": "inventory",
           "tableTo": "user",
           "schemaTo": "neon_auth",
           "columnsFrom": [
