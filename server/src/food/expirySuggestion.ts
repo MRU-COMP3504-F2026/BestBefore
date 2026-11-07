@@ -1,4 +1,7 @@
+import { isDeepStrictEqual } from 'node:util'
+import { z } from 'zod'
 import { suggestWithFallback, type HybridResult } from '../../../expiry-tests/ai-fallback.js'
+import { formatDay, parseDay, predict, windowLength, type Storage } from '../../../expiry-tests/expiry.js'
 import { FoodKeeper } from '../../../expiry-tests/foodkeeper.js'
 import { createGeminiClient, loadAiConfig, type AiClient, type AiConfig } from '../../../expiry-tests/gemini-expiry.js'
 import { FOODKEEPER_PATH } from '../../../expiry-tests/strategies.js'
@@ -26,8 +29,27 @@ export type ExpirySuggestion =
       matchedFood: string
       confidence: 'high' | 'medium' | 'low' | 'tie'
       aiUsed: boolean
+      shelfLife: ShelfLife
     }
   | { status: 'none'; message: string }
+
+// What is true of the product whenever it was bought, so it can be kept and reused. Never holds a
+// date: each purchase counts its own from length. window is FoodKeeper's own wording, null when the
+// length is its category's default rather than the row's.
+const shelfLifeSchema = z.object({
+  foodKeeperId: z.number().int(),
+  matchedFood: z.string(),
+  storage: z.enum(['pantry', 'fridge', 'freezer']),
+  label: z.string(),
+  length: z.object({ unit: z.enum(['days', 'months']), min: z.number(), max: z.number() }),
+  window: z
+    .object({ min: z.number().nullable(), max: z.number().nullable(), metric: z.string() })
+    .nullable(),
+  source: z.enum(['USDA', 'estimated']),
+  confidence: z.enum(['high', 'medium', 'low', 'tie']),
+  aiUsed: z.boolean(),
+})
+export type ShelfLife = z.infer<typeof shelfLifeSchema>
 
 const NO_SUGGESTION = 'No reliable suggestion for this item. Check the package and enter the date.'
 const NO_DRINK_DATE = 'FoodKeeper has no unopened date for this drink. Check the package.'
@@ -163,22 +185,52 @@ function capConfidence(confidence: 'high' | 'medium' | 'low' | 'tie', fromName: 
   return !fromName && confidence === 'high' ? 'medium' : confidence
 }
 
-function toSuggestion(result: HybridResult, fromName: boolean, input: ExpiryInput): ExpirySuggestion {
-  if (result.selected && isUnfoundedNutritionDrink(result.selected.id, input)) {
-    return { status: 'none', message: NO_DRINK_DATE }
+function noDate(message: string): ExpirySuggestion {
+  return { status: 'none', message }
+}
+
+// The shelf life FoodKeeper gives this row today, or null if the row can't give one.
+function shelfLifeOf(
+  id: number,
+  match: Pick<ShelfLife, 'matchedFood' | 'storage' | 'label' | 'confidence' | 'aiUsed'>,
+): ShelfLife | null {
+  const engine = getFoodKeeper()
+  const row = engine.products.find((product) => product.id === id)
+  if (!row) return null
+
+  const window = engine.storageWindows(row).find((item) => item.label === match.label) ?? null
+  const length = windowLength(window, row.categoryId)
+  if (!length) return null
+  return {
+    foodKeeperId: id,
+    matchedFood: match.matchedFood,
+    storage: match.storage,
+    label: match.label,
+    length,
+    window: window && { min: window.min, max: window.max, metric: window.metric },
+    // The same split predict() makes: only a real length of time is USDA's own number.
+    source: window && window.min !== null ? 'USDA' : 'estimated',
+    confidence: match.confidence,
+    aiUsed: match.aiUsed,
   }
+}
+
+function toSuggestion(result: HybridResult, fromName: boolean, input: ExpiryInput): ExpirySuggestion {
+  if (result.selected && isUnfoundedNutritionDrink(result.selected.id, input)) return noDate(NO_DRINK_DATE)
   // A resolved food can still have no date, because FoodKeeper says to read the package (milk).
   if (!result.range || !result.selected || !result.confidence) {
-    const message = result.selected && isDrinkRow(result.selected.id) ? NO_DRINK_DATE : NO_SUGGESTION
-    return { status: 'none', message }
+    return noDate(result.selected && isDrinkRow(result.selected.id) ? NO_DRINK_DATE : NO_SUGGESTION)
   }
-  return {
-    status: 'suggested',
+
+  const match = {
     ...result.range,
+    storage: result.range.storage as Storage,
     matchedFood: result.selected.name,
     confidence: capConfidence(result.confidence, fromName),
     aiUsed: result.aiUsed,
   }
+  const shelfLife = shelfLifeOf(result.selected.id, match)
+  return shelfLife ? { status: 'suggested', ...match, shelfLife } : noDate(NO_SUGGESTION)
 }
 
 // Each real Gemini request claims a slot here, so a local answer or a switched-off fallback is
@@ -197,7 +249,7 @@ function limitedClient(userId: string, client: AiClient): AiClient {
 }
 
 export async function suggestExpiry(input: ExpiryInput, userId: string): Promise<ExpirySuggestion> {
-  if (isUnsupportedDrink(input)) return { status: 'none', message: NO_DRINK_DATE }
+  if (isUnsupportedDrink(input)) return noDate(NO_DRINK_DATE)
 
   const engine = getFoodKeeper()
   const item = {
@@ -224,14 +276,48 @@ export async function suggestExpiry(input: ExpiryInput, userId: string): Promise
     if (isResolved(result)) return toSuggestion(result, name === input.name, input)
   }
 
-  if (!config.enabled) return { status: 'none', message: NO_SUGGESTION }
+  if (!config.enabled) return noDate(NO_SUGGESTION)
 
   // At most one Gemini request per suggestion: the engine makes one call for the real name.
   const result = await suggestWithFallback(engine, item, {
     config,
     client: limitedClient(userId, createGeminiClient(config)),
   })
-  return result.aiUsed && isResolved(result)
-    ? toSuggestion(result, true, input)
-    : { status: 'none', message: NO_SUGGESTION }
+  return result.aiUsed && isResolved(result) ? toSuggestion(result, true, input) : noDate(NO_SUGGESTION)
+}
+
+// A stored shelf life, turned back into a date for this purchase. Costs no Gemini request. The
+// guards run again, so a row saved before a guard existed can't bring its date back. Null means the
+// stored value can't be used (malformed, or FoodKeeper has changed), so search as if it wasn't there.
+// Only send a browser the shelfLife this returns. It has no guards of its own.
+export function suggestionFromShelfLife(input: ExpiryInput, stored: unknown): ExpirySuggestion | null {
+  if (isUnsupportedDrink(input)) return noDate(NO_DRINK_DATE)
+
+  const parsed = shelfLifeSchema.safeParse(stored)
+  if (!parsed.success) return null
+  const shelfLife = parsed.data
+  if (isUnfoundedNutritionDrink(shelfLife.foodKeeperId, input)) return noDate(NO_DRINK_DATE)
+
+  // Anything that no longer matches what FoodKeeper says now, length included, is not reused.
+  const current = shelfLifeOf(shelfLife.foodKeeperId, shelfLife)
+  if (!current || !isDeepStrictEqual(current, shelfLife)) return null
+
+  const engine = getFoodKeeper()
+  const row = engine.products.find((product) => product.id === shelfLife.foodKeeperId)!
+  const window = engine.storageWindows(row).find((item) => item.label === shelfLife.label)
+  // Only the stored window, so predict() can't move on to a different one.
+  const prediction = predict(window ? [window] : [], row.categoryId, parseDay(input.purchaseDate), shelfLife.storage)
+  if (prediction.kind !== 'range' || prediction.label !== shelfLife.label) return null
+
+  return {
+    status: 'suggested',
+    earliest: formatDay(prediction.earliest),
+    latest: formatDay(prediction.latest),
+    storage: prediction.storage,
+    label: prediction.label,
+    matchedFood: shelfLife.matchedFood,
+    confidence: shelfLife.confidence,
+    aiUsed: shelfLife.aiUsed,
+    shelfLife,
+  }
 }

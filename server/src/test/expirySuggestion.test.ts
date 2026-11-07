@@ -1,5 +1,6 @@
 import request from 'supertest'
 import { app } from '../app.js'
+import { suggestionFromShelfLife } from '../food/expirySuggestion.js'
 import { EXPIRY_AI_PER_MINUTE, resetExpiryAiLimits } from '../food/rateLimit.js'
 
 // Gemini is always mocked: tests never spend real API quota.
@@ -215,6 +216,23 @@ describe('POST /api/food/expiry-suggestion', () => {
       expect(prompt).not.toContain('test-user')
       expect(prompt).not.toContain(TIED_CAKE.purchaseDate)
       expect(response.body.earliest).not.toContain('2099')
+    })
+
+    it('rebuilds a Gemini match from its saved shelf life with no second request', async () => {
+      generateContent.mockResolvedValue({ text: JSON.stringify({ selectedId: 197, reason: 'A packaged cake.' }) })
+
+      const { body } = await suggest(TIED_CAKE)
+
+      expect(body.shelfLife).toMatchObject({
+        foodKeeperId: 197,
+        length: { unit: 'days', min: 3, max: 7 },
+        source: 'USDA',
+        confidence: 'medium',
+        aiUsed: true,
+      })
+      expect(JSON.stringify(body.shelfLife)).not.toMatch(/d{4}-d{2}-d{2}/)
+      expect(suggestionFromShelfLife(TIED_CAKE, body.shelfLife)).toEqual(body)
+      expect(generateContent).toHaveBeenCalledTimes(1)
     })
 
     it('makes no second request and offers no date when Gemini fails', async () => {

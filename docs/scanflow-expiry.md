@@ -48,6 +48,24 @@ a timeout (1.5 seconds) or an error means no date, and there is no retry. These 
 serverless instance, and answers are not cached, so asking about the same product again costs another
 request.
 
+### Reusing a shelf life
+
+A suggested response also carries `shelfLife`: the FoodKeeper row, its window, a `length` in whole days
+or calendar months, where it came from (`source`, `confidence`, `aiUsed`), and no dates. It is true of
+the product whenever it was bought, so it is safe to keep for later purchases. Adding `length` to a
+purchase date with `setDate` or `setMonth` gives the same dates as the engine.
+
+`suggestionFromShelfLife(input, stored)` turns a kept value back into a suggestion with no Gemini request:
+
+| Result | Meaning |
+| --- | --- |
+| A suggestion with dates | Counted from this request's purchase date. Its `shelfLife` passed the checks |
+| `status: 'none'` | The drink guards refused it, so offer no date |
+| `null` | Malformed, or FoodKeeper no longer agrees. Treat it as not stored and call `suggestExpiry` |
+
+The drink guards only run on the server, so a browser should only be given a `shelfLife` that came back
+from one of these two functions, and should ask again when the name, brand or category changes.
+
 ## What was measured
 
 22 barcodes were looked up live on 2026-11-07, with Open Food Facts and UPCitemdb only (no Go-UPC
