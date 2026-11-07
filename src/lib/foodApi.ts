@@ -140,6 +140,23 @@ export async function lookupBarcode(barcode: string, signal: AbortSignal): Promi
   }
 }
 
+// The parts of the server's ShelfLife the page needs to move the date itself. Never holds a date.
+export const shelfLifeSchema = z.object({
+  matchedFood: z.string(),
+  storage: z.enum(['pantry', 'fridge', 'freezer']),
+  label: z.string(),
+  length: z.object({
+    unit: z.enum(['days', 'months']),
+    min: z.number().int().nonnegative(),
+    max: z.number().int().nonnegative(),
+  }),
+  source: z.enum(['USDA', 'estimated']),
+  confidence: z.enum(['high', 'medium', 'low', 'tie']),
+  aiUsed: z.boolean(),
+})
+
+export type ShelfLife = z.infer<typeof shelfLifeSchema>
+
 // Mirrors ExpirySuggestion in server/src/food/expirySuggestion.ts.
 const expirySuggestionSchema = z.discriminatedUnion('status', [
   z.object({
@@ -151,6 +168,7 @@ const expirySuggestionSchema = z.discriminatedUnion('status', [
     matchedFood: z.string(),
     confidence: z.enum(['high', 'medium', 'low', 'tie']),
     aiUsed: z.boolean(),
+    shelfLife: shelfLifeSchema.optional(),
   }),
   z.object({ status: z.literal('none'), message: z.string() }),
 ])

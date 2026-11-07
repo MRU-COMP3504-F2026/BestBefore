@@ -8,9 +8,11 @@ import ExpirySuggestionCard from '../components/ExpirySuggestionCard'
 import PageHeader from '../components/PageHeader'
 import TextField from '../components/TextField'
 import { ApiError } from '../lib/api'
+import { useAuthSession } from '../lib/authClient'
 import { formatDate, todayIsoDate } from '../lib/dates'
 import { fetchExpirySuggestion, type ExpiryRequest, type ScanHandoff } from '../lib/foodApi'
 import { addInventoryItem, INVENTORY_QUERY_KEY } from '../lib/inventoryApi'
+import { rememberShelfLife, suggestionFromSession } from '../lib/shelfLifeSession'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import '../styles/AddItemPage.css'
 import { useEffect, useMemo, useState } from 'react'
@@ -44,6 +46,7 @@ export default function AddItemPage() {
   }, [])
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const userId = useAuthSession().data?.user.id
   // Set only when the scanner sent us here. Reload keeps it, so a lookup isn't spent twice.
   const scan = (useLocation().state as { scan?: ScanHandoff } | null)?.scan ?? null
   const product = scan?.product ?? null
@@ -90,12 +93,25 @@ export default function AddItemPage() {
   const isSettled = settledRequest === request
   const suggestion = useQuery({
     queryKey: ['expiry-suggestion', settledRequest],
-    queryFn: ({ signal }) => fetchExpirySuggestion(settledRequest, signal),
-    enabled: Boolean(scan && settledRequest.name && settledRequest.purchaseDate),
+    queryFn: async ({ signal }) => {
+      const answer = await fetchExpirySuggestion(settledRequest, signal)
+      if (answer.status === 'suggested' && answer.shelfLife) {
+        rememberShelfLife(userId, settledRequest, answer.shelfLife)
+      }
+      return answer
+    },
+    enabled:
+      Boolean(scan && settledRequest.name && settledRequest.purchaseDate) &&
+      !suggestionFromSession(userId, settledRequest),
     retry: false,
     staleTime: Infinity,
   })
   const wantsSuggestion = Boolean(scan && request.name && request.purchaseDate)
+  // Read again once an answer arrives, since that is what fills the session.
+  const localSuggestion = useMemo(
+    () => (scan ? suggestionFromSession(userId, request) : null),
+    [scan, userId, request, suggestion.data], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const acceptSuggestion = (date: string) => {
     setValue('bestBefore', date, { shouldValidate: true, shouldDirty: true })
@@ -211,9 +227,9 @@ export default function AddItemPage() {
 
         {wantsSuggestion && (
           <ExpirySuggestionCard
-            isLoading={!isSettled || suggestion.isPending}
-            isError={suggestion.isError}
-            suggestion={suggestion.data}
+            isLoading={!localSuggestion && (!isSettled || suggestion.isPending)}
+            isError={!localSuggestion && suggestion.isError}
+            suggestion={localSuggestion ?? suggestion.data}
             acceptedDate={bestBefore === acceptedDate ? acceptedDate : null}
             disabled={isSubmitting}
             onAccept={acceptSuggestion}

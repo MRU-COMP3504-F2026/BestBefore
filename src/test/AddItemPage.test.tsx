@@ -13,6 +13,11 @@ vi.mock('../lib/api', async (importOriginal) => ({
   apiFetch: vi.fn(),
 }))
 
+vi.mock('../lib/authClient', () => ({
+  getApiToken: async () => 'test-token',
+  useAuthSession: () => ({ data: { user: { id: 'user-1' } }, isPending: false }),
+}))
+
 function renderAddItem(scan?: ScanHandoff) {
   renderWithQuery(
     <MemoryRouter initialEntries={[{ pathname: '/items/new', state: scan ? { scan } : null }]}>
@@ -54,6 +59,7 @@ function savedBody() {
 
 describe('AddItemPage', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     vi.mocked(apiFetch).mockReset()
     fakeApi()
   })
