@@ -108,7 +108,9 @@ foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
     const suggestion = reused ?? (await suggestExpiry(input, res.locals.user!.id))
 
     if (record && !reused && suggestion.status === 'suggested' && isShareable(suggestion.shelfLife)) {
-      await rememberShelfLife(record.barcode, suggestion.shelfLife)
+      // A row with no shelf life, or one that can't be reused, is worked out again here from the
+      // saved record, locally first. Only a sure match is kept, and only over what was read.
+      await rememberShelfLife(record.barcode, suggestion.shelfLife, record.expirySuggestion)
     }
     res.json(suggestion)
   } catch (err) {

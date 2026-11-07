@@ -78,6 +78,10 @@ The `items` row keeps this value in `expiry_suggestion`, never an absolute date.
 for a fresh `high` or `medium` match on a request that matches the saved name, brand and categories,
 so an edited form never reaches the shared row. A saved product is not looked up again, so a record
 saved while a database was down, or with empty fields, stays as it is until the row is changed by hand.
+A row with no shelf life, or one that can't be reused, is never an answer by itself: each request
+for it runs the local engine again on the saved record, so a later engine can fill it in. The new
+value is written only while the row still holds what the request read, so two requests can't
+overwrite each other's answer. No-date answers are never stored, and no rows are rewritten in bulk.
 The same goes for rows saved before the normalizer kept `categoryTags` or picked English names: they
 keep their old name and have no tags, so they are searched the way they were before.
 

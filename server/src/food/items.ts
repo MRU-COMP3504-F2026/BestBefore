@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { FinalRecord } from '../../../testscripts/normalizer.js'
 import { db } from '../db/index.js'
 import { items } from '../db/schema.js'
@@ -91,14 +91,27 @@ export function isShareable(shelfLife: ShelfLife): boolean {
 
 // Keeps how long the product lasts on its row. No row means nothing is written, because there is
 // no FINAL record to attach it to. updated_at stays about the payload.
+// previous is the value this request read and found missing or unusable. The write only lands while
+// the row still holds it, so a refresh never replaces a shelf life another request saved meanwhile.
+// Only this one row is ever touched: old rows are refreshed one at a time, as they are asked about.
 export async function rememberShelfLife(
   barcode: string,
   shelfLife: ShelfLife,
+  previous: unknown = null,
   timeoutMs: number = ITEM_DB_TIMEOUT_MS,
 ) {
+  const unchanged =
+    previous === null || previous === undefined
+      ? isNull(items.expirySuggestion)
+      : sql`${items.expirySuggestion} = ${JSON.stringify(previous)}::jsonb`
+
   await bestEffort(
     `Shelf life save for ${barcode}`,
-    () => db.update(items).set({ expirySuggestion: shelfLife }).where(eq(items.barcode, canonicalBarcode(barcode))),
+    () =>
+      db
+        .update(items)
+        .set({ expirySuggestion: shelfLife })
+        .where(and(eq(items.barcode, canonicalBarcode(barcode)), unchanged)),
     timeoutMs,
   )
 }

@@ -11,7 +11,8 @@ import type { FinalRecord } from '../../../testscripts/normalizer.js'
 import { app } from '../app.js'
 import { db as appDb } from '../db/index.js'
 import { items } from '../db/schema.js'
-import { canonicalBarcode, findItem, isShareable, rememberItem, saveItem } from '../food/items.js'
+import { appCategory } from '../food/expirySuggestion.js'
+import { canonicalBarcode, findItem, isShareable, rememberItem, rememberShelfLife, saveItem } from '../food/items.js'
 import { LOOKUP_PER_MINUTE, resetLookupLimits } from '../food/rateLimit.js'
 
 // Counts engine runs, so a test can tell a saved rule from a fresh search.
@@ -559,6 +560,54 @@ describe('the shelf life on a saved row', () => {
     expect(response.body.earliest).not.toBe('2026-11-08')
     expect(suggestWithFallback).toHaveBeenCalled()
     expect((await rowFor(KEY)).expirySuggestion).toStrictEqual(response.body.shelfLife)
+  })
+
+  // Real records from expiry-tests/fixtures/normalized-products.json, saved the way older lookups
+  // saved them: no categoryTags, the name as it came. The engine used to offer them no date.
+  it.each([
+    [
+      'Amandes décortiquées',
+      { brand: 'Alesto', category: 'Almonds' },
+      'Almonds  (no shell)',
+    ],
+    ['Prince', { brand: 'LU, Prince', category: 'Chocolate biscuits' }, 'Cookies (crispy)'],
+  ])('works %s out again from a cached row with no shelf life, and keeps it', async (name, fields, food) => {
+    const old: FinalRecord = { ...SINGLE, name, ...fields }
+    expect(old).not.toHaveProperty('categoryTags')
+    await saveItem(SCANNED, old, true)
+    const body = {
+      ...REQUEST,
+      name,
+      brand: fields.brand,
+      category: appCategory(fields.category),
+      productCategory: fields.category,
+    }
+
+    const first = await suggest(body)
+
+    expect(first.body).toMatchObject({ status: 'suggested', matchedFood: food, aiUsed: false })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect((await rowFor(KEY)).expirySuggestion).toStrictEqual(first.body.shelfLife)
+
+    vi.mocked(suggestWithFallback).mockClear()
+    const again = await suggest({ ...body, purchaseDate: '2027-01-15' })
+
+    expect(again.body).toMatchObject({ status: 'suggested', matchedFood: food })
+    expect(suggestWithFallback).not.toHaveBeenCalled()
+  })
+
+  it('does not replace a shelf life another request saved after this one read the row', async () => {
+    await saveItem(SCANNED, YOGURT, true)
+    const { shelfLife } = (await suggest(REQUEST)).body
+    const other = { ...shelfLife, matchedFood: 'Saved meanwhile' }
+
+    // This request read an empty row, and someone else has filled it since.
+    await rememberShelfLife(SCANNED, other, null)
+    expect((await rowFor(KEY)).expirySuggestion).toStrictEqual(shelfLife)
+
+    // It read the current value and found it unusable, so it may replace it.
+    await rememberShelfLife(SCANNED, other, shelfLife)
+    expect((await rowFor(KEY)).expirySuggestion).toStrictEqual(other)
   })
 
   it('saves nothing for a product with no date, and looks again next time', async () => {
