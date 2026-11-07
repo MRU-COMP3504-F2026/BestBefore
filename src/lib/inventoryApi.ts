@@ -21,6 +21,18 @@ const inventoryResponseSchema = z.object({ items: z.array(inventoryItemSchema) }
 
 export type InventoryItem = z.infer<typeof inventoryItemSchema>
 
+const addedItemResponseSchema = z.object({ item: inventoryItemSchema })
+
+export type NewInventoryItem = {
+  name: string
+  brand: string | null
+  barcode: string | null
+  category: string | null
+  quantity: number
+  purchaseDate: string
+  bestBefore: string
+}
+
 export const INVENTORY_QUERY_KEY = ['inventory']
 
 // Items expiring within this many days (or already expired) show as amber.
@@ -30,6 +42,12 @@ export const EXPIRING_SOON_DAYS = 3
 export async function fetchInventory(): Promise<InventoryItem[]> {
   const body = await apiFetch<unknown>('/inventory')
   return inventoryResponseSchema.parse(body).items
+}
+
+// Saves one item for the signed-in user and returns the row the server stored.
+export async function addInventoryItem(item: NewInventoryItem): Promise<InventoryItem> {
+  const body = await apiFetch<unknown>('/inventory', { method: 'POST', body: JSON.stringify(item) })
+  return addedItemResponseSchema.parse(body).item
 }
 
 export function useInventory() {

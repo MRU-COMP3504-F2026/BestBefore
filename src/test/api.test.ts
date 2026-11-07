@@ -89,4 +89,18 @@ describe('apiFetch', () => {
 
     await expect(apiFetch('/inventory')).rejects.toThrow('API request failed: 401')
   })
+
+  it('keeps the status and the server message on the error', async () => {
+    mockedGetApiToken.mockResolvedValue('test-token')
+    fetchMock.mockResolvedValue(jsonResponse({ error: 'nope' }, 429))
+
+    await expect(apiFetch('/inventory')).rejects.toMatchObject({ status: 429, serverMessage: 'nope' })
+  })
+
+  it('still throws when the error body is not JSON', async () => {
+    mockedGetApiToken.mockResolvedValue('test-token')
+    fetchMock.mockResolvedValue(new Response('<html>', { status: 502 }))
+
+    await expect(apiFetch('/inventory')).rejects.toMatchObject({ status: 502, serverMessage: undefined })
+  })
 })
