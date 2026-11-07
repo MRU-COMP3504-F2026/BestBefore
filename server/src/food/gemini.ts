@@ -53,11 +53,25 @@ function describeMissingKey(apiKey: string | undefined): string {
   ].join('; ')
 }
 
-function getClient(): GoogleGenAI {
+// Shared with the expiry engine's AI fallback (expiry-tests/gemini-expiry.ts), so there is
+// one client and one place that reads the key.
+export function getClient(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY?.trim()
   if (!apiKey) throw new GeminiError('not_configured', describeMissingKey(process.env.GEMINI_API_KEY))
   client ??= new GoogleGenAI({ apiKey })
   return client
+}
+
+// Maps anything a generateContent call threw onto a GeminiError. aborted is whether our own
+// timeout fired. Also used by the expiry engine's AI fallback.
+export function toGeminiError(err: unknown, aborted: boolean): GeminiError {
+  if (err instanceof GeminiError) return err
+  if (aborted) return new GeminiError('timeout')
+  const detail = describeUpstream(err)
+  if (err instanceof ApiError && err.status === 429) return new GeminiError('rate_limited', detail)
+  // Google's side is overloaded for this model; temporary, and the user retries by hand.
+  if (err instanceof ApiError && err.status === 503) return new GeminiError('overloaded', detail)
+  return new GeminiError('upstream', detail)
 }
 
 // One Gemini call per photo, never retried: a failure goes back to the user to retry by hand.
@@ -94,13 +108,7 @@ export async function identifyFoodImage(image: Buffer, mimeType: string): Promis
     }
     return result
   } catch (err) {
-    if (err instanceof GeminiError) throw err
-    if (abort.signal.aborted) throw new GeminiError('timeout')
-    const detail = describeUpstream(err)
-    if (err instanceof ApiError && err.status === 429) throw new GeminiError('rate_limited', detail)
-    // Google's side is overloaded for this model; temporary, and the user retries by hand.
-    if (err instanceof ApiError && err.status === 503) throw new GeminiError('overloaded', detail)
-    throw new GeminiError('upstream', detail)
+    throw toGeminiError(err, abort.signal.aborted)
   } finally {
     clearTimeout(timer)
   }
