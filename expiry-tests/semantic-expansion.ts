@@ -262,15 +262,15 @@ export function applySemantics(
       adjustment,
       adjustments: notes,
       contradiction,
-      onlyStorageWord,
     };
   });
 
   // Stable sort: equal scores keep merge order, which is the order of
   // the original search first.
-  return results
-    .sort((a, b) => Number(a.onlyStorageWord) - Number(b.onlyStorageWord) || b.score - a.score)
-    .map(({ onlyStorageWord: _, ...match }) => match);
+  return results.sort(
+    (a, b) =>
+      Number(storageWordOnly.has(a.product.id)) - Number(storageWordOnly.has(b.product.id)) || b.score - a.score,
+  );
 }
 
 // Caps a confidence label for the semantic run:
