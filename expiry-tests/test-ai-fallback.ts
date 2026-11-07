@@ -292,10 +292,10 @@ async function main() {
     check("AI unavailable -> manual entry", [
       ["no_match with the UI message", result.resolution === "no_match" && result.message === NO_SUGGESTION_MESSAGE],
       ["no key -> fallback disabled", !noKey.enabled && !noKey.tieBreak && !noKey.expansion],
-      ["a key alone leaves the fallback off", !loadAiConfig({ GEMINI_API_KEY: "k" }).enabled],
-      ["production -> expansion off by default", !loadAiConfig({ GEMINI_API_KEY: "k", EXPIRY_AI_FALLBACK_ENABLED: "true", VERCEL_ENV: "production" }).expansion],
-      ["development -> expansion on by default", loadAiConfig({ GEMINI_API_KEY: "k", EXPIRY_AI_FALLBACK_ENABLED: "true" }).expansion],
-      ["tie-break can be switched off alone", !loadAiConfig({ GEMINI_API_KEY: "k", EXPIRY_AI_FALLBACK_ENABLED: "true", EXPIRY_AI_TIE_BREAK_ENABLED: "false" }).tieBreak],
+      ["a key alone turns the whole fallback on", (({ enabled, tieBreak, expansion }) => enabled && tieBreak && expansion)(loadAiConfig({ GEMINI_API_KEY: "k" }))],
+      ["false turns the fallback off", !loadAiConfig({ GEMINI_API_KEY: "k", EXPIRY_AI_FALLBACK_ENABLED: "false" }).enabled],
+      ["production -> expansion on by default", loadAiConfig({ GEMINI_API_KEY: "k", VERCEL_ENV: "production" }).expansion],
+      ["tie-break can be switched off alone", !loadAiConfig({ GEMINI_API_KEY: "k", EXPIRY_AI_TIE_BREAK_ENABLED: "false" }).tieBreak],
       ["model falls back to GEMINI_MODEL", loadAiConfig({ GEMINI_API_KEY: "k", GEMINI_MODEL: "m" }).model === "m"],
     ], result);
   }

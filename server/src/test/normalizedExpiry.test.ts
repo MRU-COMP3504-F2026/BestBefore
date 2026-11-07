@@ -28,7 +28,7 @@ function suggest(product: FinalRecord) {
 describe('real normalized products through the expiry engine', () => {
   // This checks the local engine, whatever a developer's .env.local says.
   beforeEach(() => {
-    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', '')
+    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', 'false')
   })
 
   afterEach(() => {

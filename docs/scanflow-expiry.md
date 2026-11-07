@@ -18,9 +18,35 @@ risks that remain. The tests in `server/src/test/normalizedExpiry.test.ts` run t
 6. `POST /api/inventory` saves the item, with the owner taken from the session. The "Item Added"
    screen only shows the row the server returned.
 
-The Gemini fallback is off unless `EXPIRY_AI_FALLBACK_ENABLED=true`. When it is on, Gemini is only
-asked after every local search fails, at most once per suggestion, and each request counts against
-a per-user limit.
+### When Gemini is used
+
+The fallback is on whenever `GEMINI_API_KEY` is set, in every environment, and it is billed to that
+key. Without a key nothing is sent to Gemini, whatever the switches say.
+
+| Variable | Unset or blank | To change it |
+| --- | --- | --- |
+| `EXPIRY_AI_FALLBACK_ENABLED` | On | `false`, `0`, `no` or `off` turns the whole fallback off. So does any value that isn't `1`, `true`, `yes` or `on` |
+| `EXPIRY_AI_TIE_BREAK_ENABLED` | On | `false` turns off only the tie-break |
+| `EXPIRY_AI_EXPANSION_ENABLED` | On | `false` turns off only the query expansion |
+
+Each suggestion takes one of these paths, and makes at most one Gemini request:
+
+| What happens first | Gemini request |
+| --- | --- |
+| The name or any category segment gets a high or medium local pick | None |
+| Energy drink or soda (`isUnsupportedDrink`) | None. They skip the engine too |
+| The name gets a low local pick that is still credible, with no close rival | None, and no date |
+| The name's pick is tied with another credible row that has different dates | `tie_break`: Gemini picks one row from the shortlist, or none. Offered at `medium` |
+| No credible local match for the name | `query_expansion`: Gemini gives 2 names and 2 categories, and the local engine searches them. Offered at `low` |
+
+Gemini only ever chooses or finds a FoodKeeper row. The date always comes from that row, and the card
+says AI helped. The nutrition drink check still applies to what Gemini finds. The request contains the
+product's name, brand and category label, and never the user, the barcode or the purchase date.
+
+Requests count against a limit of 6 a minute and 60 a day per user, one at a time. A refused request,
+a timeout (1.5 seconds) or an error means no date, and there is no retry. These limits are per
+serverless instance, and answers are not cached, so asking about the same product again costs another
+request.
 
 ## What was measured
 

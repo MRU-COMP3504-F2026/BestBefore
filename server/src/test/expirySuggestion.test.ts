@@ -22,6 +22,8 @@ const YOGURT = {
 }
 // Nothing in FoodKeeper shares a word with this, so no local match is credible.
 const UNKNOWN = { ...YOGURT, name: 'Zzyzx', category: null }
+// Real Open Food Facts record. Fruit cake and Commercial cakes are one point apart with different dates.
+const TIED_CAKE = { ...YOGURT, name: 'Steam Cake', brand: 'T&T', barcode: '0776703289775', category: null }
 
 const suggest = (body: unknown) => request(app).post('/api/food/expiry-suggestion').send(body as object)
 
@@ -31,7 +33,7 @@ describe('POST /api/food/expiry-suggestion', () => {
     resetExpiryAiLimits()
     vi.stubEnv('VITE_DISABLE_AUTH', 'true')
     vi.stubEnv('GEMINI_API_KEY', 'test-key')
-    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', '')
+    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', 'false')
   })
 
   afterEach(() => {
@@ -122,16 +124,31 @@ describe('POST /api/food/expiry-suggestion', () => {
     expect(response.body.status).toBe('none')
   })
 
-  it('never calls Gemini by default, even with a key', async () => {
+  it('never calls Gemini when switched off, even with a key', async () => {
     await suggest(YOGURT)
     await suggest(UNKNOWN)
+    await suggest(TIED_CAKE)
 
     expect(generateContent).not.toHaveBeenCalled()
   })
 
-  describe('with the AI fallback switched on', () => {
+  describe('with no API key', () => {
+    it.each([undefined, 'true'])('stays local when the switch is %s', async (value) => {
+      vi.stubEnv('GEMINI_API_KEY', '')
+      vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', value)
+
+      expect((await suggest(YOGURT)).body).toMatchObject({ status: 'suggested', aiUsed: false })
+      expect((await suggest(UNKNOWN)).body.status).toBe('none')
+      expect((await suggest(TIED_CAKE)).body.status).toBe('none')
+      expect(generateContent).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('with a key and no switches set', () => {
     beforeEach(() => {
-      vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', 'true')
+      vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', undefined)
+      vi.stubEnv('EXPIRY_AI_TIE_BREAK_ENABLED', undefined)
+      vi.stubEnv('EXPIRY_AI_EXPANSION_ENABLED', undefined)
       generateContent.mockResolvedValue({
         text: JSON.stringify({ alternativeNames: ['Yogurt', 'Plain yogurt'], alternativeCategories: ['Dairy', 'Fridge'] }),
       })
@@ -145,13 +162,85 @@ describe('POST /api/food/expiry-suggestion', () => {
       expect(generateContent).not.toHaveBeenCalled()
     })
 
-    it('does not ask Gemini about a drink FoodKeeper has no unopened date for', async () => {
-      const response = await suggest({ ...UNKNOWN, name: 'Monster Energy Zero Ultra', brand: 'Monster' })
+    it.each([
+      ['Monster Energy Zero Ultra', 'Monster', 'Artificially sweetened beverages, Energy drinks'],
+      ['Canned Energy Drink', null, 'Beverages'],
+      ['Red Bull', 'Red Bull', null],
+      ['Coca-Cola Original', 'Coca-Cola', 'Colas'],
+      ['Canned Soda', null, 'Beverages'],
+      ['Silk Soy Beverage', 'Silk', 'Soy milks, Beverages'],
+      ['Carton Orange Juice', 'Tropicana', 'Fruit juices'],
+      ['Canned Sports Drink', null, 'Beverages'],
+    ])('does not ask Gemini about %s, a drink FoodKeeper has no unopened date for', async (name, brand, productCategory) => {
+      const response = await suggest({ ...UNKNOWN, name, brand, category: 'Beverages', productCategory })
 
       expect(response.body).toEqual({
         status: 'none',
         message: 'FoodKeeper has no unopened date for this drink. Check the package.',
       })
+      expect(generateContent).not.toHaveBeenCalled()
+    })
+
+    it('settles a tie by asking Gemini which row it is', async () => {
+      generateContent.mockResolvedValue({ text: JSON.stringify({ selectedId: 197, reason: 'A packaged cake.' }) })
+
+      const response = await suggest(TIED_CAKE)
+
+      expect(generateContent).toHaveBeenCalledTimes(1)
+      expect(response.body).toMatchObject({
+        status: 'suggested',
+        matchedFood: 'Commercial cakes and muffins',
+        confidence: 'medium',
+        aiUsed: true,
+      })
+    })
+
+    it('searches again on the terms Gemini gives for a name with no match', async () => {
+      const response = await suggest(UNKNOWN)
+
+      expect(generateContent).toHaveBeenCalledTimes(1)
+      expect(response.body).toMatchObject({ status: 'suggested', confidence: 'low', aiUsed: true })
+    })
+
+    it('sends only the product to Gemini, and no date comes from its answer', async () => {
+      generateContent.mockResolvedValue({
+        text: JSON.stringify({ selectedId: 197, reason: 'Best before 2099-01-01.' }),
+      })
+
+      const response = await suggest(TIED_CAKE)
+      const [{ contents }] = generateContent.mock.calls[0]
+      const prompt: string = contents[0].parts[0].text
+
+      expect(prompt).toContain('Steam Cake')
+      expect(prompt).not.toContain('test-user')
+      expect(prompt).not.toContain(TIED_CAKE.purchaseDate)
+      expect(response.body.earliest).not.toContain('2099')
+    })
+
+    it('makes no second request and offers no date when Gemini fails', async () => {
+      generateContent.mockRejectedValue(new Error('quota exceeded'))
+
+      const response = await suggest(UNKNOWN)
+
+      expect(response.status).toBe(200)
+      expect(response.body.status).toBe('none')
+      expect(generateContent).toHaveBeenCalledTimes(1)
+    })
+
+    it('leaves a tie to the user with only the tie-break switched off', async () => {
+      vi.stubEnv('EXPIRY_AI_TIE_BREAK_ENABLED', 'false')
+
+      expect((await suggest(TIED_CAKE)).body.status).toBe('none')
+      expect(generateContent).not.toHaveBeenCalled()
+
+      await suggest(UNKNOWN)
+      expect(generateContent).toHaveBeenCalledTimes(1)
+    })
+
+    it('leaves a name with no match to the user with only expansion switched off', async () => {
+      vi.stubEnv('EXPIRY_AI_EXPANSION_ENABLED', 'false')
+
+      expect((await suggest(UNKNOWN)).body.status).toBe('none')
       expect(generateContent).not.toHaveBeenCalled()
     })
 
