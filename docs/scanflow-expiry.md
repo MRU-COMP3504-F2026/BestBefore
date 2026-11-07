@@ -65,9 +65,21 @@ Offering no date is the intended failure. The user sees why and types the printe
 - **Free-text categories are mapped to our labels** by `appCategory`, because `CATEGORY_HINTS` only
   matches exact labels such as `Dairy`. Without the mapping, category-first quietly becomes
   index-first on every scanned product.
+- **Drinks FoodKeeper has no unopened date for get their own message.** It has no energy drink row,
+  and its soda, soy beverage and carton orange juice rows only have an after-opening window. Canned
+  Energy Drink reached Nutrition supplement drinks (#558) at high confidence, and Monster Energy Zero
+  Ultra (`0070847015208`) reached Milk (ultra-pasteurized) on the word "Ultra". Energy drinks and soda
+  now skip the engine and Gemini, and the nutrition drink rows need a nutrition word in the record.
+  There is no fallback to the Beverages category, so supported drinks such as coconut water and
+  bottled water still get their dates.
 
 ## Remaining risks
 
+- **The drink guard is a word list.** An energy drink with an unlisted brand and no category text
+  gets the general no-date message at best, or whatever the engine finds. A sparkling water filed
+  under "Carbonated drinks" gets no date, even though FoodKeeper has a bottled water row.
+- **Packaged juice can land on a fresh row.** "Carton Apple Juice" still matches Apple juice (fresh
+  squeezed, 6 days), because FoodKeeper has no packaged apple juice row of its own.
 - **Category text is contributor data.** Open Food Facts segments are not reliably ordered from broad
   to specific ("Cheeses, Yogurts, Plain skyrs"), so `appCategory` and the search order can pick the
   less fitting segment. Skyr is only right because "Cheeses" ties and is skipped.

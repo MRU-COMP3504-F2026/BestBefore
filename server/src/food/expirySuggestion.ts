@@ -30,6 +30,7 @@ export type ExpirySuggestion =
   | { status: 'none'; message: string }
 
 const NO_SUGGESTION = 'No reliable suggestion for this item. Check the package and enter the date.'
+const NO_DRINK_DATE = 'FoodKeeper has no unopened date for this drink. Check the package.'
 
 // Built once, on the first request that needs it: it parses a 600 KB file.
 let foodKeeper: FoodKeeper | undefined
@@ -111,6 +112,43 @@ function searchNames(input: ExpiryInput): string[] {
   return [...new Set([input.name, ...fromCategory])]
 }
 
+// FoodKeeper has no row for energy drinks, and its soda row only covers an opened can. Any date
+// for these would come from a row about something else. Monster Energy Zero Ultra reached
+// Milk (ultra-pasteurized) on the word "Ultra", so these never reach the engine or Gemini.
+// Soda and cola must end the text: "Soda Crackers" is a food, and so is "Baking Soda".
+const UNSUPPORTED_DRINK =
+  /\benergy (drinks?|shots?|beverages?)\b(?! (mix|powder))|(?<!baking )\b(sodas?|soft drinks?|carbonated (drinks?|beverages?)|colas?)$/i
+// Brands that often give no other clue. "Monster" has to be the whole brand: "Monster Munch" is not.
+const ENERGY_DRINK_BRAND = /\b(monster energy|red bull|rockstar energy)\b/i
+
+function isUnsupportedDrink(input: ExpiryInput): boolean {
+  const brands = categorySegments(input.brand)
+  return (
+    [input.name, ...categorySegments(input.productCategory)].some((text) => UNSUPPORTED_DRINK.test(text)) ||
+    [input.name, ...brands].some((text) => ENERGY_DRINK_BRAND.test(text)) ||
+    brands.some((brand) => brand.toLowerCase() === 'monster')
+  )
+}
+
+const BEVERAGES_CATEGORY = 5
+// Plant milks are filed under dairy, and bottled supplement drinks under shelf-stable foods.
+const OTHER_DRINK_ROWS = new Set([421, 429, 651])
+// "Canned" and "drink" are enough to reach these rows, but only a nutrition drink belongs on them.
+const NUTRITION_DRINK_ROWS = new Set([558, 651])
+const NUTRITION_DRINK = /\b(nutrition(al)?|supplements?|boost|ensure)\b/i
+
+function isUnfoundedNutritionDrink(id: number, input: ExpiryInput): boolean {
+  return (
+    NUTRITION_DRINK_ROWS.has(id) &&
+    !NUTRITION_DRINK.test(`${input.name} ${input.brand ?? ''} ${input.productCategory ?? ''}`)
+  )
+}
+
+function isDrinkRow(id: number): boolean {
+  const row = getFoodKeeper().products.find((product) => product.id === id)
+  return row?.categoryId === BEVERAGES_CATEGORY || OTHER_DRINK_ROWS.has(id)
+}
+
 // The engine's low and tie picks are its best guesses, not answers. On real products they said
 // ketchup was tomato paste and canned kidney beans were mung sprouts, so only a local pick it
 // is sure of counts. See docs/scanflow-expiry.md.
@@ -125,10 +163,14 @@ function capConfidence(confidence: 'high' | 'medium' | 'low' | 'tie', fromName: 
   return !fromName && confidence === 'high' ? 'medium' : confidence
 }
 
-function toSuggestion(result: HybridResult, fromName: boolean): ExpirySuggestion {
+function toSuggestion(result: HybridResult, fromName: boolean, input: ExpiryInput): ExpirySuggestion {
+  if (result.selected && isUnfoundedNutritionDrink(result.selected.id, input)) {
+    return { status: 'none', message: NO_DRINK_DATE }
+  }
   // A resolved food can still have no date, because FoodKeeper says to read the package (milk).
   if (!result.range || !result.selected || !result.confidence) {
-    return { status: 'none', message: NO_SUGGESTION }
+    const message = result.selected && isDrinkRow(result.selected.id) ? NO_DRINK_DATE : NO_SUGGESTION
+    return { status: 'none', message }
   }
   return {
     status: 'suggested',
@@ -155,6 +197,8 @@ function limitedClient(userId: string, client: AiClient): AiClient {
 }
 
 export async function suggestExpiry(input: ExpiryInput, userId: string): Promise<ExpirySuggestion> {
+  if (isUnsupportedDrink(input)) return { status: 'none', message: NO_DRINK_DATE }
+
   const engine = getFoodKeeper()
   const item = {
     name: input.name,
@@ -177,7 +221,7 @@ export async function suggestExpiry(input: ExpiryInput, userId: string): Promise
   const localOnly: AiConfig = { ...config, enabled: false, tieBreak: false, expansion: false }
   for (const name of searchNames(input)) {
     const result = await suggestWithFallback(engine, { ...item, name }, { config: localOnly })
-    if (isResolved(result)) return toSuggestion(result, name === input.name)
+    if (isResolved(result)) return toSuggestion(result, name === input.name, input)
   }
 
   if (!config.enabled) return { status: 'none', message: NO_SUGGESTION }
@@ -188,6 +232,6 @@ export async function suggestExpiry(input: ExpiryInput, userId: string): Promise
     client: limitedClient(userId, createGeminiClient(config)),
   })
   return result.aiUsed && isResolved(result)
-    ? toSuggestion(result, true)
+    ? toSuggestion(result, true, input)
     : { status: 'none', message: NO_SUGGESTION }
 }

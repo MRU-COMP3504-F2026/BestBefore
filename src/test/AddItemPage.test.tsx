@@ -382,6 +382,22 @@ describe('AddItemPage', () => {
       expect(await screen.findByRole('heading', { name: 'Item Added!' })).toBeInTheDocument()
     })
 
+    it('shows a drink with no FoodKeeper date as no date, with nothing to accept', async () => {
+      fakeApi({
+        status: 'none',
+        message: 'FoodKeeper has no unopened date for this drink. Check the package.',
+      })
+      renderAddItem(MILK)
+
+      expect(
+        await screen.findByText('FoodKeeper has no unopened date for this drink. Check the package.'),
+      ).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^Use / })).not.toBeInTheDocument()
+      expect(screen.queryByText(/^Suggested:/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/USDA/)).not.toBeInTheDocument()
+      expect(screen.getByLabelText(/Best before date/)).toHaveValue('')
+    })
+
     it('survives a failed suggestion request', async () => {
       fakeApi(new ApiError(500))
       renderAddItem(MILK)

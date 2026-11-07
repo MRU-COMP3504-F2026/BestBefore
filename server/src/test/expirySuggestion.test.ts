@@ -145,6 +145,16 @@ describe('POST /api/food/expiry-suggestion', () => {
       expect(generateContent).not.toHaveBeenCalled()
     })
 
+    it('does not ask Gemini about a drink FoodKeeper has no unopened date for', async () => {
+      const response = await suggest({ ...UNKNOWN, name: 'Monster Energy Zero Ultra', brand: 'Monster' })
+
+      expect(response.body).toEqual({
+        status: 'none',
+        message: 'FoodKeeper has no unopened date for this drink. Check the package.',
+      })
+      expect(generateContent).not.toHaveBeenCalled()
+    })
+
     it('marks an AI-found match and stops calling Gemini at the per-user limit', async () => {
       const first = await suggest(UNKNOWN)
       expect(first.body).toMatchObject({ aiUsed: true })
