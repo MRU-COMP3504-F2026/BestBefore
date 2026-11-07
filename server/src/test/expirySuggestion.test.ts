@@ -3,6 +3,15 @@ import { app } from '../app.js'
 import { suggestionFromShelfLife } from '../food/expirySuggestion.js'
 import { EXPIRY_AI_PER_MINUTE, resetExpiryAiLimits } from '../food/rateLimit.js'
 
+// The items table is covered by items.test.ts, against a real Postgres.
+vi.mock('../food/items.js', () => ({
+  describesRecord: vi.fn(),
+  findItem: vi.fn(),
+  isShareable: vi.fn(),
+  rememberItem: vi.fn(),
+  rememberShelfLife: vi.fn(),
+}))
+
 // Gemini is always mocked: tests never spend real API quota.
 const generateContent = vi.hoisted(() => vi.fn())
 

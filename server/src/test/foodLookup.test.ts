@@ -3,6 +3,15 @@ import { lookupProduct } from '../../../testscripts/normalizer.js'
 import { app } from '../app.js'
 import { LOOKUP_PER_MINUTE, resetLookupLimits } from '../food/rateLimit.js'
 
+// The items table is covered by items.test.ts, against a real Postgres.
+vi.mock('../food/items.js', () => ({
+  describesRecord: vi.fn(),
+  findItem: vi.fn(),
+  isShareable: vi.fn(),
+  rememberItem: vi.fn(),
+  rememberShelfLife: vi.fn(),
+}))
+
 // The product databases are always faked: tests never spend their quotas.
 const fetchMock = vi.fn()
 

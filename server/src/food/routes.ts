@@ -2,8 +2,9 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import { z } from 'zod'
 import { lookupHadFailure, lookupProduct } from '../../../testscripts/normalizer.js'
 import { requireAuth } from '../auth/requireAuth.js'
-import { appCategory, suggestExpiry } from './expirySuggestion.js'
+import { appCategory, suggestExpiry, suggestionFromShelfLife } from './expirySuggestion.js'
 import { GeminiError, identifyFoodImage, type GeminiErrorCode } from './gemini.js'
+import { describesRecord, findItem, isShareable, rememberItem, rememberShelfLife } from './items.js'
 import { claimIdentifySlot, claimLookupSlot } from './rateLimit.js'
 
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -37,10 +38,17 @@ export const foodRouter = express.Router()
 
 // Looks a barcode up in the product databases. `product` is the normalizer's FINAL record,
 // untouched, so it keeps `source` for one hit and `sources` for a merge. `category` is ours.
+// A product already in the items table is answered from there, without a database call or a slot.
 foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   const barcode = String(req.params.barcode)
   if (!BARCODE.test(barcode)) {
     res.status(400).json({ error: "That barcode isn't valid." })
+    return
+  }
+
+  const saved = await findItem(barcode)
+  if (saved) {
+    res.json({ product: saved.payload, category: appCategory(saved.payload.category) })
     return
   }
 
@@ -58,6 +66,7 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   try {
     const { results, final } = await lookupProduct(barcode)
     if (final) {
+      await rememberItem(barcode, final, !lookupHadFailure(results))
       res.json({ product: final, category: appCategory(final.category) })
     } else if (lookupHadFailure(results)) {
       // Never say "no such product" when a database didn't actually answer.
@@ -79,8 +88,9 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   }
 })
 
-// A best-before suggestion for the user to accept or ignore. Saves nothing, and with the AI
-// fallback off (the default) it only runs the local category-first+semantic engine.
+// A best-before suggestion for the user to accept or ignore, always counted from this request's
+// purchase date. The items table only keeps how long a product lasts, and only for a request that
+// still describes the saved product. No inventory is saved here.
 foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
   const parsed = expiryRequestSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -89,7 +99,15 @@ foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
   }
 
   try {
-    res.json(await suggestExpiry(parsed.data, res.locals.user!.id))
+    const saved = parsed.data.barcode ? await findItem(parsed.data.barcode) : null
+    const record = saved && describesRecord(saved.payload, parsed.data) ? saved : null
+    const reused = record?.expirySuggestion ? suggestionFromShelfLife(parsed.data, record.expirySuggestion) : null
+    const suggestion = reused ?? (await suggestExpiry(parsed.data, res.locals.user!.id))
+
+    if (record && !reused && suggestion.status === 'suggested' && isShareable(suggestion.shelfLife)) {
+      await rememberShelfLife(record.barcode, suggestion.shelfLife)
+    }
+    res.json(suggestion)
   } catch (err) {
     console.error(`Expiry suggestion failed: ${err instanceof Error ? err.message : err}`)
     res.status(500).json({ error: "Couldn't get a suggested date." })

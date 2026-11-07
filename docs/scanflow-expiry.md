@@ -5,16 +5,23 @@ risks that remain. The tests in `server/src/test/normalizedExpiry.test.ts` run t
 
 ## The flow
 
-1. `ScanPage` recognizes a barcode and calls `GET /api/food/barcode/:barcode` (rate limited per user).
-2. The route calls `lookupProduct` in `testscripts/normalizer.ts` and returns its FINAL record
-   unchanged as `product`: `source` for one hit, `sources` for a merge. It adds `category`, our own
-   label for the record.
+1. `ScanPage` recognizes a barcode and calls `GET /api/food/barcode/:barcode`.
+2. The route reads the global `items` table, keyed by the barcode padded to GTIN-14. A saved product
+   is returned as it is, with no product database call and no use of the per-user lookup limit.
+   Otherwise, or when the table can't answer, it calls `lookupProduct` in
+   `testscripts/normalizer.ts` (rate limited per user) and saves the FINAL record whole as JSONB.
+   Either way the response is that record, unchanged, as `product`: `source` for one hit, `sources`
+   for a merge. It adds `category`, our own label for the record.
 3. `AddItemPage` receives the record through route state and prefills name, brand and barcode.
    The record's `quantity` ("400.0 g") is the package size. It is only shown as a hint, and the
    form's quantity stays a count of items.
-4. `POST /api/food/expiry-suggestion` runs the category-first+semantic engine from `expiry-tests/`.
+4. `POST /api/food/expiry-suggestion` reuses the row's saved shelf life when the request still
+   describes the saved product, and otherwise runs the category-first+semantic engine from
+   `expiry-tests/`.
 5. The user presses "Use <date>" or types a date. Nothing fills the date on its own, and changing
-   the date bought clears a date that came from a suggestion.
+   the date bought clears a date that came from a suggestion. The page keeps the answer's shelf life
+   in `sessionStorage`, per user, barcode and form values, and moves the suggested date itself when
+   the date bought changes.
 6. `POST /api/inventory` saves the item, with the owner taken from the session. The "Item Added"
    screen only shows the row the server returned.
 
@@ -45,8 +52,8 @@ product's name, brand and category label, and never the user, the barcode or the
 
 Requests count against a limit of 6 a minute and 60 a day per user, one at a time. A refused request,
 a timeout (1.5 seconds) or an error means no date, and there is no retry. These limits are per
-serverless instance, and answers are not cached, so asking about the same product again costs another
-request.
+serverless instance. Only a `high` or `medium` match is saved to the shared row, so a product that
+only gets a `low` answer costs another request each time it is asked about in a new session.
 
 ### Reusing a shelf life
 
@@ -65,6 +72,11 @@ purchase date with `setDate` or `setMonth` gives the same dates as the engine.
 
 The drink guards only run on the server, so a browser should only be given a `shelfLife` that came back
 from one of these two functions, and should ask again when the name, brand or category changes.
+
+The `items` row keeps this value in `expiry_suggestion`, never an absolute date. It is written only
+for a fresh `high` or `medium` match on a request that matches the saved name, brand and categories,
+so an edited form never reaches the shared row. A saved product is not looked up again, so a record
+saved while a database was down, or with empty fields, stays as it is until the row is changed by hand.
 
 ## What was measured
 
