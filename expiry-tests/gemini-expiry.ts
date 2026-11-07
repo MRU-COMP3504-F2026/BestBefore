@@ -31,7 +31,6 @@ export type AiConfig = {
   // The whole fallback. False without an API key, whatever the flags say.
   enabled: boolean;
   tieBreak: boolean;
-  // Off by default outside development.
   expansion: boolean;
   model: string;
   timeoutMs: number;
@@ -56,23 +55,26 @@ function number(value: string | undefined, fallback: number): number {
 //   GEMINI_API_KEY                 shared with the image endpoint
 //   EXPIRY_AI_MODEL                model for this fallback; falls back
 //                                  to GEMINI_MODEL, then the default
-//   EXPIRY_AI_FALLBACK_ENABLED     master switch, default on with a key
+//   EXPIRY_AI_FALLBACK_ENABLED     master switch, default on when there
+//                                  is a key, in every environment. Unset
+//                                  or blank means the default. Anything
+//                                  else but 1, true, yes or on means off,
+//                                  so a typo cannot start spending
 //   EXPIRY_AI_TIE_BREAK_ENABLED    default on
-//   EXPIRY_AI_EXPANSION_ENABLED    default on in development only
+//   EXPIRY_AI_EXPANSION_ENABLED    default on
 //   EXPIRY_AI_TIMEOUT_MS           default 1500
 //   EXPIRY_AI_MAX_OUTPUT_TOKENS    default 256
 //   EXPIRY_AI_TEMPERATURE          default unset (model default)
 //   EXPIRY_AI_THINKING             minimal | budget0 | default
 export function loadAiConfig(env: NodeJS.ProcessEnv = process.env): AiConfig {
   const hasKey = Boolean(env.GEMINI_API_KEY?.trim());
-  const production = env.VERCEL_ENV === "production" || env.NODE_ENV === "production";
   const enabled = hasKey && flag(env.EXPIRY_AI_FALLBACK_ENABLED, true);
   const thinking = env.EXPIRY_AI_THINKING?.trim();
 
   return {
     enabled,
     tieBreak: enabled && flag(env.EXPIRY_AI_TIE_BREAK_ENABLED, true),
-    expansion: enabled && flag(env.EXPIRY_AI_EXPANSION_ENABLED, !production),
+    expansion: enabled && flag(env.EXPIRY_AI_EXPANSION_ENABLED, true),
     model: env.EXPIRY_AI_MODEL?.trim() || env.GEMINI_MODEL?.trim() || DEFAULT_EXPIRY_MODEL,
     timeoutMs: number(env.EXPIRY_AI_TIMEOUT_MS, 1500),
     maxOutputTokens: number(env.EXPIRY_AI_MAX_OUTPUT_TOKENS, 256),

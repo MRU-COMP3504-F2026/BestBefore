@@ -28,16 +28,20 @@
 // that usually has a description. UPCitemdb fills whatever is still
 // empty. An empty string from a source is stored as null, so it does
 // not block the next source.
+//
+// The server imports lookupProduct from this file. Importing it runs
+// nothing: the prompt, the .env.local load, and the printing only
+// happen when the file is the script being run.
 
 import { config } from "dotenv";
+import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { fileURLToPath } from "node:url";
 
-// Same as the other scripts. Loads GO_UPC_API_KEY from .env.local
-// in the current working directory. Run from the project root.
-config({ path: ".env.local" });
-
-const GO_UPC_API_KEY = process.env.GO_UPC_API_KEY;
+// How long one source gets, for the response and its body together.
+// A dead source must not hold up the ones that already answered.
+export const LOOKUP_TIMEOUT_MS = 5000;
 
 // This order is the merge priority, and also the order sources are
 // listed on the aggregated record. It is not the order of the HTTP
@@ -48,14 +52,15 @@ const sourceOrder = ["Open Facts", "Go-UPC", "UPCitemdb"] as const;
 // "Open Facts" | "Go-UPC" | "UPCitemdb". Used everywhere a source
 // name is stored, so a lookup and a normalizer cannot disagree
 // about spelling.
-type SourceName = (typeof sourceOrder)[number];
+export type SourceName = (typeof sourceOrder)[number];
 
 // One remote database. getUrl inserts the barcode. headers are
-// copied onto the request unchanged.
+// copied onto the request unchanged. It is a function so the Go-UPC
+// key is read when the request is made, not when this file is imported.
 type ProductSource = {
   name: SourceName;
   getUrl: (barcode: string) => string;
-  headers: Record<string, string>;
+  headers: () => Record<string, string>;
 };
 
 // One finished lookup. status is null when we never got an HTTP
@@ -63,12 +68,15 @@ type ProductSource = {
 // found is the strict product check, not response.ok.
 // data is the parsed JSON when there was a JSON body.
 // error is a real failure. A 404 miss leaves it unset.
-type SourceResult = {
+// skipped means we chose not to call it, so its error says nothing
+// about whether the product exists.
+export type SourceResult = {
   source: SourceName;
   status: number | null;
   found: boolean;
   data?: unknown;
   error?: string;
+  skipped?: boolean;
 };
 
 // Same field list as open-food-facts.ts, so the ORIGINALS dump for
@@ -99,27 +107,27 @@ const sources: ProductSource[] = [
       // check is ever loosened.
       `https://world.openfoodfacts.org/api/v3/product/${encodeURIComponent(barcode)}` +
       `?fields=${openFactsFields}`,
-    headers: {
+    headers: () => ({
       "User-Agent": "BestBefore/0.1 (development playground)",
       Accept: "application/json",
-    },
+    }),
   },
   {
     name: "UPCitemdb",
     getUrl: (barcode) =>
       `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`,
-    headers: {
+    headers: () => ({
       Accept: "application/json",
-    },
+    }),
   },
   {
     name: "Go-UPC",
     getUrl: (barcode) =>
       `https://go-upc.com/api/v1/code/${encodeURIComponent(barcode)}`,
-    headers: {
-      Authorization: `Bearer ${GO_UPC_API_KEY}`,
+    headers: () => ({
+      Authorization: `Bearer ${process.env.GO_UPC_API_KEY}`,
       Accept: "application/json",
-    },
+    }),
   },
 ];
 
@@ -132,7 +140,7 @@ const sources: ProductSource[] = [
 // product_name is a name, not a blurb, and we do not request a
 // description field. ingredients is always null for UPCitemdb,
 // because that API does not have an ingredient list.
-type NormalizedProduct = {
+export type NormalizedProduct = {
   source: SourceName;
   barcode: string;
   name: string | null;
@@ -150,7 +158,7 @@ type NormalizedProduct = {
 // can see the priority that filled the fields. There is no per-field
 // "this came from X" map. Compare NORMALIZED against FINAL to see
 // which value won.
-type AggregatedProduct = {
+export type AggregatedProduct = {
   barcode: string;
   name: string | null;
   brand: string | null;
@@ -289,36 +297,46 @@ function productWasFound(
 }
 
 // One GET. Does not throw. A failure comes back as found: false
-// plus an error string, so the other sources still print.
+// plus an error string, so the other sources still print. The timeout
+// covers the body too, since a server can stall halfway through one.
 async function querySource(
   source: ProductSource,
   barcode: string,
+  timeoutMs: number,
 ): Promise<SourceResult> {
   // Skip the call when we already know Go-UPC will answer 401.
   // Saves the quota and makes the missing-key case obvious.
-  if (source.name === "Go-UPC" && !GO_UPC_API_KEY) {
+  if (source.name === "Go-UPC" && !process.env.GO_UPC_API_KEY) {
     return {
       source: source.name,
       status: null,
       found: false,
       error: "GO_UPC_API_KEY is missing from .env.local",
+      skipped: true,
     };
   }
+
+  const signal = AbortSignal.timeout(timeoutMs);
+  const timedOut = `timed out after ${timeoutMs} ms`;
 
   try {
     const response = await fetch(source.getUrl(barcode), {
       method: "GET",
-      headers: source.headers,
+      headers: source.headers(),
+      signal,
     });
 
     let data: unknown;
+    let bodyError: string | undefined;
 
     // HTML error pages and empty bodies throw inside response.json().
-    // Keep the status and treat the body as missing.
+    // Keep the status and treat the body as missing. A 200 with no
+    // readable body is a failure, not a miss: we never saw an answer.
     try {
       data = await response.json();
     } catch {
       data = undefined;
+      bodyError = signal.aborted ? timedOut : "response body was not JSON";
     }
 
     const found = productWasFound(source.name, response.status, data);
@@ -331,8 +349,9 @@ async function querySource(
       // 404 is Go-UPC's normal miss. Any other non-OK status is a
       // real failure and gets a message. response.ok is true for
       // 200-299, so a found product leaves error unset.
-      error:
-        response.ok || response.status === 404
+      error: response.ok
+        ? bodyError
+        : response.status === 404
           ? undefined
           : `${response.status} ${response.statusText}`,
     };
@@ -342,7 +361,11 @@ async function querySource(
       source: source.name,
       status: null,
       found: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: signal.aborted
+        ? timedOut
+        : error instanceof Error
+          ? error.message
+          : String(error),
     };
   }
 }
@@ -589,6 +612,64 @@ function aggregate(
   return merged;
 }
 
+// What FINAL is. Same rule as the top of this file: null for no hits,
+// the normalized object itself for one, and the merge for two or more.
+export type FinalRecord = NormalizedProduct | AggregatedProduct;
+
+export type ProductLookup = {
+  results: SourceResult[];
+  normalized: NormalizedProduct[];
+  final: FinalRecord | null;
+};
+
+// All three sources at once, normalized and merged. Does not throw for
+// a dead source, because querySource turns that into a result.
+export async function lookupProduct(
+  barcode: string,
+  timeoutMs: number = LOOKUP_TIMEOUT_MS,
+): Promise<ProductLookup> {
+  // querySource never rejects, so one dead source cannot fail the
+  // whole Promise.all.
+  const results = await Promise.all(
+    sources.map((source) => querySource(source, barcode, timeoutMs)),
+  );
+
+  // Normalize only the hits. flatMap drops the null that normalize()
+  // returns for a body that is not an object.
+  // Hits keep the same order as the sources array because results
+  // does: Open Facts, UPCitemdb, Go-UPC. The merge later re-sorts by
+  // sourceOrder, which is a different sequence. The NORMALIZED section
+  // uses this order.
+  const normalized = results
+    .filter((result) => result.found)
+    .flatMap((result) => {
+      const product = normalize(result.source, result.data, barcode);
+      return product ? [product] : [];
+    });
+
+  let final: FinalRecord | null = null;
+
+  // One hit: do not run it through aggregate(). The final record
+  // is the normalized object itself, including its source field.
+  // Aggregating one record would only rename source to sources and
+  // hide that nothing was merged.
+  if (normalized.length === 1) {
+    final = normalized[0];
+  } else if (normalized.length > 1) {
+    final = aggregate(normalized, barcode);
+  }
+
+  return { results, normalized, final };
+}
+
+// True when a source that should have answered did not. With no final
+// record this means "we could not find out", not "no such product". A
+// source skipped for a missing key does not count: leaving it out is
+// configuration, and the others can still give a real answer.
+export function lookupHadFailure(results: SourceResult[]): boolean {
+  return results.some((result) => result.error && !result.skipped);
+}
+
 // Blank line, title, then a rule. Used for ORIGINALS, NORMALIZED,
 // and FINAL so the three sections are easy to spot in a long dump.
 function printHeading(title: string) {
@@ -616,17 +697,7 @@ async function main() {
   console.log(`Barcode ${barcode}`);
   console.log("=".repeat(85));
 
-  // All three at once. querySource never rejects, so one dead
-  // source cannot fail the whole Promise.all.
-  const results = await Promise.all(
-    sources.map((source) => querySource(source, barcode)),
-  );
-
-  // Hits only. Order stays the same as the sources array because
-  // filter keeps original order: Open Facts, UPCitemdb, Go-UPC.
-  // The merge later re-sorts by sourceOrder, which is a different
-  // sequence. The NORMALIZED section uses this filter order.
-  const found = results.filter((result) => result.found);
+  const { results, normalized, final } = await lookupProduct(barcode);
 
   printHeading("ORIGINALS");
 
@@ -648,13 +719,6 @@ async function main() {
     printData(result.data);
   }
 
-  // Normalize only the hits. flatMap drops the null that normalize()
-  // returns for a body that is not an object.
-  const normalized = found.flatMap((result) => {
-    const product = normalize(result.source, result.data, barcode);
-    return product ? [product] : [];
-  });
-
   printHeading("NORMALIZED");
 
   if (normalized.length === 0) {
@@ -672,41 +736,47 @@ async function main() {
   printHeading("FINAL");
   console.log();
 
-  if (normalized.length === 0) {
+  if (!final) {
     console.log("No final record.");
     return;
   }
 
-  // One hit: do not run it through aggregate(). The final record
-  // is the normalized object itself, including its source field.
-  // Aggregating one record would only rename source to sources and
-  // hide that nothing was merged.
-  if (normalized.length === 1) {
+  if ("source" in final) {
     console.log(
-      `${normalized[0].source} was the only source with a product, so this normalized record is the final one.`,
+      `${final.source} was the only source with a product, so this normalized record is the final one.`,
     );
     console.log();
-    printData(normalized[0]);
+    printData(final);
     return;
   }
 
-  const finalRecord = aggregate(normalized, barcode);
-
   console.log(
-    `${finalRecord.sources.join(", ")} had a product. Each field keeps the first non-empty value, checking Open Facts, then Go-UPC, then UPCitemdb.`,
+    `${final.sources.join(", ")} had a product. Each field keeps the first non-empty value, checking Open Facts, then Go-UPC, then UPCitemdb.`,
   );
   console.log();
-  printData(finalRecord);
+  printData(final);
 }
 
-// Barcode validation throws land here. Lookup failures do not,
-// because querySource turns them into results.
-main().catch((error) => {
-  console.error();
-  console.error(
-    "Normalizer failed:",
-    error instanceof Error ? error.message : error,
-  );
+// Only when this file is the script being run. argv[1] is the script
+// path, and it is missing under some runners.
+const isScript =
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-  process.exitCode = 1;
-});
+if (isScript) {
+  // Same as the other scripts. Loads GO_UPC_API_KEY from .env.local
+  // in the current working directory. Run from the project root.
+  config({ path: ".env.local" });
+
+  // Barcode validation throws land here. Lookup failures do not,
+  // because querySource turns them into results.
+  main().catch((error) => {
+    console.error();
+    console.error(
+      "Normalizer failed:",
+      error instanceof Error ? error.message : error,
+    );
+
+    process.exitCode = 1;
+  });
+}

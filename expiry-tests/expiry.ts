@@ -156,6 +156,35 @@ export function describeWindow(window: StorageWindow): string {
   return `${window.min}-${window.max} ${window.metric}`;
 }
 
+// The answer predict() gives for one window, as a length anyone can add
+// to a purchase date with no unit tables: whole days, or calendar months
+// the way addAmount adds them. Null window is the category default. Null
+// result is a window that gives no date (Package use-by date, and so on).
+export type WindowLength = { unit: "days" | "months"; min: number; max: number };
+
+export function windowLength(window: StorageWindow | null, foodKeeperCategoryId: number): WindowLength | null {
+  if (!window) {
+    const fallback = DEFAULT_WINDOWS[foodKeeperCategoryId];
+    return fallback ? { unit: "days", min: fallback.min, max: fallback.max } : null;
+  }
+  if (window.min !== null) {
+    const max = window.max ?? window.min;
+    if (window.metric in DAYS_PER_UNIT) {
+      const days = DAYS_PER_UNIT[window.metric];
+      return { unit: "days", min: Math.ceil(window.min * days), max: Math.ceil(max * days) };
+    }
+    if (window.metric in MONTHS_PER_UNIT) {
+      const months = MONTHS_PER_UNIT[window.metric];
+      return { unit: "months", min: window.min * months, max: max * months };
+    }
+  }
+  if (window.metric === "Indefinitely") {
+    const months = INDEFINITE_CAP_YEARS * 12;
+    return { unit: "months", min: months, max: months };
+  }
+  return null;
+}
+
 export type Storage = "pantry" | "fridge" | "freezer";
 
 // StorageKey -> where the food sits. "fridgeDop" and "fridge" are both

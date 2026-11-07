@@ -15,6 +15,20 @@
       "when": 1792979043273,
       "tag": "0001_unknown_talkback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794018286593,
+      "tag": "0002_hot_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794018932142,
+      "tag": "0003_futuristic_raza",
+      "breakpoints": true
     }
   ]
 }
