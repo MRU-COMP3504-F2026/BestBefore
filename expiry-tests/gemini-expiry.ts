@@ -56,7 +56,10 @@ function number(value: string | undefined, fallback: number): number {
 //   GEMINI_API_KEY                 shared with the image endpoint
 //   EXPIRY_AI_MODEL                model for this fallback; falls back
 //                                  to GEMINI_MODEL, then the default
-//   EXPIRY_AI_FALLBACK_ENABLED     master switch, default on with a key
+//   EXPIRY_AI_FALLBACK_ENABLED     master switch, default off. The AI
+//                                  fallback is experimental: the scan
+//                                  flow runs on the local engine alone
+//                                  unless this is turned on
 //   EXPIRY_AI_TIE_BREAK_ENABLED    default on
 //   EXPIRY_AI_EXPANSION_ENABLED    default on in development only
 //   EXPIRY_AI_TIMEOUT_MS           default 1500
@@ -66,7 +69,7 @@ function number(value: string | undefined, fallback: number): number {
 export function loadAiConfig(env: NodeJS.ProcessEnv = process.env): AiConfig {
   const hasKey = Boolean(env.GEMINI_API_KEY?.trim());
   const production = env.VERCEL_ENV === "production" || env.NODE_ENV === "production";
-  const enabled = hasKey && flag(env.EXPIRY_AI_FALLBACK_ENABLED, true);
+  const enabled = hasKey && flag(env.EXPIRY_AI_FALLBACK_ENABLED, false);
   const thinking = env.EXPIRY_AI_THINKING?.trim();
 
   return {
