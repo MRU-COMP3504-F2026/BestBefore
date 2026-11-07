@@ -79,14 +79,17 @@ export type SourceResult = {
   skipped?: boolean;
 };
 
-// Same field list as open-food-facts.ts, so the ORIGINALS dump for
-// that source matches what the standalone script prints. nutriments
+// The field list from open-food-facts.ts, plus lang and
+// product_name_en for picking an English name. nutriments
 // is requested on purpose so it shows up in the raw body. It is not
 // copied onto the normalized record. Nutrition is only on this one
 // source and the units are messy, so merging it would be a guess.
+// More fields cost nothing: it is still one request.
 const openFactsFields = [
   "code",
+  "lang",
   "product_name",
+  "product_name_en",
   "brands",
   "quantity",
   "categories",
@@ -140,6 +143,11 @@ const sources: ProductSource[] = [
 // product_name is a name, not a blurb, and we do not request a
 // description field. ingredients is always null for UPCitemdb,
 // because that API does not have an ingredient list.
+// categoryTags is Open Facts' English category tags ("en:almonds"),
+// in the order it sent them, and null for the other sources. category
+// is often half French ("Petit-déjeuners, fr:Goûter") while the tags
+// are taxonomy entries with an English name. It is optional because
+// records saved before it existed do not have it.
 export type NormalizedProduct = {
   source: SourceName;
   barcode: string;
@@ -148,6 +156,7 @@ export type NormalizedProduct = {
   description: string | null;
   quantity: string | null;
   category: string | null;
+  categoryTags?: string[] | null;
   imageUrl: string | null;
   ingredients: string | null;
 };
@@ -165,6 +174,7 @@ export type AggregatedProduct = {
   description: string | null;
   quantity: string | null;
   category: string | null;
+  categoryTags?: string[] | null;
   imageUrl: string | null;
   ingredients: string | null;
   sources: SourceName[];
@@ -172,10 +182,11 @@ export type AggregatedProduct = {
 
 // The fields pick() is allowed to fill. source is an identity, not
 // a product fact, and barcode on the aggregate is the typed code,
-// so both are excluded from the merge loop.
+// so both are excluded from the merge loop. categoryTags is a list,
+// not a string, and is copied on its own.
 type MergedField = Exclude<
   keyof NormalizedProduct,
-  "source" | "barcode"
+  "source" | "barcode" | "categoryTags"
 >;
 
 const mergedFields: MergedField[] = [
@@ -443,16 +454,94 @@ function firstImage(images: unknown): string | null {
   return null;
 }
 
+// A pack size or count at the end of a title: "- 304g", "x22",
+// "16 oz", "(Pack of 2)", "24 ct". Resellers and some Open Facts
+// contributors paste these into the name, and quantity already has
+// the size. Each match must follow a separator, so "Nutella750g" and
+// "V8" are left alone.
+const TRAILING_PACK =
+  /[\s,\-–|/]+\(?(?:pack of \d+|\d+\s*(?:pk|pack|ct|count)|x\s?\d+|\d+\s?x|\d+(?:[.,]\d+)?\s*(?:fl\.?\s?oz|oz|ounces?|lbs?|pounds?|kg|g|grams?|mg|ml|cl|l|liters?|litres?)\.?)\)?\s*$/i;
+
+// Strips pack sizes and counts off the end of a name, one at a time,
+// so "Biscuits Noisettes et Cacao x22 - 304g" loses both. Nothing
+// else is rewritten. A name that would lose all its letters is kept
+// as it came.
+export function cleanTitle(name: string | null): string | null {
+  if (!name) return name;
+
+  let clean = name.replace(/\s+/g, " ").trim();
+  for (let previous = ""; previous !== clean; ) {
+    previous = clean;
+    clean = clean.replace(TRAILING_PACK, "").replace(/[\s,\-–|/]+$/, "");
+  }
+
+  return (clean.match(/\p{L}/gu)?.length ?? 0) >= 3 ? clean : name.trim();
+}
+
+// Words that only turn up in French, Spanish, Italian, or German
+// names. A product_name_en with one of these, or with an accent, is
+// most likely the original name copied into the English field.
+const NOT_ENGLISH_WORDS =
+  /\b(et|aux?|du|des|les?|la|de|avec|sans|und|mit|con|di|del|della|y)\b/i;
+
+function looksEnglish(text: string): boolean {
+  return text.normalize("NFD") === text && !NOT_ENGLISH_WORDS.test(text);
+}
+
+// Open Facts keeps a name per language. product_name is the one in
+// the product's main language (lang), and product_name_en is the
+// English one, when a contributor added it. The English name is only
+// used when lang says the main one is not English and the English
+// field looks like a real translation: not the original copied over
+// (looksEnglish), and not just the brand when the main name says more.
+// Anything doubtful keeps product_name, which is what it was before.
+function openFactsName(product: Record<string, unknown>): string | null {
+  const name = asText(product.product_name);
+  const english = asText(product.product_name_en);
+  const lang = asText(product.lang)?.toLowerCase();
+
+  if (!english || !name || english === name || lang === "en") {
+    return cleanTitle(name ?? english);
+  }
+
+  const brands = (asText(product.brands) ?? "")
+    .split(",")
+    .map((brand) => brand.trim().toLowerCase());
+  const onlyBrand = brands.includes(english.toLowerCase());
+  // An unknown lang only switches when the main name is plainly not
+  // English and the English one plainly is.
+  const mainIsForeign = lang ? true : !looksEnglish(name);
+
+  return cleanTitle(
+    mainIsForeign && looksEnglish(english) && !onlyBrand ? english : name,
+  );
+}
+
+// "en:chocolate-biscuits" style tags only, in Open Facts' order. Tags
+// in another language ("fr:goûter") are entries the taxonomy has no
+// English name for, which the expiry engine cannot read. An empty
+// list is stored as null, like an empty string.
+function englishTags(tags: unknown): string[] | null {
+  if (!Array.isArray(tags)) {
+    return null;
+  }
+
+  const english = tags
+    .map(asText)
+    .filter((tag): tag is string => tag !== null && /^en:./.test(tag));
+  return english.length > 0 ? english : null;
+}
+
 // Open Food Facts body -> flat record.
 // The product fields live under data.product. data.code is a copy
 // of the barcode at the top of the response, used if product.code
 // is missing. The typed barcode is the last resort so the field is
 // never null.
+// name is chosen by openFactsName, and pack sizes are cut off it.
 // brands is kept as one string. Open Food Facts sometimes joins
 // several brands with commas, and splitting that is a later decision.
 // categories is the human string ("Cocoa and hazelnuts spreads"),
-// not categories_tags. The tags are language-prefixed ("en:spreads")
-// and stay in the raw dump.
+// and categoryTags the English entries of categories_tags.
 // description is null on purpose. There is no description in the
 // field list, and product_name is the name.
 function normalizeOpenFacts(
@@ -464,11 +553,12 @@ function normalizeOpenFacts(
   return {
     source: "Open Facts",
     barcode: asText(product.code) ?? asText(data.code) ?? barcode,
-    name: asText(product.product_name),
+    name: openFactsName(product),
     brand: asText(product.brands),
     description: null,
     quantity: asText(product.quantity),
     category: asText(product.categories),
+    categoryTags: englishTags(product.categories_tags),
     imageUrl: asText(product.image_front_url),
     ingredients: asText(product.ingredients_text),
   };
@@ -476,7 +566,8 @@ function normalizeOpenFacts(
 
 // UPCitemdb body -> flat record.
 // title is their name, and it is often a reseller sentence rather
-// than the short product name. brand is whatever they filed, which
+// than the short product name. cleanTitle cuts the pack size off the
+// end of it, and leaves the rest of the sentence alone. brand is whatever they filed, which
 // is sometimes the product line ("Nutella") rather than the company.
 // description passes through asText, so "" becomes null.
 // weight is the closer match to a pack size. size is only used when
@@ -491,11 +582,12 @@ function normalizeUpcItemDb(
   return {
     source: "UPCitemdb",
     barcode: asText(item.ean) ?? asText(item.upc) ?? barcode,
-    name: asText(item.title),
+    name: cleanTitle(asText(item.title)),
     brand: asText(item.brand),
     description: asText(item.description),
     quantity: asText(item.weight) ?? asText(item.size),
     category: asText(item.category),
+    categoryTags: null,
     imageUrl: firstImage(item.images),
     ingredients: null,
   };
@@ -531,7 +623,7 @@ function normalizeGoUpc(
       asText(product.ean) ??
       asText(product.upc) ??
       barcode,
-    name: asText(product.name),
+    name: cleanTitle(asText(product.name)),
     brand: asText(product.brand),
     description: asText(product.description),
     quantity: netContentText(product.netContent) ?? quantityFromSpecs(product.specs),
@@ -539,16 +631,18 @@ function normalizeGoUpc(
       categoryPath.length > 0
         ? categoryPath.join(" > ")
         : asText(product.category),
+    categoryTags: null,
     imageUrl: asText(product.imageUrl),
     ingredients: asText(ingredients.text),
   };
 }
 
-// Picks the per-source mapper. Returns null if the body is not an
+// Picks the per-source mapper. Exported for the tests, which feed it
+// saved bodies instead of making requests. Returns null if the body is not an
 // object, which should not happen for a result that already passed
 // productWasFound. The null is there so a bad body cannot throw in
 // the print loop.
-function normalize(
+export function normalize(
   source: SourceName,
   data: unknown,
   barcode: string,
@@ -594,7 +688,7 @@ function pick(
 // The cast is because barcode and sources are filled first and the
 // field loop fills the rest. Every MergedField is assigned before
 // the object is returned.
-function aggregate(
+export function aggregate(
   products: NormalizedProduct[],
   barcode: string,
 ): AggregatedProduct {
@@ -608,6 +702,10 @@ function aggregate(
   for (const field of mergedFields) {
     merged[field] = pick(products, field);
   }
+
+  // Only Open Facts has tags, so this is its list or null.
+  merged.categoryTags =
+    products.find((product) => product.categoryTags)?.categoryTags ?? null;
 
   return merged;
 }

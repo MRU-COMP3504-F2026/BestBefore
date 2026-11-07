@@ -57,6 +57,82 @@ describe('real normalized products through the expiry engine', () => {
   })
 })
 
+// Hand-built records in the shape the normalizer now produces, not live captures. Each is the kind of
+// product the live fixture showed going wrong, with the tags Open Food Facts files it under.
+describe('names and English category tags', () => {
+  beforeEach(() => {
+    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', 'false')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  const run = (name: string, productCategory: string | null, categoryTags: string[] | null = null) =>
+    suggestExpiry(
+      {
+        name,
+        brand: 'Brand',
+        barcode: '0000000000000',
+        category: appCategory(productCategory),
+        productCategory,
+        categoryTags,
+        purchaseDate: '2026-11-07',
+      },
+      'test-user',
+    )
+  const matched = async (...args: Parameters<typeof run>) => {
+    const suggestion = await run(...args)
+    return suggestion.status === 'suggested' ? suggestion.matchedFood : null
+  }
+
+  it('finds a brand-named biscuit from its English tags when the category text is French', async () => {
+    expect(await matched('Prince', 'Snacks sucrés, fr:Biscuits fourrés')).toBeNull()
+    expect(
+      await matched('Prince', 'Snacks sucrés, fr:Biscuits fourrés', [
+        'en:snacks',
+        'en:sweet-snacks',
+        'en:biscuits-and-cakes',
+        'en:biscuits',
+        'en:chocolate-biscuits',
+      ]),
+    ).toBe('Cookies (crispy)')
+  })
+
+  it('searches the narrowest tag first', async () => {
+    // "nuts" alone reaches Nuts (jars or cans), with another date.
+    const tags = ['en:plant-based-foods-and-beverages', 'en:plant-based-foods', 'en:nuts', 'en:almonds', 'en:shelled-almonds']
+
+    expect(await matched('Zzyzx', null, tags)).toBe('Almonds  (no shell)')
+  })
+
+  it('tells shelled almonds apart, and leaves plain almonds to the user', async () => {
+    expect(await matched('Shelled almonds', 'Almonds')).toBe('Almonds  (no shell)')
+    // In shell and no shell have different dates, and nothing says which this is.
+    expect((await run('Almonds', 'Almonds')).status).toBe('none')
+  })
+
+  it.each([
+    ['Buttermilk Biscuits', 'Refrigerated doughs, Biscuit doughs'],
+    ['Soft Baked Chocolate Chip Cookies', 'Biscuits, Soft cookies'],
+    ['Butter Crackers', 'Biscuits, Crackers'],
+  ])('does not call %s a crisp cookie', async (name, category) => {
+    expect(await matched(name, category)).not.toBe('Cookies (crispy)')
+  })
+
+  it('offers no date where FoodKeeper has none, however the spread is found', async () => {
+    const suggestion = await run('Zzyzx', 'Petit-déjeuners, Produits à tartiner', ['en:spreads', 'en:hazelnut-spreads'])
+
+    expect(suggestion.status).toBe('none')
+  })
+
+  it('applies the drink guard to the tags', async () => {
+    const suggestion = await run('Zzyzx', null, ['en:beverages', 'en:carbonated-drinks', 'en:sodas', 'en:colas'])
+
+    expect(suggestion).toEqual({ status: 'none', message: expect.stringMatching(/drink/) })
+  })
+})
+
 describe('appCategory', () => {
   it.each([
     ['Dairies, Milks', 'Dairy'],

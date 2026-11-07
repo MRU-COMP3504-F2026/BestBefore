@@ -177,6 +177,7 @@ describe('saving looked-up products', () => {
       description: null,
       quantity: '400.0 g',
       category: 'Dairies, Milks',
+      categoryTags: null,
       imageUrl: 'https://images.test/milk.jpg',
       ingredients: 'Milk',
     })
@@ -480,6 +481,30 @@ describe('the shelf life on a saved row', () => {
     })
     expect(JSON.stringify(row.expirySuggestion)).not.toMatch(/\d{4}-\d{2}-\d{2}/)
     expect(JSON.stringify(row.expirySuggestion)).not.toMatch(/earliest|latest|purchaseDate|userId/)
+  })
+
+  it("searches the saved record's English tags, only while the form still describes it", async () => {
+    // The display category is French, and the name is only the brand line.
+    const BISCUITS: FinalRecord = {
+      ...SINGLE,
+      name: 'Prince',
+      brand: 'LU',
+      category: 'Snacks sucrés, fr:Biscuits fourrés',
+      categoryTags: ['en:snacks', 'en:sweet-snacks', 'en:biscuits-and-cakes', 'en:biscuits', 'en:chocolate-biscuits'],
+    }
+    const body = {
+      ...REQUEST,
+      name: 'Prince',
+      brand: 'LU',
+      category: 'Bakery',
+      productCategory: 'Snacks sucrés, fr:Biscuits fourrés',
+    }
+    await saveItem(SCANNED, BISCUITS, true)
+
+    expect((await suggest({ ...body, name: 'Prince fourré' })).body.status).toBe('none')
+    const response = await suggest(body)
+
+    expect(response.body).toMatchObject({ status: 'suggested', matchedFood: 'Cookies (crispy)', aiUsed: false })
   })
 
   it('counts each purchase from its own date, without running the engine again', async () => {

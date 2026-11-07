@@ -101,8 +101,11 @@ foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
   try {
     const saved = parsed.data.barcode ? await findItem(parsed.data.barcode) : null
     const record = saved && describesRecord(saved.payload, parsed.data) ? saved : null
-    const reused = record?.expirySuggestion ? suggestionFromShelfLife(parsed.data, record.expirySuggestion) : null
-    const suggestion = reused ?? (await suggestExpiry(parsed.data, res.locals.user!.id))
+    // The record's English category tags, only while the form still describes it. A row saved
+    // before tags were kept has none, and is searched as before.
+    const input = { ...parsed.data, categoryTags: record?.payload.categoryTags ?? null }
+    const reused = record?.expirySuggestion ? suggestionFromShelfLife(input, record.expirySuggestion) : null
+    const suggestion = reused ?? (await suggestExpiry(input, res.locals.user!.id))
 
     if (record && !reused && suggestion.status === 'suggested' && isShareable(suggestion.shelfLife)) {
       await rememberShelfLife(record.barcode, suggestion.shelfLife)

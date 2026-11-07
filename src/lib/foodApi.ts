@@ -83,6 +83,8 @@ const productFields = {
   description: z.string().nullable(),
   quantity: z.string().nullable(),
   category: z.string().nullable(),
+  // Missing on records saved before the normalizer kept tags.
+  categoryTags: z.array(z.string()).nullable().optional(),
   imageUrl: z.string().nullable(),
   ingredients: z.string().nullable(),
 }

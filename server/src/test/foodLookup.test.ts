@@ -100,6 +100,7 @@ describe('GET /api/food/barcode/:barcode', () => {
         description: null,
         quantity: '400.0 g',
         category: 'Dairies, Milks',
+        categoryTags: null,
         imageUrl: 'https://images.test/milk.jpg',
         ingredients: 'Milk',
       },
@@ -120,6 +121,7 @@ describe('GET /api/food/barcode/:barcode', () => {
       description: 'Fresh milk',
       quantity: '400.0 g',
       category: 'Dairies, Milks',
+      categoryTags: null,
       imageUrl: 'https://images.test/milk.jpg',
       ingredients: 'Milk',
     })

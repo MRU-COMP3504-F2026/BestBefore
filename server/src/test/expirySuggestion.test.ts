@@ -1,6 +1,6 @@
 import request from 'supertest'
 import { app } from '../app.js'
-import { suggestionFromShelfLife } from '../food/expirySuggestion.js'
+import { suggestExpiry, suggestionFromShelfLife } from '../food/expirySuggestion.js'
 import { EXPIRY_AI_PER_MINUTE, resetExpiryAiLimits } from '../food/rateLimit.js'
 
 // The items table is covered by items.test.ts, against a real Postgres.
@@ -225,6 +225,25 @@ describe('POST /api/food/expiry-suggestion', () => {
       expect(prompt).not.toContain('test-user')
       expect(prompt).not.toContain(TIED_CAKE.purchaseDate)
       expect(response.body.earliest).not.toContain('2099')
+    })
+
+    it("gives Gemini the database's category and English tags, narrowest first", async () => {
+      // The route only fills categoryTags from a saved record, and items.js is mocked here.
+      await suggestExpiry(
+        {
+          ...UNKNOWN,
+          productCategory: 'Zzyzx régionaux, fr:Zzyzx',
+          categoryTags: ['en:zzyzx-foods', 'en:zzyzx-regional-specialties', 'fr:zzyzx'],
+        },
+        'test-user',
+      )
+      const [{ contents }] = generateContent.mock.calls[0]
+      const prompt: string = contents[0].parts[0].text
+
+      expect(prompt).toContain('"databaseCategory":"Zzyzx régionaux, fr:Zzyzx"')
+      expect(prompt).toContain('"databaseTags":["zzyzx regional specialties","zzyzx foods"]')
+      expect(prompt).not.toContain(UNKNOWN.barcode)
+      expect(prompt).not.toContain('test-user')
     })
 
     it('rebuilds a Gemini match from its saved shelf life with no second request', async () => {

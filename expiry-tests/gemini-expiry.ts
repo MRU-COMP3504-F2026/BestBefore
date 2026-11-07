@@ -13,7 +13,7 @@ import { getClient, toGeminiError } from "../server/src/food/gemini.js";
 
 // Bump when a prompt or schema changes, so cached answers from the old
 // prompt are not reused.
-export const PROMPT_VERSION = "expiry-ai-2";
+export const PROMPT_VERSION = "expiry-ai-3";
 
 export const DEFAULT_EXPIRY_MODEL = "gemini-flash-lite-latest";
 

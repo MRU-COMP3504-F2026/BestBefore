@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { z } from 'zod'
 import { suggestWithFallback, type HybridResult } from '../../../expiry-tests/ai-fallback.js'
 import { formatDay, parseDay, predict, windowLength, type Storage } from '../../../expiry-tests/expiry.js'
-import { FoodKeeper } from '../../../expiry-tests/foodkeeper.js'
+import { FoodKeeper, foldText } from '../../../expiry-tests/foodkeeper.js'
 import { createGeminiClient, loadAiConfig, type AiClient, type AiConfig } from '../../../expiry-tests/gemini-expiry.js'
 import { FOODKEEPER_PATH } from '../../../expiry-tests/strategies.js'
 import { claimExpiryAiSlot } from './rateLimit.js'
@@ -15,6 +15,9 @@ export type ExpiryInput = {
   category: string | null
   // The product's own free-text category, when a database gave one.
   productCategory: string | null
+  // Open Food Facts' English category tags ("en:chocolate-biscuits"), in its order. Only the server
+  // fills this, from the saved record the request describes. The add form never sends it.
+  categoryTags?: readonly string[] | null
   purchaseDate: string
 }
 
@@ -97,10 +100,11 @@ const CATEGORY_RULES: [RegExp, string][] = [
 
 // The most specific segment any rule recognises decides. The trails usually run broad to
 // specific, so they are read from the end. Open Food Facts contributors don't always follow
-// that, which is one reason this label is only a hint.
+// that, which is one reason this label is only a hint. Accents are folded first: \b ends a word at
+// any accented letter, so "Pâtes" would otherwise be read as "p" and "tes".
 export function appCategory(category: string | null): string | null {
   for (const segment of categorySegments(category).reverse()) {
-    const text = segment.toLowerCase()
+    const text = foldText(segment).toLowerCase()
     for (const [pattern, label] of CATEGORY_RULES) {
       if (pattern.test(text)) return label
     }
@@ -122,16 +126,89 @@ const BROAD_SEGMENTS = new Set([
   'breakfasts',
   'spreads',
   'food items',
+  // Open Food Facts' own top levels, which its tags always include.
+  'plant based foods and beverages',
+  'plant based foods',
+  'biscuits and cakes',
+  'dairies',
+  'fermented foods',
+  'fermented milk products',
+  'prepared meats',
+  'condiments',
+  'sauces',
 ])
 
-// Words to search FoodKeeper with, best first. Marketing names ("Cheerios", "Tiny Twists") share
-// no word with it, but the product's category often does ("Breakfast cereals", "Pretzel").
-// Language-tagged segments ("fr:Goûter") and slugs ("snacks-sales") can't match its English.
-function searchNames(input: ExpiryInput): string[] {
-  const fromCategory = categorySegments(input.productCategory).filter(
-    (segment) => !BROAD_SEGMENTS.has(segment.toLowerCase()) && !/[:-]/.test(segment),
+// Searched at most, so a record with a long tag list can't make one suggestion slow.
+const MAX_TAGS = 8
+
+// "en:chocolate-biscuits" -> "chocolate biscuits", most specific first. Open Food Facts lists a
+// product's tags from the top of its taxonomy down, so the last tag is the narrowest. Other
+// languages' tags are dropped: FoodKeeper is English. The tags come from a saved JSONB row, so
+// anything that isn't a list of strings counts as no tags.
+function tagSegments(tags: readonly string[] | null | undefined): string[] {
+  return (Array.isArray(tags) ? tags : [])
+    .filter((tag): tag is string => typeof tag === 'string' && tag.startsWith('en:'))
+    .map((tag) => tag.slice(3).replace(/-/g, ' ').trim())
+    .filter(Boolean)
+    .reverse()
+    .slice(0, MAX_TAGS)
+}
+
+// Everything the product databases say the product is, for the guards and for Gemini.
+function categoryText(input: ExpiryInput): string[] {
+  return [...categorySegments(input.productCategory), ...tagSegments(input.categoryTags)]
+}
+
+function isBroad(segment: string): boolean {
+  return BROAD_SEGMENTS.has(foldText(segment).toLowerCase())
+}
+
+// Open Food Facts files packaged sweet biscuits ("Chocolate biscuits", "en:sandwich-biscuits") under
+// the British word. FoodKeeper's "Biscuits" row is American refrigerated dough, which has no date of
+// its own, and its cookie rows are split into soft and crispy. A packaged sweet biscuit is the crisp
+// kind, so when the database calls the product a biscuit, biscuit and cookie are searched as
+// "crispy cookies". Anything that says it is dough, chilled, soft, or a mix keeps its own words.
+const BISCUIT_CATEGORY = /\bbiscuits?\b/i
+const NOT_A_CRISP_BISCUIT =
+  /\b(doughs?|refrigerated|chilled|frozen|soft|chewy|mix(es)?|pancakes?|scones?|crackers?)\b/i
+
+function isCrispBiscuit(input: ExpiryInput): boolean {
+  const categories = categoryText(input).filter((segment) => !isBroad(segment))
+  return (
+    categories.some((segment) => BISCUIT_CATEGORY.test(segment)) &&
+    ![input.name, ...categories].some((text) => NOT_A_CRISP_BISCUIT.test(foldText(text)))
   )
-  return [...new Set([input.name, ...fromCategory])]
+}
+
+// Bounded rewrites of what is searched, each for a food FoodKeeper files under another name. Only
+// whole phrases change, and only for the product they are true of.
+function rewrite(text: string, crispBiscuit: boolean): string {
+  // American cheese is process cheese by definition (21 CFR 133.169), the row Kraft Singles belong on.
+  let query = text.replace(/\bamerican cheeses?\b/gi, 'processed cheese')
+  if (crispBiscuit && !/\bcrispy\b/i.test(query)) {
+    query = query.replace(/\b(biscuits?|cookies?)\b/gi, 'crispy cookies')
+  }
+  return query
+}
+
+// Words to search FoodKeeper with, best first, and whether each is the product's own name.
+// Marketing names ("Cheerios", "Tiny Twists") share no word with it, but the product's category
+// often does ("Breakfast cereals", "Pretzel"). The display category goes first, in its own order,
+// then the English tags, narrowest first. Language-tagged segments ("fr:Goûter") and slugs
+// ("snacks-sales") can't match its English.
+function searchNames(input: ExpiryInput, crispBiscuit: boolean): { query: string; fromName: boolean }[] {
+  const fromCategory = categoryText(input).filter((segment) => !isBroad(segment) && !/[:-]/.test(segment))
+
+  const seen = new Set<string>()
+  const queries: { query: string; fromName: boolean }[] = []
+  for (const [index, text] of [input.name, ...fromCategory].entries()) {
+    const query = rewrite(text, crispBiscuit)
+    const key = foldText(query).toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    queries.push({ query, fromName: index === 0 })
+  }
+  return queries
 }
 
 // FoodKeeper has no row for energy drinks, and its soda row only covers an opened can. Any date
@@ -146,7 +223,7 @@ const ENERGY_DRINK_BRAND = /\b(monster energy|red bull|rockstar energy)\b/i
 function isUnsupportedDrink(input: ExpiryInput): boolean {
   const brands = categorySegments(input.brand)
   return (
-    [input.name, ...categorySegments(input.productCategory)].some((text) => UNSUPPORTED_DRINK.test(text)) ||
+    [input.name, ...categoryText(input)].some((text) => UNSUPPORTED_DRINK.test(text)) ||
     [input.name, ...brands].some((text) => ENERGY_DRINK_BRAND.test(text)) ||
     brands.some((brand) => brand.toLowerCase() === 'monster')
   )
@@ -162,7 +239,7 @@ const NUTRITION_DRINK = /\b(nutrition(al)?|supplements?|boost|ensure)\b/i
 function isUnfoundedNutritionDrink(id: number, input: ExpiryInput): boolean {
   return (
     NUTRITION_DRINK_ROWS.has(id) &&
-    !NUTRITION_DRINK.test(`${input.name} ${input.brand ?? ''} ${input.productCategory ?? ''}`)
+    !NUTRITION_DRINK.test(`${input.name} ${input.brand ?? ''} ${categoryText(input).join(' ')}`)
   )
 }
 
@@ -252,12 +329,18 @@ export async function suggestExpiry(input: ExpiryInput, userId: string): Promise
   if (isUnsupportedDrink(input)) return noDate(NO_DRINK_DATE)
 
   const engine = getFoodKeeper()
+  const crispBiscuit = isCrispBiscuit(input)
   const item = {
     name: input.name,
     brand: input.brand,
     barcode: input.barcode,
-    category: input.category,
+    // A crisp biscuit is a bakery item, whatever the trail's last segment says. "Snack dolci"
+    // (Italian: sweet snacks) made Nutella Biscuits a Pantry item, where FoodKeeper has no cookies.
+    category: crispBiscuit ? 'Bakery' : input.category,
     purchaseDate: input.purchaseDate,
+    // Context for Gemini only. The local engine never reads these.
+    productCategory: input.productCategory,
+    categoryTags: tagSegments(input.categoryTags),
     // The fixture fields the engine's shared item type requires but never reads here.
     id: 0,
     quantity: 1,
@@ -271,9 +354,9 @@ export async function suggestExpiry(input: ExpiryInput, userId: string): Promise
   // Every local search first, with AI held back, so Gemini is only ever asked as a last resort.
   const config = loadAiConfig()
   const localOnly: AiConfig = { ...config, enabled: false, tieBreak: false, expansion: false }
-  for (const name of searchNames(input)) {
-    const result = await suggestWithFallback(engine, { ...item, name }, { config: localOnly })
-    if (isResolved(result)) return toSuggestion(result, name === input.name, input)
+  for (const { query, fromName } of searchNames(input, crispBiscuit)) {
+    const result = await suggestWithFallback(engine, { ...item, name: query }, { config: localOnly })
+    if (isResolved(result)) return toSuggestion(result, fromName, input)
   }
 
   if (!config.enabled) return noDate(NO_SUGGESTION)

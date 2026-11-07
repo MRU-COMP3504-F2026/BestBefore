@@ -160,11 +160,16 @@ export function hintsForCategory(foodKeeper: FoodKeeper, category: string | null
     .map((entry) => entry.id);
 }
 
+// databaseCategory and databaseTags are the product database's own
+// words for the product. A brand name ("Prince", "Isabelle") says
+// nothing, but "Chocolate biscuits" does.
 function productJson(item: FixtureItem, expansion: SemanticExpansion) {
   return {
     name: item.name,
     category: item.category,
     ...(item.brand ? { brand: item.brand } : {}),
+    ...(item.productCategory ? { databaseCategory: item.productCategory } : {}),
+    ...(item.categoryTags?.length ? { databaseTags: item.categoryTags } : {}),
     ...(expansion.storage ? { storage: expansion.storage } : {}),
     ...(expansion.attributes.length ? { attributes: expansion.attributes } : {}),
   };
@@ -184,7 +189,7 @@ export function tieBreakPrompt(item: FixtureItem, expansion: SemanticExpansion, 
   return [
     "You classify a grocery product into one row of the USDA FoodKeeper storage dataset.",
     "Pick the candidate that is the same kind of food as the product. Judge product identity, not word overlap.",
-    "Use the category and any stated storage or preparation. Do not assume facts the product does not state.",
+    "Use the category, the database's own category and tags, and any stated storage or preparation. Do not assume facts the product does not state.",
     "selectedId must be one of the candidate ids, or null if the candidates cannot be told apart from the information given.",
     "Never give a date or a duration. Keep reason under 20 words.",
     JSON.stringify(input),
@@ -198,6 +203,7 @@ export function expansionPrompt(item: FixtureItem, expansion: SemanticExpansion)
     "For the product below, give exactly 2 alternative names and exactly 2 alternative categories",
     "that such a dataset would likely use. Prefer broad food families over brand names or close synonyms.",
     "If the name is a brand, say what kind of product it is (for example a brand of soy sauce -> \"Soy sauce\").",
+    "databaseCategory and databaseTags, when present, are the product database's own categories, narrowest tag first.",
     "Do not add a storage state, preparation, packaging, or processing the product does not state.",
     JSON.stringify({ mode: "query_expansion", product: productJson(item, expansion) }),
   ].join("\n");
@@ -243,6 +249,8 @@ function cacheKey(config: AiConfig, mode: AiMode, item: FixtureItem, expansion: 
     item.name.trim().toLowerCase(),
     item.category,
     item.brand ? "branded" : "unbranded",
+    item.productCategory ?? null,
+    item.categoryTags ?? [],
     expansion.storage,
     expansion.attributes,
     ids,

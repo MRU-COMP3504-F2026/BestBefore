@@ -153,6 +153,14 @@ const SYNONYMS: Record<string, string[]> = {
   // No "pop" -> "soda": in compound names it is not the drink, and
   // "Pop-Tarts" matched Baking soda. "cola" covers soft drinks.
   cola: ["soda"],
+  // A shelled nut is one with no shell. Without this, "Shelled almonds"
+  // tied FoodKeeper's in-shell and no-shell rows, which have different
+  // dates. "Amandes décortiquées" (French: shelled almonds) is how Open
+  // Food Facts often names the bag, with no English name at all.
+  shelled: ["no", "shell"],
+  decortique: ["no", "shell"],
+  decortiquee: ["no", "shell"],
+  amande: ["almond"],
 };
 
 // Words that show up everywhere in names and keywords and say
@@ -180,10 +188,25 @@ const STORAGE_COLUMNS = [
 
 export type StorageKey = (typeof STORAGE_COLUMNS)[number]["key"];
 
+// Accents and ligatures as plain letters, so "décortiquées" reads as
+// "decortiquees" rather than the pieces "d", "cortiqu" and "es" that a
+// letters-only match leaves of it. NFD, not NFKD: "Nº5" must not grow
+// a word "no".
+export function foldText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/œ/g, "oe")
+    .replace(/Œ/g, "OE")
+    .replace(/æ/g, "ae")
+    .replace(/Æ/g, "AE")
+    .replace(/ß/g, "ss");
+}
+
 // Lowercase words, letters only, with a rough plural strip so
 // "Tomatoes" finds "tomato" and "Eggs" finds "egg". It is not a real
 // stemmer. Words of three letters or fewer are left as they are so
-// "gas" does not become "ga".
+// "gas" does not become "ga". Accents are folded first (foldText).
 export function tokenize(text: string | null): string[] {
   return tokenizeRaw(text).filter((token) => !STOP_WORDS.has(token));
 }
@@ -195,7 +218,7 @@ export function tokenize(text: string | null): string[] {
 function tokenizeRaw(text: string | null): string[] {
   if (!text) return [];
 
-  const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
+  const words = foldText(text).toLowerCase().match(/[a-z]+/g) ?? [];
   const tokens: string[] = [];
 
   for (const word of words) {

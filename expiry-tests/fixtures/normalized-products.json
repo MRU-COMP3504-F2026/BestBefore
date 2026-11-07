@@ -1,6 +1,6 @@
 {
   "capturedAt": "2026-11-07",
-  "note": "Real normalizer FINAL records from a live lookup, without Go-UPC (no key in that run). expectedMatch is hand-judged: the start of the FoodKeeper row a date may come from, or null when offering no date is the wanted result.",
+  "note": "Real normalizer FINAL records from a live lookup, without Go-UPC (no key in that run). expectedMatch is hand-judged: the start of the FoodKeeper row a date may come from, or null when offering no date is the wanted result. Re-judged on 2026-11-07 for the biscuit, American cheese and shelled almond rules in expirySuggestion.ts and foodkeeper.ts; the records themselves are unchanged.",
   "items": [
     {
       "scannedBarcode": "3017620422003",
@@ -37,7 +37,7 @@
     },
     {
       "scannedBarcode": "044000032029",
-      "expectedMatch": null,
+      "expectedMatch": "Cookies (crispy)",
       "final": {
         "barcode": "044000032029",
         "sources": [
@@ -73,7 +73,7 @@
     },
     {
       "scannedBarcode": "021000615261",
-      "expectedMatch": null,
+      "expectedMatch": "Cheese (processed slices)",
       "final": {
         "barcode": "021000615261",
         "sources": [
@@ -127,7 +127,7 @@
     },
     {
       "scannedBarcode": "7622210449283",
-      "expectedMatch": null,
+      "expectedMatch": "Cookies (crispy)",
       "final": {
         "source": "Open Facts",
         "barcode": "7622210449283",
@@ -277,7 +277,7 @@
     },
     {
       "scannedBarcode": "8000500310427",
-      "expectedMatch": null,
+      "expectedMatch": "Cookies (crispy)",
       "final": {
         "barcode": "8000500310427",
         "sources": [
@@ -295,7 +295,7 @@
     },
     {
       "scannedBarcode": "20724696",
-      "expectedMatch": null,
+      "expectedMatch": "Almonds  (no shell)",
       "final": {
         "source": "Open Facts",
         "barcode": "20724696",

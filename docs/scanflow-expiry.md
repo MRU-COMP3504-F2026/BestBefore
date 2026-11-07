@@ -48,7 +48,8 @@ Each suggestion takes one of these paths, and makes at most one Gemini request:
 
 Gemini only ever chooses or finds a FoodKeeper row. The date always comes from that row, and the card
 says AI helped. The nutrition drink check still applies to what Gemini finds. The request contains the
-product's name, brand and category label, and never the user, the barcode or the purchase date.
+product's name, brand and category label, plus the database's own category text and English tags
+when the record has them, and never the user, the barcode or the purchase date.
 
 Requests count against a limit of 6 a minute and 60 a day per user, one at a time. A refused request,
 a timeout (1.5 seconds) or an error means no date, and there is no retry. These limits are per
@@ -77,6 +78,8 @@ The `items` row keeps this value in `expiry_suggestion`, never an absolute date.
 for a fresh `high` or `medium` match on a request that matches the saved name, brand and categories,
 so an edited form never reaches the shared row. A saved product is not looked up again, so a record
 saved while a database was down, or with empty fields, stays as it is until the row is changed by hand.
+The same goes for rows saved before the normalizer kept `categoryTags` or picked English names: they
+keep their old name and have no tags, so they are searched the way they were before.
 
 ## What was measured
 
@@ -110,6 +113,12 @@ After the changes, on the same 19 records:
 
 Offering no date is the intended failure. The user sees why and types the printed date.
 
+A second round of rules (below, "Names, tags and bounded rewrites") moved five of those twelve to a
+date, judged by hand on the same records: Oreo, Prince and Nutella Biscuits to Cookies (crispy),
+Kraft Singles to Cheese (processed slices), and Alesto's Amandes décortiquées to Almonds (no shell).
+The other seven still offer no date. Nutella, milk and Coca-Cola are FoodKeeper's own "read the
+package". Ketchup and ham are still `low` or tied, and muesli and Pringles have no row that fits.
+
 ## What changed because of it
 
 - **Only high or medium local picks are offered.** `low` and `tie` picks were the wrong ones above,
@@ -129,6 +138,25 @@ Offering no date is the intended failure. The user sees why and types the printe
   There is no fallback to the Beverages category, so supported drinks such as coconut water and
   bottled water still get their dates.
 
+### Names, tags and bounded rewrites
+
+- **English Open Food Facts tags are kept.** The normalizer stores the `en:` entries of
+  `categories_tags` as `categoryTags`, in Open Food Facts' order. The route only uses them while the
+  form still describes the saved record, and searches them after the name and the display category,
+  narrowest (last) tag first, at most 8. They also feed the drink guards and the Gemini prompt.
+- **English names are chosen conservatively.** `product_name_en` replaces `product_name` only when
+  `lang` says the main name isn't English and the English one has no accent, no French, Spanish,
+  Italian or German function word, and isn't just the brand. Otherwise the record keeps
+  `product_name`.
+- **Pack sizes come off names** (`cleanTitle`): "x22 - 304g", "16 oz, 24 ct", "(Pack of 2)". Only a
+  trailing size or count after a separator is removed.
+- **Accents are folded** in the FoodKeeper tokenizer and `appCategory`, so "décortiquées" is one word.
+- **Bounded rewrites**, each true of the food itself: "shelled" and French "décortiqué" mean no shell,
+  "amande" is almond, American cheese is process cheese (21 CFR 133.169), and a product the database
+  calls a biscuit, with nothing saying dough, chilled, soft, mix or cracker, is searched as crispy
+  cookies in the Bakery category. Plain "Almonds" is still a tie between in-shell and no-shell rows,
+  and gets no date.
+
 ## Remaining risks
 
 - **The drink guard is a word list.** An energy drink with an unlisted brand and no category text
@@ -147,7 +175,12 @@ Offering no date is the intended failure. The user sees why and types the printe
 - **Brand mismatches.** Brands only tell the engine an item is packaged. Brand-as-name records
   ("Nutella" with brand "Nutella, Ferrero") rely entirely on category text, and a brand in the name
   can match an unrelated FoodKeeper word.
-- **Non-English records** match nothing unless a category segment is in English.
+- **Non-English records** match nothing unless a category segment or English tag is in English, or
+  Open Food Facts has a believable `product_name_en`.
+- **Tag order is assumed.** Open Food Facts usually lists tags from the top of its taxonomy down, but
+  the code does not check the taxonomy, so "narrowest first" is the reverse of the list it sent.
+- **The tag rules were built on hand-made records.** The tag tests use bodies written to Open Food
+  Facts' shape, not live captures, so real tag lists may differ.
 - **Merged records** take each field from the first source that has it, so a name from one database
   can sit next to a category from another.
 - **Go-UPC was not measured.** Its category paths use the Google taxonomy, which `appCategory` handles
