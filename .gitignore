@@ -38,6 +38,7 @@ replay_pid*
 # Build output
 server/dist/
 dist
+coverage/
 
 # Dependencies
 node_modules/

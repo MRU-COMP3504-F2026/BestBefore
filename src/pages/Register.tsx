@@ -3,7 +3,7 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,6 +29,9 @@ const registerSchema = z
 type RegisterValues = z.infer<typeof registerSchema>
 
 export default function Register() {
+  useEffect(() => {
+    document.title = 'BestBefore | Create Account'
+  }, [])
   const navigate = useNavigate()
   const [formError, setFormError] = useState<string | null>(null)
   const {

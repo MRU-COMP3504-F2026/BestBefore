@@ -8,6 +8,7 @@ import TextField from '../components/TextField'
 import { formatDate, todayIsoDate } from '../lib/dates'
 import { mockAddItem } from '../lib/mockItems'
 import '../styles/AddItemPage.css'
+import { useEffect } from 'react'
 
 const addItemSchema = z
   .object({
@@ -30,6 +31,9 @@ const addItemSchema = z
 type AddItemValues = z.infer<typeof addItemSchema>
 
 export default function AddItemPage() {
+  useEffect(() => {
+    document.title = 'BestBefore | Add Item'
+  }, [])
   const navigate = useNavigate()
   const {
     register,

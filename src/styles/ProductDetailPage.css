@@ -1,0 +1,73 @@
+.product-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+
+  .page-header {
+    margin-bottom: 0;
+  }
+
+  .page-header-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.product-detail-expiry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.product-detail-expiry-green {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.product-detail-expiry-amber {
+  background: var(--color-amber-light);
+  color: var(--color-text);
+}
+
+.product-detail-expiry-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.product-detail-expiry-date {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.product-detail-list {
+  margin: 0;
+}
+
+.product-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-divider);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  dt {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+  }
+
+  dd {
+    min-width: 0;
+    margin: 0;
+    font-weight: 500;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}

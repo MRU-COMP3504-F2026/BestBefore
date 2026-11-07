@@ -4,8 +4,12 @@ import InventoryList from '../components/InventoryList'
 import PageHeader from '../components/PageHeader'
 import { PlusIcon } from '../components/icons'
 import '../styles/ItemsPage.css'
+import { useEffect } from 'react'
 
 export default function ItemsPage() {
+  useEffect(() => {
+    document.title = 'BestBefore | My Inventory'
+  }, [])
   const navigate = useNavigate()
 
   return (
@@ -17,6 +21,8 @@ export default function ItemsPage() {
       </Button>
 
       <InventoryList className="items-list" />
+      
+      
     </div>
   )
 }
