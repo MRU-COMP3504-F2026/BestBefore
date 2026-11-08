@@ -13,7 +13,7 @@ export type RecognizerState =
   | { status: 'starting' }
   | { status: 'ready' }
   | { status: 'identifying'; still: RecognitionCapture }
-  | { status: 'identified'; still: RecognitionCapture; food: IdentifiedFood }
+  | { status: 'identified'; still: RecognitionCapture; food: IdentifiedFood; provenance?: string }
   | { status: 'not-identified'; still: RecognitionCapture }
   | { status: 'failed'; still: RecognitionCapture; message: string }
   | { status: 'error'; message: string }
@@ -135,7 +135,7 @@ export function useFoodRecognizer(videoRef: RefObject<HTMLVideoElement | null>, 
         if (controller.signal.aborted) return
         if (result.identified) {
           console.log(`Identified food: ${result.food.name}`)
-          setState({ status: 'identified', still: photo.still, food: result.food })
+          setState({ status: 'identified', still: photo.still, food: result.food, provenance: result.provenance })
         } else {
           setState({ status: 'not-identified', still: photo.still })
         }

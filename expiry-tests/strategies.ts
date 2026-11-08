@@ -90,6 +90,11 @@ export type FixtureItem = {
   expectedFoodKeeperId: number;
   expectedFoodKeeperName: string;
   labelNote?: string;
+  // What the product database says the product is: its own category
+  // text and English tags as words, narrowest first. Only the AI prompts
+  // read these; the local search never does.
+  productCategory?: string | null;
+  categoryTags?: readonly string[];
 };
 
 // What a strategy hands back. usedFallback is only ever true for

@@ -5,6 +5,8 @@ import { normalizeGeminiFood } from '../food/foodSchema.js'
 import { GEMINI_TIMEOUT_MS } from '../food/gemini.js'
 import { IDENTIFY_PER_MINUTE, resetIdentifyLimits } from '../food/rateLimit.js'
 import { MAX_IMAGE_BYTES } from '../food/routes.js'
+import { verifyPhotoProvenance } from '../food/photoItems.js'
+import { DEV_USER } from '../auth/devAuth.js'
 
 // Gemini is always mocked: tests never spend real API quota.
 const generateContent = vi.hoisted(() => vi.fn())
@@ -21,6 +23,7 @@ const IMAGE = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10])
 const BANANA = {
   identified: true,
   name: 'Banana',
+  brand: null,
   category: 'Fresh fruit',
   quantity: 1,
   unit: 'piece',
@@ -66,13 +69,35 @@ describe('POST /api/food/identify', () => {
     expect(response.status).toBe(200)
     expect(response.body).toEqual({
       identified: true,
-      food: { name: 'Banana', category: 'Fresh fruit', quantity: 1, unit: 'piece', ripeness: 'ripe' },
+      food: { name: 'Banana', brand: null, category: 'Fresh fruit', quantity: 1, unit: 'piece', ripeness: 'ripe' },
+      provenance: expect.any(String),
     })
     const call = generateContent.mock.lastCall![0]
     expect(call.contents[0].parts[0].inlineData).toEqual({
       mimeType: 'image/jpeg',
       data: IMAGE.toString('base64'),
     })
+  })
+
+  it('signs the identification for this user, with only the name Gemini gave it', async () => {
+    geminiReturns({ ...BANANA, brand: 'Dole' })
+
+    const { provenance } = (await identify()).body
+
+    // What Gemini called it, so a save can't claim another food. No key, and nothing the user typed.
+    expect(verifyPhotoProvenance(provenance, DEV_USER.id)).toEqual({ alias: 'v1|banana|dole' })
+    expect(verifyPhotoProvenance(provenance, 'someone-else')).toBeNull()
+    const claims = Buffer.from(provenance.split('.')[0], 'base64url').toString('utf8')
+    expect(claims).not.toMatch(/test-key/)
+  })
+
+  it('keeps a brand Gemini read off the package', async () => {
+    geminiReturns({ ...BANANA, name: 'Greek yogurt', brand: ' Chobani ', category: 'Dairy' })
+
+    const response = await identify()
+
+    expect(response.body.food).toMatchObject({ name: 'Greek yogurt', brand: 'Chobani' })
+    expect(generateContent.mock.lastCall![0].contents[0].parts[1].text).toMatch(/Never guess one/)
   })
 
   it('returns an unsuccessful identification for unclear photos', async () => {
@@ -82,6 +107,7 @@ describe('POST /api/food/identify', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual({ identified: false })
+    expect(response.body).not.toHaveProperty('provenance')
   })
 
   it('rejects unsupported image types without calling Gemini', async () => {
@@ -221,7 +247,7 @@ describe('normalizeGeminiFood', () => {
 
     expect(result).toEqual({
       identified: true,
-      food: { name: 'Apple', category: 'Fresh fruit', quantity: null, unit: null, ripeness: null },
+      food: { name: 'Apple', brand: null, category: 'Fresh fruit', quantity: null, unit: null, ripeness: null },
     })
   })
 })

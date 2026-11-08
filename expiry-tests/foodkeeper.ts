@@ -59,6 +59,9 @@ export type StorageWindow = {
   min: number | null;
   max: number | null;
   metric: string;
+  // Set on every window of the storage the row's own tips call the
+  // recommended one. See RECOMMENDED_TIP.
+  recommended?: true;
 };
 
 // headHit is true when the product contains the item's head word (or
@@ -153,6 +156,14 @@ const SYNONYMS: Record<string, string[]> = {
   // No "pop" -> "soda": in compound names it is not the drink, and
   // "Pop-Tarts" matched Baking soda. "cola" covers soft drinks.
   cola: ["soda"],
+  // A shelled nut is one with no shell. Without this, "Shelled almonds"
+  // tied FoodKeeper's in-shell and no-shell rows, which have different
+  // dates. "Amandes décortiquées" (French: shelled almonds) is how Open
+  // Food Facts often names the bag, with no English name at all.
+  shelled: ["no", "shell"],
+  decortique: ["no", "shell"],
+  decortiquee: ["no", "shell"],
+  amande: ["almond"],
 };
 
 // Words that show up everywhere in names and keywords and say
@@ -180,10 +191,36 @@ const STORAGE_COLUMNS = [
 
 export type StorageKey = (typeof STORAGE_COLUMNS)[number]["key"];
 
+// "pantryDop" and "pantry" are both the pantry, and so on.
+function storagePlace(key: StorageKey): string {
+  return key.startsWith("pantry") ? "pantry" : key.startsWith("freezer") ? "freezer" : "fridge";
+}
+
+// FoodKeeper's own word that one storage is the right one for a food.
+// Only Potatoes says it: "This is the recommended storage method for
+// whole potatoes." (Pantry_tips). The fridge tip on the same row warns
+// against the fridge.
+const RECOMMENDED_TIP = /\bthis is the recommended storage method\b/i;
+
+// Accents and ligatures as plain letters, so "décortiquées" reads as
+// "decortiquees" rather than the pieces "d", "cortiqu" and "es" that a
+// letters-only match leaves of it. NFD, not NFKD: "Nº5" must not grow
+// a word "no".
+export function foldText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/œ/g, "oe")
+    .replace(/Œ/g, "OE")
+    .replace(/æ/g, "ae")
+    .replace(/Æ/g, "AE")
+    .replace(/ß/g, "ss");
+}
+
 // Lowercase words, letters only, with a rough plural strip so
 // "Tomatoes" finds "tomato" and "Eggs" finds "egg". It is not a real
 // stemmer. Words of three letters or fewer are left as they are so
-// "gas" does not become "ga".
+// "gas" does not become "ga". Accents are folded first (foldText).
 export function tokenize(text: string | null): string[] {
   return tokenizeRaw(text).filter((token) => !STOP_WORDS.has(token));
 }
@@ -195,7 +232,7 @@ export function tokenize(text: string | null): string[] {
 function tokenizeRaw(text: string | null): string[] {
   if (!text) return [];
 
-  const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
+  const words = foldText(text).toLowerCase().match(/[a-z]+/g) ?? [];
   const tokens: string[] = [];
 
   for (const word of words) {
@@ -441,8 +478,18 @@ export class FoodKeeper {
   // Every storage window that has a metric. A column set with no
   // metric means the USDA gave no advice for that storage, and it is
   // skipped.
+  // A tip that says a storage is the recommended one marks every window
+  // of that storage, since the tip and the window it is about can sit in
+  // different columns (Potatoes: Pantry_tips, DOP_Pantry times).
   storageWindows(product: FoodKeeperProduct): StorageWindow[] {
     const windows: StorageWindow[] = [];
+    const recommended = new Set(
+      STORAGE_COLUMNS.filter((column) =>
+        RECOMMENDED_TIP.test(
+          asText(product.raw[`${column.prefix}_tips`]) ?? asText(product.raw[`${column.prefix}_Tips`]) ?? "",
+        ),
+      ).map((column) => storagePlace(column.key)),
+    );
 
     for (const column of STORAGE_COLUMNS) {
       const metric = asText(product.raw[`${column.prefix}_Metric`]);
@@ -454,6 +501,7 @@ export class FoodKeeper {
         min: asNumber(product.raw[`${column.prefix}_Min`]),
         max: asNumber(product.raw[`${column.prefix}_Max`]),
         metric,
+        ...(recommended.has(storagePlace(column.key)) && { recommended: true as const }),
       });
     }
 

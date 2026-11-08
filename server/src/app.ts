@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { requireAuth } from './auth/requireAuth.js'
 import { neonAuthWebhook } from './auth/webhook.js'
+import { photoRouter } from './food/photoRoutes.js'
 import { foodRouter } from './food/routes.js'
 import { inventoryRouter } from './inventory/routes.js'
 
@@ -25,5 +26,6 @@ app.get('/api/me', requireAuth, (_req, res) => {
   res.json({ user: res.locals.user })
 })
 
+app.use('/api/food/photo', photoRouter)
 app.use('/api/food', foodRouter)
 app.use('/api/inventory', inventoryRouter)

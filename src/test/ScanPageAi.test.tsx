@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import ScanPage from '../pages/ScanPage'
 import { MAX_PHOTO_SIZE } from '../lib/useFoodRecognizer'
 
@@ -41,12 +41,18 @@ function respond(status: number, body: unknown) {
   fetchMock.mockResolvedValue({ ok: status < 400, status, json: async () => body })
 }
 
+// Stands in for the add form, showing what the scanner handed it.
+function AddFormProbe() {
+  return <pre data-testid="handoff">{JSON.stringify(useLocation().state)}</pre>
+}
+
 function renderScan(Page = ScanPage) {
   return render(
     <MemoryRouter initialEntries={['/scan']}>
       <Routes>
         <Route path="/" element={<p>Home</p>} />
         <Route path="/scan" element={<Page />} />
+        <Route path="/items/new" element={<AddFormProbe />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -175,6 +181,33 @@ describe('ScanPage AI Vision (Beta)', () => {
     // Downscaled before upload, and the camera released once the photo is taken.
     expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, MAX_PHOTO_SIZE, 576)
     expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('hands the identified food to the add form on Add This Food, with nothing looked up', async () => {
+    respond(200, BANANA)
+    renderScan()
+    await enterAi()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Identify Food' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add This Food' }))
+
+    expect(JSON.parse(screen.getByTestId('handoff').textContent!)).toEqual({ photo: { food: BANANA.food } })
+    // Only the identify call: no barcode lookup and no expiry request from the scanner.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("passes the server's provenance on with the food, and nothing else", async () => {
+    respond(200, { ...BANANA, food: { ...BANANA.food, brand: 'Dole' }, provenance: 'signed.token' })
+    renderScan()
+    await enterAi()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Identify Food' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add This Food' }))
+
+    expect(JSON.parse(screen.getByTestId('handoff').textContent!)).toEqual({
+      photo: { food: { ...BANANA.food, brand: 'Dole' }, provenance: 'signed.token' },
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('reopens the camera on Retake Photo without calling the API again', async () => {

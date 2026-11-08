@@ -6,6 +6,8 @@ import { z } from 'zod'
 export const geminiFoodSchema = z.object({
   identified: z.boolean(),
   name: z.string().nullable(),
+  // Only when printed on the package and legible in the photo.
+  brand: z.string().nullable(),
   category: z.string().nullable(),
   quantity: z.number().nullable(),
   unit: z.string().nullable(),
@@ -16,6 +18,7 @@ export type GeminiFood = z.infer<typeof geminiFoodSchema>
 
 export type IdentifiedFood = {
   name: string
+  brand: string | null
   category: string | null
   quantity: number | null
   unit: string | null
@@ -27,12 +30,13 @@ export type FoodIdentification = { identified: true; food: IdentifiedFood } | { 
 
 // Same shape as geminiFoodSchema, in the OpenAPI-style schema Gemini's structured output takes.
 const nullableString = { type: Type.STRING, nullable: true }
-const FOOD_FIELDS = ['identified', 'name', 'category', 'quantity', 'unit', 'ripeness']
+const FOOD_FIELDS = ['identified', 'name', 'brand', 'category', 'quantity', 'unit', 'ripeness']
 export const geminiResponseSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     identified: { type: Type.BOOLEAN },
     name: nullableString,
+    brand: nullableString,
     category: nullableString,
     quantity: { type: Type.INTEGER, nullable: true },
     unit: nullableString,
@@ -74,6 +78,7 @@ export function normalizeGeminiFood(text: string | undefined): FoodIdentificatio
     identified: true,
     food: {
       name,
+      brand: clean(raw.brand, 60),
       category: clean(raw.category, 60),
       quantity,
       unit: clean(raw.unit, 30),

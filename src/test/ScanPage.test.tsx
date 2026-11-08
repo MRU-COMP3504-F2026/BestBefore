@@ -1,10 +1,10 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import type { QuaggaJSResultObject } from '@ericblade/quagga2'
 import ScanPage from '../pages/ScanPage'
 import ScanAddedPage from '../pages/ScanAddedPage'
-import { MOCK_PRODUCT } from '../lib/mockScan'
+import { lookupBarcode, type ScanHandoff } from '../lib/foodApi'
 import { STRUGGLING_AFTER_MS, TIMEOUT_AFTER_MS } from '../lib/useBarcodeScanner'
 
 const quagga = vi.hoisted(() => ({
@@ -23,6 +23,16 @@ const quagga = vi.hoisted(() => ({
 }))
 
 vi.mock('@ericblade/quagga2', () => ({ default: quagga }))
+vi.mock('../lib/foodApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/foodApi')>()),
+  lookupBarcode: vi.fn(),
+}))
+
+// Stands in for the add form and shows what the scanner handed it.
+function HandoffProbe() {
+  const scan = (useLocation().state as { scan: ScanHandoff }).scan
+  return <pre data-testid="handoff">{JSON.stringify(scan)}</pre>
+}
 
 function renderScan() {
   return render(
@@ -32,6 +42,7 @@ function renderScan() {
         <Route path="/scan" element={<ScanPage />} />
         <Route path="/scan/added" element={<ScanAddedPage />} />
         <Route path="/scan/failed" element={<p>Failed</p>} />
+        <Route path="/items/new" element={<HandoffProbe />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -49,6 +60,8 @@ describe('ScanPage', () => {
     quagga.init.mockResolvedValue(undefined)
     quagga.stop.mockResolvedValue(undefined)
     quagga.CameraAccess.getActiveTrack.mockReturnValue(null)
+    // Stays in the scanner unless a test says the lookup finished.
+    vi.mocked(lookupBarcode).mockReturnValue(new Promise(() => {}))
     Object.defineProperty(navigator, 'mediaDevices', {
       value: { getUserMedia: vi.fn() },
       configurable: true,
@@ -268,55 +281,75 @@ describe('ScanPage', () => {
     })
   })
 
-  describe('scanner mode toggle', () => {
-    it('defaults to the camera in dev', async () => {
-      renderScan()
+  describe('product lookup', () => {
+    const FOUND: ScanHandoff = {
+      barcode: '012345678905',
+      category: 'Dairy',
+      notice: null,
+      product: {
+        source: 'Open Facts',
+        barcode: '012345678905',
+        name: 'Whole Milk',
+        brand: 'Dairyland',
+        description: null,
+        quantity: '400.0 g',
+        category: 'Dairies, Milks',
+        imageUrl: null,
+        ingredients: null,
+      },
+    }
 
-      expect(screen.getByRole('group', { name: 'Scanner mode' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Camera' })).toHaveAttribute('aria-pressed', 'true')
-      await screen.findByText('Scanning for barcode…')
-    })
-
-    it('releases the camera and shows the mock Scan button in mock mode', async () => {
-      renderScan()
-      await screen.findByText('Scanning for barcode…')
-
-      await userEvent.click(screen.getByRole('button', { name: 'Mock success' }))
-
-      expect(screen.getByRole('button', { name: 'Scan' })).toBeInTheDocument()
-      expect(screen.queryByText('Scanning for barcode…')).not.toBeInTheDocument()
-      await vi.waitFor(() => expect(quagga.stop).toHaveBeenCalled())
-    })
-
-    it('goes to the added page with the mock product on mock success', async () => {
-      renderScan()
-
-      await userEvent.click(screen.getByRole('button', { name: 'Mock success' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Scan' }))
-
-      expect(await screen.findByRole('button', { name: 'Scanning…' })).toBeDisabled()
-      expect(await screen.findByRole('heading', { name: 'Item Added!' })).toBeInTheDocument()
-      expect(screen.getByText(MOCK_PRODUCT.name)).toBeInTheDocument()
-    })
-
-    it('goes to the failed page on mock fail', async () => {
-      renderScan()
-
-      await userEvent.click(screen.getByRole('button', { name: 'Mock fail' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Scan' }))
-
-      expect(await screen.findByText('Failed')).toBeInTheDocument()
-    })
-
-    it('reopens the camera when switching back from mock', async () => {
+    async function recognize() {
+      vi.spyOn(console, 'log').mockImplementation(() => {})
       renderScan()
       await screen.findByText('Scanning for barcode…')
+      detect('012345678905')
+      detect('012345678905')
+    }
 
-      await userEvent.click(screen.getByRole('button', { name: 'Mock fail' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Camera' }))
+    it('looks up the recognized barcode once, keeping leading zeros', async () => {
+      await recognize()
 
-      expect(await screen.findByText('Scanning for barcode…')).toBeInTheDocument()
-      expect(quagga.init).toHaveBeenCalledTimes(2)
+      expect(await screen.findByText('Looking up product…')).toBeInTheDocument()
+      expect(lookupBarcode).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(lookupBarcode).mock.lastCall![0]).toBe('012345678905')
+    })
+
+    it('hands the lookup result to the add form unchanged', async () => {
+      vi.mocked(lookupBarcode).mockResolvedValue(FOUND)
+      await recognize()
+
+      const handoff = await waitFor(() => screen.getByTestId('handoff'), { timeout: 3000 })
+
+      expect(JSON.parse(handoff.textContent!)).toEqual(FOUND)
+    })
+
+    it('never shows the added page from a scan', async () => {
+      vi.mocked(lookupBarcode).mockResolvedValue(FOUND)
+      await recognize()
+
+      await waitFor(() => screen.getByTestId('handoff'), { timeout: 3000 })
+
+      expect(screen.queryByRole('heading', { name: 'Item Added!' })).not.toBeInTheDocument()
+    })
+
+    it('cancels the lookup on Scan Again', async () => {
+      await recognize()
+      const { signal } = { signal: vi.mocked(lookupBarcode).mock.lastCall![1] }
+      expect(signal.aborted).toBe(false)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Scan Again' }))
+
+      expect(signal.aborted).toBe(true)
+      expect(screen.queryByTestId('handoff')).not.toBeInTheDocument()
+    })
+
+    it('has no mock scanner', async () => {
+      renderScan()
+      await screen.findByText('Scanning for barcode…')
+
+      expect(screen.queryByRole('group', { name: 'Scanner mode' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Mock/ })).not.toBeInTheDocument()
     })
   })
 

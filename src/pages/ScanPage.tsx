@@ -18,7 +18,7 @@ import {
   SparklesIcon,
   XIcon,
 } from '../components/icons'
-import { mockScan, type ScanOutcome } from '../lib/mockScan'
+import { lookupBarcode } from '../lib/foodApi'
 import { useBarcodeScanner } from '../lib/useBarcodeScanner'
 import { useFoodRecognizer } from '../lib/useFoodRecognizer'
 import { fadeUp, spring, tap } from '../lib/motion'
@@ -36,20 +36,12 @@ const corners = [
 // Controls fade up after the viewfinder has locked on.
 const CONTROLS_DELAY = 0.3
 
-// The scanner mode toggle shows locally and on Vercel preview deploys, never in production.
+// The AI quota warning shows locally and on Vercel preview deploys, where AI Vision is tested.
 // Vercel exposes VITE_VERCEL_ENV to Vite builds automatically.
-const SHOW_DEV_TOGGLE = import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === 'preview'
+const SHOW_AI_WARNING = import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === 'preview'
 
-// The AI quota warning shows in the same places: locally and on previews, where AI Vision is tested.
-const SHOW_AI_WARNING = SHOW_DEV_TOGGLE
-
-type ScanMode = 'camera' | ScanOutcome
-
-const MODES: { mode: ScanMode; label: string }[] = [
-  { mode: 'camera', label: 'Camera' },
-  { mode: 'success', label: 'Mock success' },
-  { mode: 'failure', label: 'Mock fail' },
-]
+// Long enough for the recognition animation to finish before a fast lookup moves on.
+const RECOGNIZED_HOLD_MS = 1200
 
 type ScanSource = 'barcode' | 'ai'
 
@@ -63,36 +55,17 @@ export default function ScanPage() {
   const [source, setSource] = useState<ScanSource>('barcode')
   // Asked again every time AI Vision is entered; never remembered.
   const [aiConfirmed, setAiConfirmed] = useState(false)
-  const [mode, setMode] = useState<ScanMode>('camera')
-  const [isMockScanning, setIsMockScanning] = useState(false)
   const isAi = source === 'ai'
-  const isCamera = !isAi && mode === 'camera'
+  const isCamera = !isAi
   const scanner = useBarcodeScanner(videoRef, isCamera)
   const showAiWarning = isAi && SHOW_AI_WARNING && !aiConfirmed
   // The AI camera waits until the warning is confirmed.
   const recognizer = useFoodRecognizer(aiVideoRef, isAi && !showAiWarning)
   const ai = isAi && !showAiWarning ? recognizer : null
 
-  const onMockScan = async () => {
-    if (mode === 'camera') return
-    setIsMockScanning(true)
-    const result = await mockScan(mode)
-    if (result.ok) {
-      navigate('/scan/added', { state: { product: result.product } })
-    } else {
-      navigate('/scan/failed')
-    }
-  }
-
-  const onModeChange = (next: ScanMode) => {
-    setMode(next)
-    if (next === 'camera') scanner.restart()
-  }
-
   const onSourceChange = (next: ScanSource) => {
     if (next === source) return
     setSource(next)
-    setMode('camera')
     if (next === 'ai') {
       setAiConfirmed(false)
       recognizer.retake()
@@ -102,11 +75,7 @@ export default function ScanPage() {
   }
 
   const addManually = (
-    <Button
-      variant="secondary"
-      disabled={isMockScanning}
-      onClick={() => navigate('/items/new')}
-    >
+    <Button variant="secondary" onClick={() => navigate('/items/new')}>
       Add Item Manually
     </Button>
   )
@@ -117,6 +86,24 @@ export default function ScanPage() {
 
   // Recognition results stay inside the viewfinder; full-screen results are for product lookup.
   const recognized = isCamera && scanner.status === 'recognized' ? scanner : null
+  const recognizedBarcode = recognized?.barcode
+
+  // A recognized barcode goes straight to the add form, found or not: a failed lookup still
+  // leaves the barcode to keep and a form to fill in. Scan Again or Close cancels it.
+  useEffect(() => {
+    if (!recognizedBarcode) return
+    const abort = new AbortController()
+    const hold = new Promise((resolve) => setTimeout(resolve, RECOGNIZED_HOLD_MS))
+    Promise.all([lookupBarcode(recognizedBarcode, abort.signal), hold])
+      .then(([scan]) => {
+        if (!abort.signal.aborted) navigate('/items/new', { state: { scan } })
+      })
+      .catch(() => {
+        // Only an abort rejects, and whoever aborted has already moved on.
+      })
+    return () => abort.abort()
+  }, [recognizedBarcode, navigate])
+
   const identified = ai?.status === 'identified' ? ai : null
   const identifying = ai?.status === 'identifying' ? ai : null
   let failure: { title: string; detail: string } | null = null
@@ -219,7 +206,6 @@ export default function ScanPage() {
           <motion.button
             type="button"
             aria-pressed={!isAi}
-            disabled={isMockScanning}
             onClick={() => onSourceChange('barcode')}
             whileTap={tap}
             transition={spring}
@@ -229,7 +215,6 @@ export default function ScanPage() {
           <motion.button
             type="button"
             aria-pressed={isAi}
-            disabled={isMockScanning}
             onClick={() => onSourceChange('ai')}
             whileTap={tap}
             transition={spring}
@@ -337,7 +322,7 @@ export default function ScanPage() {
           )}
           {/* A CSS transform animation runs on the compositor, so Quagga's work on the main
               thread can't make it stutter. */}
-          {(isCameraScanning || isMockScanning) && (
+          {isCameraScanning && (
             <span className="scan-line-track" aria-hidden="true">
               <span className="scan-line" />
             </span>
@@ -350,9 +335,31 @@ export default function ScanPage() {
           {isAi ? <SparklesIcon /> : <ScanBarcodeIcon />}
         </motion.div>
         {hasResult ? (
-          <motion.div className="scan-controls-item" {...fadeUp(0)}>
-            <Button onClick={onRetry}>{retryLabel}</Button>
-          </motion.div>
+          <>
+            {identified && (
+              <motion.div className="scan-controls-item" {...fadeUp(0)}>
+                <Button
+                  onClick={() =>
+                    navigate('/items/new', {
+                      state: { photo: { food: identified.food, provenance: identified.provenance } },
+                    })
+                  }
+                >
+                  Add This Food
+                </Button>
+              </motion.div>
+            )}
+            {recognized && (
+              <motion.div className="scan-status" role="status" {...fadeUp(0)}>
+                <p className="scan-status-title">Looking up product…</p>
+              </motion.div>
+            )}
+            <motion.div className="scan-controls-item" {...fadeUp(0)}>
+              <Button variant={identified ? 'secondary' : undefined} onClick={onRetry}>
+                {retryLabel}
+              </Button>
+            </motion.div>
+          </>
         ) : isAi ? (
           <>
             <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
@@ -365,7 +372,7 @@ export default function ScanPage() {
               </Button>
             </motion.div>
           </>
-        ) : isCamera ? (
+        ) : (
           <>
             <motion.div className="scan-status" role="status" {...fadeUp(CONTROLS_DELAY + 0.06)}>
               <p className="scan-status-title">{statusTitle}</p>
@@ -386,40 +393,10 @@ export default function ScanPage() {
               )}
             </motion.div>
           </>
-        ) : (
-          <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.06)}>
-            <Button onClick={onMockScan} disabled={isMockScanning}>
-              {isMockScanning ? 'Scanning…' : 'Scan'}
-            </Button>
-          </motion.div>
         )}
         <motion.div className="scan-controls-item" {...fadeUp(CONTROLS_DELAY + 0.12)}>
           {addManually}
         </motion.div>
-
-        {SHOW_DEV_TOGGLE && !isAi && (
-          <motion.div
-            className="scan-dev"
-            role="group"
-            aria-label="Scanner mode"
-            {...fadeUp(CONTROLS_DELAY + 0.18)}
-          >
-            <span>Scanner:</span>
-            {MODES.map(({ mode: option, label }) => (
-              <motion.button
-                key={option}
-                type="button"
-                aria-pressed={mode === option}
-                disabled={isMockScanning}
-                onClick={() => onModeChange(option)}
-                whileTap={tap}
-                transition={spring}
-              >
-                {label}
-              </motion.button>
-            ))}
-          </motion.div>
-        )}
       </div>
 
       {showAiWarning && (

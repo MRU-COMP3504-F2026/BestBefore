@@ -2,7 +2,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ScanAddedPage from '../pages/ScanAddedPage'
-import { MOCK_PRODUCT } from '../lib/mockScan'
+
+const PRODUCT = { name: 'Organic Milk', expires: 'Apr 25, 2027' }
 
 function renderAdded(state?: unknown) {
   render(
@@ -25,7 +26,7 @@ describe('ScanAddedPage', () => {
   })
 
   it('goes to items from View My Items', async () => {
-    renderAdded({ product: MOCK_PRODUCT })
+    renderAdded({ product: PRODUCT })
 
     await userEvent.click(screen.getByRole('button', { name: 'View My Items' }))
 
@@ -33,7 +34,7 @@ describe('ScanAddedPage', () => {
   })
 
   it('goes back to scanning from Scan Another', async () => {
-    renderAdded({ product: MOCK_PRODUCT })
+    renderAdded({ product: PRODUCT, source: 'scan' })
 
     await userEvent.click(screen.getByRole('button', { name: 'Scan Another' }))
 
@@ -41,7 +42,7 @@ describe('ScanAddedPage', () => {
   })
 
   it('offers Add Another for manually added items', async () => {
-    renderAdded({ product: MOCK_PRODUCT, source: 'manual' })
+    renderAdded({ product: PRODUCT, source: 'manual' })
 
     await userEvent.click(screen.getByRole('button', { name: 'Add Another' }))
 

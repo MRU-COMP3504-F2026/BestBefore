@@ -156,6 +156,35 @@ export function describeWindow(window: StorageWindow): string {
   return `${window.min}-${window.max} ${window.metric}`;
 }
 
+// The answer predict() gives for one window, as a length anyone can add
+// to a purchase date with no unit tables: whole days, or calendar months
+// the way addAmount adds them. Null window is the category default. Null
+// result is a window that gives no date (Package use-by date, and so on).
+export type WindowLength = { unit: "days" | "months"; min: number; max: number };
+
+export function windowLength(window: StorageWindow | null, foodKeeperCategoryId: number): WindowLength | null {
+  if (!window) {
+    const fallback = DEFAULT_WINDOWS[foodKeeperCategoryId];
+    return fallback ? { unit: "days", min: fallback.min, max: fallback.max } : null;
+  }
+  if (window.min !== null) {
+    const max = window.max ?? window.min;
+    if (window.metric in DAYS_PER_UNIT) {
+      const days = DAYS_PER_UNIT[window.metric];
+      return { unit: "days", min: Math.ceil(window.min * days), max: Math.ceil(max * days) };
+    }
+    if (window.metric in MONTHS_PER_UNIT) {
+      const months = MONTHS_PER_UNIT[window.metric];
+      return { unit: "months", min: window.min * months, max: max * months };
+    }
+  }
+  if (window.metric === "Indefinitely") {
+    const months = INDEFINITE_CAP_YEARS * 12;
+    return { unit: "months", min: months, max: months };
+  }
+  return null;
+}
+
 export type Storage = "pantry" | "fridge" | "freezer";
 
 // StorageKey -> where the food sits. "fridgeDop" and "fridge" are both
@@ -189,7 +218,9 @@ export type Prediction =
 //
 // preferredStorage is where the item is explicitly kept, when the item
 // says so ("Frozen Blueberries"). Its windows are tried first, then the
-// usual order. Without it, nothing changes. Matching the food and
+// usual order. Without it, a storage the row's own tips recommend
+// (window.recommended) goes first, and otherwise nothing changes.
+// Matching the food and
 // picking which of its storage windows to use are separate steps: a
 // FoodKeeper row with both fridge and freezer times is one food.
 export function predict(
@@ -199,7 +230,9 @@ export function predict(
   preferredStorage?: Storage,
 ): Prediction {
   const usual = storagePreference(foodKeeperCategoryId);
-  const first = preferredStorage ? PREFERRED_KEYS[preferredStorage] : [];
+  const recommended = windows.find((window) => window.recommended);
+  const kept = preferredStorage ?? (recommended && storageOf(recommended.key as StorageKey));
+  const first = kept ? PREFERRED_KEYS[kept] : [];
   for (const key of [...new Set([...first, ...usual])]) {
     const window = windows.find((item) => item.key === key);
     if (!window) continue;

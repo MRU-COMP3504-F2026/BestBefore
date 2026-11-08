@@ -1,11 +1,11 @@
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import StatusView from '../components/StatusView'
-import type { ScannedProduct } from '../lib/mockScan'
 import { useEffect } from 'react'
 
+// Only ever set from the row the server returned, so this page can't claim a save that failed.
 type AddedState = {
-  product?: ScannedProduct
+  product?: { name: string; expires: string }
   source?: 'scan' | 'manual'
 } | null
 

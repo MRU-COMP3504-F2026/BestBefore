@@ -27,17 +27,23 @@
 // are usually better there. Go-UPC is second because it is the one
 // that usually has a description. UPCitemdb fills whatever is still
 // empty. An empty string from a source is stored as null, so it does
-// not block the next source.
+// not block the next source. A reseller listing that shares no word
+// with the Open Facts product is left out, and so is a non-food
+// category (see isUnrelatedListing and isNonFoodCategory).
+//
+// The server imports lookupProduct from this file. Importing it runs
+// nothing: the prompt, the .env.local load, and the printing only
+// happen when the file is the script being run.
 
 import { config } from "dotenv";
+import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { fileURLToPath } from "node:url";
 
-// Same as the other scripts. Loads GO_UPC_API_KEY from .env.local
-// in the current working directory. Run from the project root.
-config({ path: ".env.local" });
-
-const GO_UPC_API_KEY = process.env.GO_UPC_API_KEY;
+// How long one source gets, for the response and its body together.
+// A dead source must not hold up the ones that already answered.
+export const LOOKUP_TIMEOUT_MS = 5000;
 
 // This order is the merge priority, and also the order sources are
 // listed on the aggregated record. It is not the order of the HTTP
@@ -48,14 +54,15 @@ const sourceOrder = ["Open Facts", "Go-UPC", "UPCitemdb"] as const;
 // "Open Facts" | "Go-UPC" | "UPCitemdb". Used everywhere a source
 // name is stored, so a lookup and a normalizer cannot disagree
 // about spelling.
-type SourceName = (typeof sourceOrder)[number];
+export type SourceName = (typeof sourceOrder)[number];
 
 // One remote database. getUrl inserts the barcode. headers are
-// copied onto the request unchanged.
+// copied onto the request unchanged. It is a function so the Go-UPC
+// key is read when the request is made, not when this file is imported.
 type ProductSource = {
   name: SourceName;
   getUrl: (barcode: string) => string;
-  headers: Record<string, string>;
+  headers: () => Record<string, string>;
 };
 
 // One finished lookup. status is null when we never got an HTTP
@@ -63,22 +70,28 @@ type ProductSource = {
 // found is the strict product check, not response.ok.
 // data is the parsed JSON when there was a JSON body.
 // error is a real failure. A 404 miss leaves it unset.
-type SourceResult = {
+// skipped means we chose not to call it, so its error says nothing
+// about whether the product exists.
+export type SourceResult = {
   source: SourceName;
   status: number | null;
   found: boolean;
   data?: unknown;
   error?: string;
+  skipped?: boolean;
 };
 
-// Same field list as open-food-facts.ts, so the ORIGINALS dump for
-// that source matches what the standalone script prints. nutriments
+// The field list from open-food-facts.ts, plus lang and
+// product_name_en for picking an English name. nutriments
 // is requested on purpose so it shows up in the raw body. It is not
 // copied onto the normalized record. Nutrition is only on this one
 // source and the units are messy, so merging it would be a guess.
+// More fields cost nothing: it is still one request.
 const openFactsFields = [
   "code",
+  "lang",
   "product_name",
+  "product_name_en",
   "brands",
   "quantity",
   "categories",
@@ -99,27 +112,27 @@ const sources: ProductSource[] = [
       // check is ever loosened.
       `https://world.openfoodfacts.org/api/v3/product/${encodeURIComponent(barcode)}` +
       `?fields=${openFactsFields}`,
-    headers: {
+    headers: () => ({
       "User-Agent": "BestBefore/0.1 (development playground)",
       Accept: "application/json",
-    },
+    }),
   },
   {
     name: "UPCitemdb",
     getUrl: (barcode) =>
       `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(barcode)}`,
-    headers: {
+    headers: () => ({
       Accept: "application/json",
-    },
+    }),
   },
   {
     name: "Go-UPC",
     getUrl: (barcode) =>
       `https://go-upc.com/api/v1/code/${encodeURIComponent(barcode)}`,
-    headers: {
-      Authorization: `Bearer ${GO_UPC_API_KEY}`,
+    headers: () => ({
+      Authorization: `Bearer ${process.env.GO_UPC_API_KEY}`,
       Accept: "application/json",
-    },
+    }),
   },
 ];
 
@@ -132,7 +145,12 @@ const sources: ProductSource[] = [
 // product_name is a name, not a blurb, and we do not request a
 // description field. ingredients is always null for UPCitemdb,
 // because that API does not have an ingredient list.
-type NormalizedProduct = {
+// categoryTags is Open Facts' English category tags ("en:almonds"),
+// in the order it sent them, and null for the other sources. category
+// is often half French ("Petit-déjeuners, fr:Goûter") while the tags
+// are taxonomy entries with an English name. It is optional because
+// records saved before it existed do not have it.
+export type NormalizedProduct = {
   source: SourceName;
   barcode: string;
   name: string | null;
@@ -140,6 +158,7 @@ type NormalizedProduct = {
   description: string | null;
   quantity: string | null;
   category: string | null;
+  categoryTags?: string[] | null;
   imageUrl: string | null;
   ingredients: string | null;
 };
@@ -150,13 +169,14 @@ type NormalizedProduct = {
 // can see the priority that filled the fields. There is no per-field
 // "this came from X" map. Compare NORMALIZED against FINAL to see
 // which value won.
-type AggregatedProduct = {
+export type AggregatedProduct = {
   barcode: string;
   name: string | null;
   brand: string | null;
   description: string | null;
   quantity: string | null;
   category: string | null;
+  categoryTags?: string[] | null;
   imageUrl: string | null;
   ingredients: string | null;
   sources: SourceName[];
@@ -164,10 +184,11 @@ type AggregatedProduct = {
 
 // The fields pick() is allowed to fill. source is an identity, not
 // a product fact, and barcode on the aggregate is the typed code,
-// so both are excluded from the merge loop.
+// so both are excluded from the merge loop. categoryTags is a list,
+// not a string, and is copied on its own.
 type MergedField = Exclude<
   keyof NormalizedProduct,
-  "source" | "barcode"
+  "source" | "barcode" | "categoryTags"
 >;
 
 const mergedFields: MergedField[] = [
@@ -289,36 +310,46 @@ function productWasFound(
 }
 
 // One GET. Does not throw. A failure comes back as found: false
-// plus an error string, so the other sources still print.
+// plus an error string, so the other sources still print. The timeout
+// covers the body too, since a server can stall halfway through one.
 async function querySource(
   source: ProductSource,
   barcode: string,
+  timeoutMs: number,
 ): Promise<SourceResult> {
   // Skip the call when we already know Go-UPC will answer 401.
   // Saves the quota and makes the missing-key case obvious.
-  if (source.name === "Go-UPC" && !GO_UPC_API_KEY) {
+  if (source.name === "Go-UPC" && !process.env.GO_UPC_API_KEY) {
     return {
       source: source.name,
       status: null,
       found: false,
       error: "GO_UPC_API_KEY is missing from .env.local",
+      skipped: true,
     };
   }
+
+  const signal = AbortSignal.timeout(timeoutMs);
+  const timedOut = `timed out after ${timeoutMs} ms`;
 
   try {
     const response = await fetch(source.getUrl(barcode), {
       method: "GET",
-      headers: source.headers,
+      headers: source.headers(),
+      signal,
     });
 
     let data: unknown;
+    let bodyError: string | undefined;
 
     // HTML error pages and empty bodies throw inside response.json().
-    // Keep the status and treat the body as missing.
+    // Keep the status and treat the body as missing. A 200 with no
+    // readable body is a failure, not a miss: we never saw an answer.
     try {
       data = await response.json();
     } catch {
       data = undefined;
+      bodyError = signal.aborted ? timedOut : "response body was not JSON";
     }
 
     const found = productWasFound(source.name, response.status, data);
@@ -331,8 +362,9 @@ async function querySource(
       // 404 is Go-UPC's normal miss. Any other non-OK status is a
       // real failure and gets a message. response.ok is true for
       // 200-299, so a found product leaves error unset.
-      error:
-        response.ok || response.status === 404
+      error: response.ok
+        ? bodyError
+        : response.status === 404
           ? undefined
           : `${response.status} ${response.statusText}`,
     };
@@ -342,7 +374,11 @@ async function querySource(
       source: source.name,
       status: null,
       found: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: signal.aborted
+        ? timedOut
+        : error instanceof Error
+          ? error.message
+          : String(error),
     };
   }
 }
@@ -420,16 +456,140 @@ function firstImage(images: unknown): string | null {
   return null;
 }
 
+// A pack size or count at the end of a title: "- 304g", "x22",
+// "16 oz", "(Pack of 2)", "24 ct". Resellers and some Open Facts
+// contributors paste these into the name, and quantity already has
+// the size. Each match must follow a separator, so "Nutella750g" and
+// "V8" are left alone.
+const TRAILING_PACK =
+  /[\s,\-–|/]+\(?(?:pack of \d+|\d+\s*(?:pk|pack|ct|count)|x\s?\d+|\d+\s?x|\d+(?:[.,]\d+)?\s*(?:fl\.?\s?oz|oz|ounces?|lbs?|pounds?|kg|g|grams?|mg|ml|cl|l|liters?|litres?)\.?)\)?\s*$/i;
+
+// Strips pack sizes and counts off the end of a name, one at a time,
+// so "Biscuits Noisettes et Cacao x22 - 304g" loses both. Nothing
+// else is rewritten. A name that would lose all its letters is kept
+// as it came.
+export function cleanTitle(name: string | null): string | null {
+  if (!name) return name;
+
+  let clean = name.replace(/\s+/g, " ").trim();
+  for (let previous = ""; previous !== clean; ) {
+    previous = clean;
+    clean = clean.replace(TRAILING_PACK, "").replace(/[\s,\-–|/]+$/, "");
+  }
+
+  return (clean.match(/\p{L}/gu)?.length ?? 0) >= 3 ? clean : name.trim();
+}
+
+// Words that only turn up in French, Spanish, Italian, or German
+// names. A product_name_en with one of these, or with an accent, is
+// most likely the original name copied into the English field.
+const NOT_ENGLISH_WORDS =
+  /\b(et|aux?|du|des|les?|la|de|avec|sans|und|mit|con|di|del|della|y)\b/i;
+
+function looksEnglish(text: string): boolean {
+  return text.normalize("NFD") === text && !NOT_ENGLISH_WORDS.test(text);
+}
+
+// "Ingredients: Yellow creamer potatoes." -> "Yellow creamer potatoes".
+// Only a plain one-food list in English counts. Anything with a comma,
+// a percentage, a note in brackets, or "and" is a recipe, not the food.
+function singleIngredient(ingredients: string | null): string | null {
+  if (!ingredients) return null;
+
+  const food = ingredients
+    .replace(/^(\s*ingredients?\s*:\s*)+/i, "")
+    .replace(/[.\s]+$/, "");
+  return /^[a-z]+(?:[ '-][a-z]+){0,3}$/i.test(food) &&
+    !/\b(and|or|with)\b/i.test(food) &&
+    looksEnglish(food)
+    ? food
+    : null;
+}
+
+// Some names are their one ingredient with the noun left off: "LITTLE
+// YELLOWS" for "yellow creamer potatoes". The noun is added back, so the
+// name says what the food is and the expiry engine can find it. Only a
+// name that already shares a word with that ingredient is completed. A
+// name that shares none ("Spaghetti Nº5" for "durum wheat semolina
+// pasta") is somebody's chosen name and is left alone, and so is a name
+// that is not English. Nothing outside the record's own ingredient list
+// is read, so a reseller's description can never add a word.
+export function foodName(
+  name: string | null,
+  ingredients: string | null,
+): string | null {
+  const food = singleIngredient(ingredients);
+  if (!name || !food || !looksEnglish(name)) return name;
+
+  const noun = food.split(/[ '-]/).at(-1)!;
+  const named = new Set(words(name));
+  const [nounWord] = words(noun);
+  if (!nounWord || named.has(nounWord)) return name;
+  if (!words(food).some((word) => named.has(word))) return name;
+
+  const shown =
+    name === name.toUpperCase()
+      ? noun.toUpperCase()
+      : noun[0].toUpperCase() + noun.slice(1).toLowerCase();
+  return `${name} ${shown}`;
+}
+
+// Open Facts keeps a name per language. product_name is the one in
+// the product's main language (lang), and product_name_en is the
+// English one, when a contributor added it. The English name is only
+// used when lang says the main one is not English and the English
+// field looks like a real translation: not the original copied over
+// (looksEnglish), and not just the brand when the main name says more.
+// Anything doubtful keeps product_name, which is what it was before.
+function openFactsName(product: Record<string, unknown>): string | null {
+  const name = asText(product.product_name);
+  const english = asText(product.product_name_en);
+  const lang = asText(product.lang)?.toLowerCase();
+
+  if (!english || !name || english === name || lang === "en") {
+    return cleanTitle(name ?? english);
+  }
+
+  const brands = (asText(product.brands) ?? "")
+    .split(",")
+    .map((brand) => brand.trim().toLowerCase());
+  const onlyBrand = brands.includes(english.toLowerCase());
+  // An unknown lang only switches when the main name is plainly not
+  // English and the English one plainly is.
+  const mainIsForeign = lang ? true : !looksEnglish(name);
+
+  return cleanTitle(
+    mainIsForeign && looksEnglish(english) && !onlyBrand ? english : name,
+  );
+}
+
+// "en:chocolate-biscuits" style tags only, in Open Facts' order. Tags
+// in another language ("fr:goûter") are entries the taxonomy has no
+// English name for, which the expiry engine cannot read. An empty
+// list is stored as null, like an empty string.
+function englishTags(tags: unknown): string[] | null {
+  if (!Array.isArray(tags)) {
+    return null;
+  }
+
+  const english = tags
+    .map(asText)
+    .filter((tag): tag is string => tag !== null && /^en:./.test(tag));
+  return english.length > 0 ? english : null;
+}
+
 // Open Food Facts body -> flat record.
 // The product fields live under data.product. data.code is a copy
 // of the barcode at the top of the response, used if product.code
 // is missing. The typed barcode is the last resort so the field is
 // never null.
+// name is chosen by openFactsName, and pack sizes are cut off it.
+// foodName then adds the noun back to a name that is its one
+// ingredient without it.
 // brands is kept as one string. Open Food Facts sometimes joins
 // several brands with commas, and splitting that is a later decision.
 // categories is the human string ("Cocoa and hazelnuts spreads"),
-// not categories_tags. The tags are language-prefixed ("en:spreads")
-// and stay in the raw dump.
+// and categoryTags the English entries of categories_tags.
 // description is null on purpose. There is no description in the
 // field list, and product_name is the name.
 function normalizeOpenFacts(
@@ -441,11 +601,12 @@ function normalizeOpenFacts(
   return {
     source: "Open Facts",
     barcode: asText(product.code) ?? asText(data.code) ?? barcode,
-    name: asText(product.product_name),
+    name: foodName(openFactsName(product), asText(product.ingredients_text)),
     brand: asText(product.brands),
     description: null,
     quantity: asText(product.quantity),
     category: asText(product.categories),
+    categoryTags: englishTags(product.categories_tags),
     imageUrl: asText(product.image_front_url),
     ingredients: asText(product.ingredients_text),
   };
@@ -453,7 +614,8 @@ function normalizeOpenFacts(
 
 // UPCitemdb body -> flat record.
 // title is their name, and it is often a reseller sentence rather
-// than the short product name. brand is whatever they filed, which
+// than the short product name. cleanTitle cuts the pack size off the
+// end of it, and leaves the rest of the sentence alone. brand is whatever they filed, which
 // is sometimes the product line ("Nutella") rather than the company.
 // description passes through asText, so "" becomes null.
 // weight is the closer match to a pack size. size is only used when
@@ -468,11 +630,12 @@ function normalizeUpcItemDb(
   return {
     source: "UPCitemdb",
     barcode: asText(item.ean) ?? asText(item.upc) ?? barcode,
-    name: asText(item.title),
+    name: cleanTitle(asText(item.title)),
     brand: asText(item.brand),
     description: asText(item.description),
     quantity: asText(item.weight) ?? asText(item.size),
     category: asText(item.category),
+    categoryTags: null,
     imageUrl: firstImage(item.images),
     ingredients: null,
   };
@@ -508,7 +671,7 @@ function normalizeGoUpc(
       asText(product.ean) ??
       asText(product.upc) ??
       barcode,
-    name: asText(product.name),
+    name: foodName(cleanTitle(asText(product.name)), asText(ingredients.text)),
     brand: asText(product.brand),
     description: asText(product.description),
     quantity: netContentText(product.netContent) ?? quantityFromSpecs(product.specs),
@@ -516,16 +679,18 @@ function normalizeGoUpc(
       categoryPath.length > 0
         ? categoryPath.join(" > ")
         : asText(product.category),
+    categoryTags: null,
     imageUrl: asText(product.imageUrl),
     ingredients: asText(ingredients.text),
   };
 }
 
-// Picks the per-source mapper. Returns null if the body is not an
+// Picks the per-source mapper. Exported for the tests, which feed it
+// saved bodies instead of making requests. Returns null if the body is not an
 // object, which should not happen for a result that already passed
 // productWasFound. The null is there so a bad body cannot throw in
 // the print loop.
-function normalize(
+export function normalize(
   source: SourceName,
   data: unknown,
   barcode: string,
@@ -548,7 +713,7 @@ function normalize(
 // A source that did not hit is simply not in products, so find
 // returns undefined and that slot is skipped. A null field is
 // skipped too, which is how Go-UPC's description fills in when
-// Open Facts has none.
+// Open Facts has none. A non-food category is skipped the same way.
 function pick(
   products: NormalizedProduct[],
   field: MergedField,
@@ -556,10 +721,77 @@ function pick(
   for (const sourceName of sourceOrder) {
     const product = products.find((item) => item.source === sourceName);
     const value = product?.[field];
+    if (field === "category" && value && isNonFoodCategory(value)) continue;
     if (value) return value;
   }
 
   return null;
+}
+
+// Top levels of the Google product taxonomy UPCitemdb and Go-UPC use
+// that never hold a food. Unico Kalamata olives came back filed under
+// "Luggage & Bags". Baby & Toddler, Health & Beauty, and Animals & Pet
+// Supplies are left out on purpose: baby food, nutrition drinks, and
+// pet food are filed under them.
+const NON_FOOD_ROOTS = new Set([
+  "apparel & accessories",
+  "arts & entertainment",
+  "business & industrial",
+  "cameras & optics",
+  "electronics",
+  "furniture",
+  "hardware",
+  "home & garden",
+  "luggage & bags",
+  "media",
+  "office supplies",
+  "religious & ceremonial",
+  "software",
+  "sporting goods",
+  "toys & games",
+  "vehicles & parts",
+]);
+
+function isNonFoodCategory(category: string): boolean {
+  const root = category.split(/>|,/)[0].trim().toLowerCase();
+  return NON_FOOD_ROOTS.has(root);
+}
+
+// Lowercase words of three letters or more, with a trailing "s" cut
+// so "Olives" and "olive" meet, and "oes" cut to "o" so "Potatoes" and
+// "potato" do. Sizes ("oz", "g") are too short to count.
+function words(text: string | null | undefined): string[] {
+  return (text ?? "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((word) => word.length >= 3)
+    .map((word) => word.replace(/(?<=..o)es$|s$/, ""));
+}
+
+// A reseller listing (Go-UPC, UPCitemdb) is sometimes for another
+// product sold under the same code: Becel margarine came back with a
+// swimsuit's title, description, and image. When Open Facts names the
+// product, a reseller whose title and brand share no word with Open
+// Facts' name, brand, or English tags is that other product, and
+// gives the merge nothing. A reseller with no title or brand can't be
+// checked, so it is kept.
+function isUnrelatedListing(
+  listing: NormalizedProduct,
+  openFacts: NormalizedProduct | undefined,
+): boolean {
+  if (listing.source === "Open Facts" || !openFacts?.name) return false;
+
+  const listed = [...words(listing.name), ...words(listing.brand)];
+  if (listed.length === 0) return false;
+
+  const known = new Set([
+    ...words(openFacts.name),
+    ...words(openFacts.brand),
+    ...(openFacts.categoryTags ?? []).flatMap((tag) => words(tag.slice(3))),
+  ]);
+  return !listed.some((word) => known.has(word));
 }
 
 // Builds the single merged record from two or more normalized hits.
@@ -567,14 +799,20 @@ function pick(
 // cannot disagree about which code this row is for.
 // sources is sourceOrder filtered down to who actually hit, which
 // keeps Open Facts before Go-UPC before UPCitemdb even if the HTTP
-// calls finished in another order.
+// calls finished in another order. A reseller listing for another
+// product (isUnrelatedListing) is not a contributor, so it is left
+// out of both the fields and sources.
 // The cast is because barcode and sources are filled first and the
 // field loop fills the rest. Every MergedField is assigned before
 // the object is returned.
-function aggregate(
-  products: NormalizedProduct[],
+export function aggregate(
+  hits: NormalizedProduct[],
   barcode: string,
 ): AggregatedProduct {
+  const openFacts = hits.find((product) => product.source === "Open Facts");
+  const products = hits.filter(
+    (product) => !isUnrelatedListing(product, openFacts),
+  );
   const merged = {
     barcode,
     sources: sourceOrder.filter((name) =>
@@ -586,7 +824,90 @@ function aggregate(
     merged[field] = pick(products, field);
   }
 
+  // Only Open Facts has tags, so this is its list or null.
+  merged.categoryTags =
+    products.find((product) => product.categoryTags)?.categoryTags ?? null;
+
   return merged;
+}
+
+// What FINAL is. Same rule as the top of this file: null for no hits,
+// the normalized object itself for one, and the merge for two or more.
+export type FinalRecord = NormalizedProduct | AggregatedProduct;
+
+// A saved FINAL record with its name completed by foodName, for a row
+// saved before foodName existed. Only a record this file built is
+// touched: one with a source from sourceOrder, or a merge's sources.
+// Anything else (a name a user confirmed, say) is returned as it is.
+// Nothing is written: the caller decides what to keep.
+export function withFoodName<T extends object>(record: T): T {
+  const fromHere =
+    ("source" in record &&
+      sourceOrder.includes(record.source as SourceName)) ||
+    ("sources" in record && Array.isArray(record.sources));
+  if (!fromHere || !("name" in record) || !("ingredients" in record)) {
+    return record;
+  }
+
+  const name = typeof record.name === "string" ? record.name : null;
+  const ingredients =
+    typeof record.ingredients === "string" ? record.ingredients : null;
+  const completed = foodName(name, ingredients);
+  return completed === name ? record : { ...record, name: completed };
+}
+
+export type ProductLookup = {
+  results: SourceResult[];
+  normalized: NormalizedProduct[];
+  final: FinalRecord | null;
+};
+
+// All three sources at once, normalized and merged. Does not throw for
+// a dead source, because querySource turns that into a result.
+export async function lookupProduct(
+  barcode: string,
+  timeoutMs: number = LOOKUP_TIMEOUT_MS,
+): Promise<ProductLookup> {
+  // querySource never rejects, so one dead source cannot fail the
+  // whole Promise.all.
+  const results = await Promise.all(
+    sources.map((source) => querySource(source, barcode, timeoutMs)),
+  );
+
+  // Normalize only the hits. flatMap drops the null that normalize()
+  // returns for a body that is not an object.
+  // Hits keep the same order as the sources array because results
+  // does: Open Facts, UPCitemdb, Go-UPC. The merge later re-sorts by
+  // sourceOrder, which is a different sequence. The NORMALIZED section
+  // uses this order.
+  const normalized = results
+    .filter((result) => result.found)
+    .flatMap((result) => {
+      const product = normalize(result.source, result.data, barcode);
+      return product ? [product] : [];
+    });
+
+  let final: FinalRecord | null = null;
+
+  // One hit: do not run it through aggregate(). The final record
+  // is the normalized object itself, including its source field.
+  // Aggregating one record would only rename source to sources and
+  // hide that nothing was merged.
+  if (normalized.length === 1) {
+    final = normalized[0];
+  } else if (normalized.length > 1) {
+    final = aggregate(normalized, barcode);
+  }
+
+  return { results, normalized, final };
+}
+
+// True when a source that should have answered did not. With no final
+// record this means "we could not find out", not "no such product". A
+// source skipped for a missing key does not count: leaving it out is
+// configuration, and the others can still give a real answer.
+export function lookupHadFailure(results: SourceResult[]): boolean {
+  return results.some((result) => result.error && !result.skipped);
 }
 
 // Blank line, title, then a rule. Used for ORIGINALS, NORMALIZED,
@@ -616,17 +937,7 @@ async function main() {
   console.log(`Barcode ${barcode}`);
   console.log("=".repeat(85));
 
-  // All three at once. querySource never rejects, so one dead
-  // source cannot fail the whole Promise.all.
-  const results = await Promise.all(
-    sources.map((source) => querySource(source, barcode)),
-  );
-
-  // Hits only. Order stays the same as the sources array because
-  // filter keeps original order: Open Facts, UPCitemdb, Go-UPC.
-  // The merge later re-sorts by sourceOrder, which is a different
-  // sequence. The NORMALIZED section uses this filter order.
-  const found = results.filter((result) => result.found);
+  const { results, normalized, final } = await lookupProduct(barcode);
 
   printHeading("ORIGINALS");
 
@@ -648,13 +959,6 @@ async function main() {
     printData(result.data);
   }
 
-  // Normalize only the hits. flatMap drops the null that normalize()
-  // returns for a body that is not an object.
-  const normalized = found.flatMap((result) => {
-    const product = normalize(result.source, result.data, barcode);
-    return product ? [product] : [];
-  });
-
   printHeading("NORMALIZED");
 
   if (normalized.length === 0) {
@@ -672,41 +976,47 @@ async function main() {
   printHeading("FINAL");
   console.log();
 
-  if (normalized.length === 0) {
+  if (!final) {
     console.log("No final record.");
     return;
   }
 
-  // One hit: do not run it through aggregate(). The final record
-  // is the normalized object itself, including its source field.
-  // Aggregating one record would only rename source to sources and
-  // hide that nothing was merged.
-  if (normalized.length === 1) {
+  if ("source" in final) {
     console.log(
-      `${normalized[0].source} was the only source with a product, so this normalized record is the final one.`,
+      `${final.source} was the only source with a product, so this normalized record is the final one.`,
     );
     console.log();
-    printData(normalized[0]);
+    printData(final);
     return;
   }
 
-  const finalRecord = aggregate(normalized, barcode);
-
   console.log(
-    `${finalRecord.sources.join(", ")} had a product. Each field keeps the first non-empty value, checking Open Facts, then Go-UPC, then UPCitemdb.`,
+    `${final.sources.join(", ")} had a product. Each field keeps the first non-empty value, checking Open Facts, then Go-UPC, then UPCitemdb.`,
   );
   console.log();
-  printData(finalRecord);
+  printData(final);
 }
 
-// Barcode validation throws land here. Lookup failures do not,
-// because querySource turns them into results.
-main().catch((error) => {
-  console.error();
-  console.error(
-    "Normalizer failed:",
-    error instanceof Error ? error.message : error,
-  );
+// Only when this file is the script being run. argv[1] is the script
+// path, and it is missing under some runners.
+const isScript =
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-  process.exitCode = 1;
-});
+if (isScript) {
+  // Same as the other scripts. Loads GO_UPC_API_KEY from .env.local
+  // in the current working directory. Run from the project root.
+  config({ path: ".env.local" });
+
+  // Barcode validation throws land here. Lookup failures do not,
+  // because querySource turns them into results.
+  main().catch((error) => {
+    console.error();
+    console.error(
+      "Normalizer failed:",
+      error instanceof Error ? error.message : error,
+    );
+
+    process.exitCode = 1;
+  });
+}
