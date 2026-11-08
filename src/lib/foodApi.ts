@@ -8,11 +8,15 @@ const identificationSchema = z.discriminatedUnion('identified', [
     identified: z.literal(true),
     food: z.object({
       name: z.string().min(1),
+      // Only when Gemini read it off the package.
+      brand: z.string().nullable().optional(),
       category: z.string().nullable(),
       quantity: z.number().nullable(),
       unit: z.string().nullable(),
       ripeness: z.string().nullable(),
     }),
+    // The server's proof it identified this photo, so saving it can share the product.
+    provenance: z.string().optional(),
   }),
   z.object({ identified: z.literal(false) }),
 ])
@@ -111,8 +115,34 @@ export type ScanHandoff = {
 }
 
 // Handed from AI Vision to the add form: only what Gemini saw in the photo. Nothing is looked up,
-// so there is no barcode and no product record.
-export type PhotoHandoff = { food: IdentifiedFood }
+// so there is no barcode and no product record. provenance goes back with the save, unread.
+export type PhotoHandoff = { food: IdentifiedFood; provenance?: string }
+
+// The source of a product someone confirmed from a photo (PHOTO_SOURCE on the server).
+export const PHOTO_SOURCE = 'AI Vision'
+
+const photoMatchSchema = z.object({
+  match: z
+    .object({ name: z.string().min(1), brand: z.string().nullable(), category: z.string().nullable() })
+    .nullable(),
+})
+
+export type PhotoMatch = NonNullable<z.infer<typeof photoMatchSchema>['match']>
+
+// What someone else confirmed for a photo Gemini named the same way, or null. Only a suggestion:
+// the add form never applies it on its own. Never rejects, because the form works without it.
+export async function fetchPhotoMatch(photoToken: string, signal?: AbortSignal): Promise<PhotoMatch | null> {
+  try {
+    const body = await apiFetch<unknown>('/food/photo/match', {
+      method: 'POST',
+      body: JSON.stringify({ photoToken }),
+      signal,
+    })
+    return photoMatchSchema.parse(body).match
+  } catch {
+    return null
+  }
+}
 
 // A little longer than the server's own wait on the slowest product database.
 export const LOOKUP_TIMEOUT_MS = 12_000
@@ -130,7 +160,14 @@ export async function lookupBarcode(barcode: string, signal: AbortSignal): Promi
     const body = await apiFetch<unknown>(`/food/barcode/${encodeURIComponent(barcode)}`, {
       signal: timeout.signal,
     })
-    return { barcode, ...barcodeLookupSchema.parse(body), notice: null }
+    const found = barcodeLookupSchema.parse(body)
+    // No product database had it: another user typed this code in after a photo.
+    const fromPhoto = 'source' in found.product && found.product.source === PHOTO_SOURCE
+    return {
+      barcode,
+      ...found,
+      notice: fromPhoto ? 'Someone added this product from a photo. Check the details below.' : null,
+    }
   } catch (err) {
     if (signal.aborted) throw err
     if (err instanceof ApiError && err.status === 404) {

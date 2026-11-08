@@ -4,7 +4,15 @@ import { lookupHadFailure, lookupProduct } from '../../../testscripts/normalizer
 import { requireAuth } from '../auth/requireAuth.js'
 import { appCategory, suggestExpiry, suggestionFromShelfLife } from './expirySuggestion.js'
 import { GeminiError, identifyFoodImage, type GeminiErrorCode } from './gemini.js'
-import { describesRecord, findItem, isShareable, rememberItem, rememberShelfLife } from './items.js'
+import {
+  describesRecord,
+  findItem,
+  isShareable,
+  rememberItem,
+  rememberShelfLife,
+  replacePhotoItem,
+} from './items.js'
+import { isPhotoRecord, signPhotoProvenance } from './photoItems.js'
 import { claimIdentifySlot, claimLookupSlot } from './rateLimit.js'
 
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -41,6 +49,8 @@ export const foodRouter = express.Router()
 // Looks a barcode up in the product databases. `product` is the normalizer's FINAL record,
 // untouched, so it keeps `source` for one hit and `sources` for a merge. `category` is ours.
 // A product already in the items table is answered from there, without a database call or a slot.
+// One a user confirmed from a photo is only a fallback: the databases are asked first, and their
+// record replaces it. It is answered whenever they can't be.
 foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   const barcode = String(req.params.barcode)
   if (!BARCODE.test(barcode)) {
@@ -49,12 +59,17 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   }
 
   const saved = await findItem(barcode)
-  if (saved) {
+  if (saved && !isPhotoRecord(saved.payload)) {
     res.json({ product: saved.payload, category: appCategory(saved.payload.category) })
     return
   }
+  const fromPhoto = saved ? { product: saved.payload, category: appCategory(saved.payload.category) } : null
 
   const slot = claimLookupSlot(res.locals.user!.id)
+  if (!slot.ok && fromPhoto) {
+    res.json(fromPhoto)
+    return
+  }
   if (!slot.ok) {
     res.status(429).json({
       error:
@@ -68,8 +83,10 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   try {
     const { results, final } = await lookupProduct(barcode)
     if (final) {
-      await rememberItem(barcode, final, !lookupHadFailure(results))
+      await (fromPhoto ? replacePhotoItem(barcode, final) : rememberItem(barcode, final, !lookupHadFailure(results)))
       res.json({ product: final, category: appCategory(final.category) })
+    } else if (fromPhoto) {
+      res.json(fromPhoto)
     } else if (lookupHadFailure(results)) {
       // Never say "no such product" when a database didn't actually answer.
       console.warn(
@@ -84,7 +101,8 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
     }
   } catch (err) {
     console.error(`Barcode lookup failed: ${err instanceof Error ? err.message : err}`)
-    res.status(502).json({ error: "Couldn't reach the product databases." })
+    if (fromPhoto) res.json(fromPhoto)
+    else res.status(502).json({ error: "Couldn't reach the product databases." })
   } finally {
     slot.release()
   }
@@ -161,7 +179,10 @@ foodRouter.post(
     }
 
     try {
-      res.json(await identifyFoodImage(req.body, mimeType))
+      const result = await identifyFoodImage(req.body, mimeType)
+      // Lets the add form show this food came from our own identification. Writes nothing.
+      const provenance = result.identified ? signPhotoProvenance(res.locals.user!.id, result.food) : null
+      res.json(provenance ? { ...result, provenance } : result)
     } catch (err) {
       const code = err instanceof GeminiError ? err.code : 'upstream'
       const detail = err instanceof GeminiError && err.detail ? ` (${err.detail})` : ''

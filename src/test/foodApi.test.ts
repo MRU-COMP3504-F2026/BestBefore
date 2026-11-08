@@ -1,5 +1,5 @@
 import { ApiError, apiFetch } from '../lib/api'
-import { fetchExpirySuggestion, lookupBarcode } from '../lib/foodApi'
+import { fetchExpirySuggestion, fetchPhotoMatch, lookupBarcode } from '../lib/foodApi'
 
 vi.mock('../lib/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/api')>()),
@@ -47,6 +47,16 @@ describe('lookupBarcode', () => {
     })
   })
 
+  it('says when the product was added by someone from a photo', async () => {
+    const product = { source: 'AI Vision', ...FIELDS, quantity: null, category: 'Dairy' }
+    vi.mocked(apiFetch).mockResolvedValue({ product, category: 'Dairy' })
+
+    const result = await lookupBarcode('012345678905', signal())
+
+    expect(result).toMatchObject({ product, category: 'Dairy' })
+    expect(result.notice).toMatch(/added this product from a photo/)
+  })
+
   it.each([
     ['not found', new ApiError(404, 'No product found for this barcode.'), /No product found/],
     ['the limit', new ApiError(429, 'Product lookup limit reached.'), /limit reached/],
@@ -92,5 +102,29 @@ describe('fetchExpirySuggestion', () => {
     vi.mocked(apiFetch).mockResolvedValue({ status: 'suggested' })
 
     await expect(fetchExpirySuggestion(ITEM)).rejects.toThrow()
+  })
+})
+
+describe('fetchPhotoMatch', () => {
+  afterEach(() => {
+    vi.mocked(apiFetch).mockReset()
+  })
+
+  it('sends only the token and returns the match', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ match: { name: 'Skyr', brand: null, category: 'Dairy' } })
+
+    await expect(fetchPhotoMatch('signed.token')).resolves.toEqual({ name: 'Skyr', brand: null, category: 'Dairy' })
+    const [path, options] = vi.mocked(apiFetch).mock.lastCall!
+    expect(path).toBe('/food/photo/match')
+    expect(JSON.parse(options!.body as string)).toEqual({ photoToken: 'signed.token' })
+  })
+
+  it.each([
+    ['a failure', () => Promise.reject(new ApiError(400))],
+    ['an unexpected answer', () => Promise.resolve({ match: { name: '' } })],
+  ])('gives null on %s, since the form works without it', async (_label, answer) => {
+    vi.mocked(apiFetch).mockImplementation(answer as never)
+
+    await expect(fetchPhotoMatch('signed.token')).resolves.toBeNull()
   })
 })

@@ -13,7 +13,9 @@ import { CATEGORIES } from '../lib/categories'
 import { formatDate, todayIsoDate } from '../lib/dates'
 import {
   fetchExpirySuggestion,
+  fetchPhotoMatch,
   type ExpiryRequest,
+  type IdentifiedFood,
   type PhotoHandoff,
   type ScanHandoff,
 } from '../lib/foodApi'
@@ -47,6 +49,18 @@ type AddItemValues = z.infer<typeof addItemSchema>
 // Typing in a prefilled field shouldn't ask for a new suggestion on every key.
 export const SUGGESTION_DEBOUNCE_MS = 400
 
+// A weight or volume, not a number of items.
+const MEASURE_UNIT = /^(m?g|kg|grams?|kilograms?|m?l|litres?|liters?|millilitres?|milliliters?|oz|ounces?|fl\.? ?oz|lbs?|pounds?|cups?|tbsp|tsp)$/i
+
+// How many Gemini counted in the photo ("3 piece"), or null. Never a package size like "500 g".
+function photoCount(food: IdentifiedFood | undefined): number | null {
+  const count = food?.quantity
+  if (!count || !Number.isInteger(count) || count < 1 || count > 10_000) return null
+  return food.unit && MEASURE_UNIT.test(food.unit.trim()) ? null : count
+}
+
+const FROM_PHOTO = 'From your photo. Check it.'
+
 export default function AddItemPage() {
   useEffect(() => {
     document.title = 'BestBefore | Add Item'
@@ -64,6 +78,9 @@ export default function AddItemPage() {
   // Gemini's category is free text ("Fresh fruit"). It only picks a category when it is one of ours.
   const photoCategory =
     CATEGORIES.find((label) => label.toLowerCase() === photo?.food.category?.trim().toLowerCase()) ?? null
+  // Gemini is told to leave the brand out unless it can read it on the package.
+  const photoBrand = photo?.food.brand?.trim() || null
+  const photoQuantity = photoCount(photo?.food)
   const leaveTo = fromScanner ? '/scan' : '/items'
   const [saveError, setSaveError] = useState<string | null>(null)
   const [acceptedDate, setAcceptedDate] = useState<string | null>(null)
@@ -78,11 +95,12 @@ export default function AddItemPage() {
     resolver: zodResolver(addItemSchema),
     defaultValues: {
       name: product?.name ?? photo?.food.name ?? '',
-      brand: product?.brand ?? '',
+      brand: product?.brand ?? photoBrand ?? '',
       barcode: product?.barcode ?? scan?.barcode ?? '',
       category: scan?.category ?? photoCategory ?? '',
-      // Always a count of items. The product's own quantity is the package size.
-      quantity: 1,
+      // Always a count of items. The product's own quantity is the package size; a photo's is what
+      // Gemini counted.
+      quantity: photoQuantity ?? 1,
       purchaseDate: todayIsoDate(),
     },
   })
@@ -134,6 +152,32 @@ export default function AddItemPage() {
     [scan, userId, request, suggestion.data], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
+  // What someone confirmed before for a photo named like this one, offered and never applied unasked.
+  const photoToken = photo?.provenance ?? null
+  const photoMatch = useQuery({
+    queryKey: ['photo-match', photoToken],
+    queryFn: ({ signal }) => fetchPhotoMatch(photoToken!, signal),
+    enabled: Boolean(photoToken),
+    retry: false,
+    staleTime: Infinity,
+  })
+  const offeredMatch =
+    photoMatch.data &&
+    (photoMatch.data.name !== name.trim() ||
+      (photoMatch.data.brand ?? '') !== (brand?.trim() ?? '') ||
+      (photoMatch.data.category ?? '') !== (categoryValue ?? ''))
+      ? photoMatch.data
+      : null
+
+  const useMatch = () => {
+    if (!offeredMatch) return
+    setValue('name', offeredMatch.name, { shouldValidate: true, shouldDirty: true })
+    setValue('brand', offeredMatch.brand ?? '', { shouldDirty: true })
+    if (offeredMatch.category && CATEGORIES.includes(offeredMatch.category)) {
+      setValue('category', offeredMatch.category, { shouldDirty: true })
+    }
+  }
+
   const acceptSuggestion = (date: string) => {
     setValue('bestBefore', date, { shouldValidate: true, shouldDirty: true })
     setAcceptedDate(date)
@@ -159,6 +203,8 @@ export default function AddItemPage() {
         quantity: values.quantity,
         purchaseDate: values.purchaseDate,
         bestBefore: values.bestBefore,
+        // Lets the server share this product under the barcode, only once the item is saved.
+        ...(photo?.provenance && { photoToken: photo.provenance }),
       })
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEY })
       navigate('/scan/added', {
@@ -190,6 +236,17 @@ export default function AddItemPage() {
             it has one.
           </p>
         )}
+        {offeredMatch && (
+          <div className="add-item-notice add-item-match" role="status">
+            <p>
+              Someone saved a photo like this as “{offeredMatch.name}”
+              {[offeredMatch.brand, offeredMatch.category].filter(Boolean).map((part) => ` · ${part}`)}.
+            </p>
+            <Button variant="secondary" disabled={isSubmitting} onClick={useMatch}>
+              Use These Details
+            </Button>
+          </div>
+        )}
 
         <p className="add-item-required-note">
           <span aria-hidden="true">*</span> Required
@@ -199,6 +256,7 @@ export default function AddItemPage() {
           label="Product name"
           required
           placeholder="e.g. Organic Milk"
+          hint={photo ? FROM_PHOTO : undefined}
           disabled={isSubmitting}
           error={errors.name?.message}
           {...register('name')}
@@ -207,6 +265,7 @@ export default function AddItemPage() {
         <TextField
           label="Brand"
           tag="Optional"
+          hint={photoBrand ? 'Read from the package in your photo. Check it.' : undefined}
           disabled={isSubmitting}
           error={errors.brand?.message}
           {...register('brand')}
@@ -247,7 +306,13 @@ export default function AddItemPage() {
           type="number"
           min={1}
           step={1}
-          hint={product?.quantity ? `How many packages. Each one is ${product.quantity}.` : undefined}
+          hint={
+            product?.quantity
+              ? `How many packages. Each one is ${product.quantity}.`
+              : photoQuantity
+                ? 'Counted in your photo. Check it.'
+                : undefined
+          }
           disabled={isSubmitting}
           error={errors.quantity?.message}
           {...register('quantity', { valueAsNumber: true })}

@@ -3,6 +3,7 @@ import type { FinalRecord } from '../../../testscripts/normalizer.js'
 import { db } from '../db/index.js'
 import { items } from '../db/schema.js'
 import { appCategory, type ExpiryInput, type ShelfLife } from './expirySuggestion.js'
+import { isPhotoRecord, PHOTO_SOURCE, photoKey, type PhotoProduct } from './photoItems.js'
 
 // How long a request waits for this table. The scan can always go on without it.
 export const ITEM_DB_TIMEOUT_MS = 2000
@@ -42,7 +43,8 @@ export async function findItem(barcode: string, timeoutMs: number = ITEM_DB_TIME
     `Item read for ${barcode}`,
     async () => {
       const [row] = await db.select().from(items).where(eq(items.barcode, canonicalBarcode(barcode)))
-      return row ?? null
+      // Found by its barcode, so it has one.
+      return row && row.barcode !== null ? { ...row, barcode: row.barcode } : null
     },
     timeoutMs,
   )
@@ -74,7 +76,7 @@ export async function rememberItem(
 
 // True when an add-form request is about the saved product itself. The form can be edited and the
 // body is the client's, so anything else is one user's own item and stays out of the shared row.
-export function describesRecord(product: FinalRecord, input: ExpiryInput): boolean {
+export function describesRecord(product: FinalRecord | PhotoProduct, input: ExpiryInput): boolean {
   return (
     input.name === product.name &&
     input.brand === product.brand &&
@@ -112,6 +114,72 @@ export async function rememberShelfLife(
         .update(items)
         .set({ expirySuggestion: shelfLife })
         .where(and(eq(items.barcode, canonicalBarcode(barcode)), unchanged)),
+    timeoutMs,
+  )
+}
+
+// Shares a product a user confirmed from a photo and has already saved to their inventory, under its
+// barcode when it has one, else under its photoKey. Only adds a row: whatever is saved under that key,
+// from a database or another photo, is kept. 'saved' when this request wrote it, 'exists' when the
+// key was already there, null when the table couldn't answer. Retrying is safe, and the user's own
+// item is saved either way. alias is the verified name Gemini gave the photo.
+export async function rememberPhotoItem(
+  product: PhotoProduct,
+  alias: string,
+  timeoutMs: number = ITEM_DB_TIMEOUT_MS,
+): Promise<'saved' | 'exists' | null> {
+  const barcode = product.barcode === null ? null : canonicalBarcode(product.barcode)
+  const key = barcode ?? photoKey(product)
+  return bestEffort(
+    `Photo item save for ${key}`,
+    async () => {
+      const insert = db.insert(items).values(
+        barcode
+          ? { barcode, photoAlias: alias, payload: { ...product, barcode } }
+          : { photoKey: key, photoAlias: alias, payload: product },
+      )
+      const written = await insert
+        .onConflictDoNothing({ target: barcode ? items.barcode : items.photoKey })
+        .returning({ id: items.id })
+      return written.length > 0 ? 'saved' : 'exists'
+    },
+    timeoutMs,
+  )
+}
+
+// What someone confirmed for a photo Gemini named the same way, for the user to choose or ignore.
+// Only barcode-less rows, since a barcode belongs to one package, and only when exactly one product
+// was confirmed for this alias: two different answers mean nobody can say which this is.
+export async function findPhotoMatch(alias: string, timeoutMs: number = ITEM_DB_TIMEOUT_MS) {
+  return bestEffort(
+    `Photo match read`,
+    async () => {
+      const rows = await db
+        .select({ payload: items.payload })
+        .from(items)
+        .where(and(eq(items.photoAlias, alias), isNull(items.barcode)))
+        .limit(2)
+      return rows.length === 1 && isPhotoRecord(rows[0].payload) ? rows[0].payload : null
+    },
+    timeoutMs,
+  )
+}
+
+// A product database's record replaces one a user confirmed from a photo. The shelf life is cleared
+// with it, since it was worked out from the photo's name. Only lands while the row is still the
+// photo's, so a lookup saved meanwhile is never overwritten.
+export async function replacePhotoItem(
+  barcode: string,
+  product: FinalRecord,
+  timeoutMs: number = ITEM_DB_TIMEOUT_MS,
+) {
+  await bestEffort(
+    `Photo item replace for ${barcode}`,
+    () =>
+      db
+        .update(items)
+        .set({ payload: product, expirySuggestion: null, updatedAt: sql`now()` })
+        .where(and(eq(items.barcode, canonicalBarcode(barcode)), sql`${items.payload}->>'source' = ${PHOTO_SOURCE}`)),
     timeoutMs,
   )
 }

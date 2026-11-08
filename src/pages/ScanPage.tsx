@@ -340,7 +340,9 @@ export default function ScanPage() {
               <motion.div className="scan-controls-item" {...fadeUp(0)}>
                 <Button
                   onClick={() =>
-                    navigate('/items/new', { state: { photo: { food: identified.food } } })
+                    navigate('/items/new', {
+                      state: { photo: { food: identified.food, provenance: identified.provenance } },
+                    })
                   }
                 >
                   Add This Food

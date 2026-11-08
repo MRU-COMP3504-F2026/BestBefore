@@ -31,6 +31,8 @@ export type NewInventoryItem = {
   quantity: number
   purchaseDate: string
   bestBefore: string
+  // Only from an add form AI Vision filled. Lets the server share the product once it is saved.
+  photoToken?: string
 }
 
 export const INVENTORY_QUERY_KEY = ['inventory']

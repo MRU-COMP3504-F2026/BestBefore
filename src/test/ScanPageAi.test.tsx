@@ -196,6 +196,20 @@ describe('ScanPage AI Vision (Beta)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it("passes the server's provenance on with the food, and nothing else", async () => {
+    respond(200, { ...BANANA, food: { ...BANANA.food, brand: 'Dole' }, provenance: 'signed.token' })
+    renderScan()
+    await enterAi()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Identify Food' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add This Food' }))
+
+    expect(JSON.parse(screen.getByTestId('handoff').textContent!)).toEqual({
+      photo: { food: { ...BANANA.food, brand: 'Dole' }, provenance: 'signed.token' },
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('reopens the camera on Retake Photo without calling the API again', async () => {
     respond(200, BANANA)
     renderScan()

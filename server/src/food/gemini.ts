@@ -8,7 +8,9 @@ export const GEMINI_TIMEOUT_MS = 25_000
 
 const PROMPT = `Identify the single main food item in this photo.
 Respond with JSON only, matching the schema.
-- "name": a short, generic food name (e.g. "Banana", "Cheddar cheese"). Never guess a brand.
+- "name": a short, generic food name (e.g. "Banana", "Cheddar cheese"). Never put a brand in it.
+- "brand": only the brand name printed and clearly legible on the packaging in the photo; otherwise
+  null. Never guess one from the food's shape, colours or style.
 - "category": a short food category (e.g. "Fresh fruit", "Dairy"), or null.
 - "quantity" and "unit": only if you can clearly count them (e.g. 3 "piece"); otherwise null.
 - "ripeness": only for produce where it is visible (e.g. "unripe", "ripe", "overripe"); otherwise null.
