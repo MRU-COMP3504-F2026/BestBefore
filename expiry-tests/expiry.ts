@@ -218,7 +218,9 @@ export type Prediction =
 //
 // preferredStorage is where the item is explicitly kept, when the item
 // says so ("Frozen Blueberries"). Its windows are tried first, then the
-// usual order. Without it, nothing changes. Matching the food and
+// usual order. Without it, a storage the row's own tips recommend
+// (window.recommended) goes first, and otherwise nothing changes.
+// Matching the food and
 // picking which of its storage windows to use are separate steps: a
 // FoodKeeper row with both fridge and freezer times is one food.
 export function predict(
@@ -228,7 +230,9 @@ export function predict(
   preferredStorage?: Storage,
 ): Prediction {
   const usual = storagePreference(foodKeeperCategoryId);
-  const first = preferredStorage ? PREFERRED_KEYS[preferredStorage] : [];
+  const recommended = windows.find((window) => window.recommended);
+  const kept = preferredStorage ?? (recommended && storageOf(recommended.key as StorageKey));
+  const first = kept ? PREFERRED_KEYS[kept] : [];
   for (const key of [...new Set([...first, ...usual])]) {
     const window = windows.find((item) => item.key === key);
     if (!window) continue;

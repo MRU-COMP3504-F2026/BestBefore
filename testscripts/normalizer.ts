@@ -490,6 +490,50 @@ function looksEnglish(text: string): boolean {
   return text.normalize("NFD") === text && !NOT_ENGLISH_WORDS.test(text);
 }
 
+// "Ingredients: Yellow creamer potatoes." -> "Yellow creamer potatoes".
+// Only a plain one-food list in English counts. Anything with a comma,
+// a percentage, a note in brackets, or "and" is a recipe, not the food.
+function singleIngredient(ingredients: string | null): string | null {
+  if (!ingredients) return null;
+
+  const food = ingredients
+    .replace(/^(\s*ingredients?\s*:\s*)+/i, "")
+    .replace(/[.\s]+$/, "");
+  return /^[a-z]+(?:[ '-][a-z]+){0,3}$/i.test(food) &&
+    !/\b(and|or|with)\b/i.test(food) &&
+    looksEnglish(food)
+    ? food
+    : null;
+}
+
+// Some names are their one ingredient with the noun left off: "LITTLE
+// YELLOWS" for "yellow creamer potatoes". The noun is added back, so the
+// name says what the food is and the expiry engine can find it. Only a
+// name that already shares a word with that ingredient is completed. A
+// name that shares none ("Spaghetti Nº5" for "durum wheat semolina
+// pasta") is somebody's chosen name and is left alone, and so is a name
+// that is not English. Nothing outside the record's own ingredient list
+// is read, so a reseller's description can never add a word.
+export function foodName(
+  name: string | null,
+  ingredients: string | null,
+): string | null {
+  const food = singleIngredient(ingredients);
+  if (!name || !food || !looksEnglish(name)) return name;
+
+  const noun = food.split(/[ '-]/).at(-1)!;
+  const named = new Set(words(name));
+  const [nounWord] = words(noun);
+  if (!nounWord || named.has(nounWord)) return name;
+  if (!words(food).some((word) => named.has(word))) return name;
+
+  const shown =
+    name === name.toUpperCase()
+      ? noun.toUpperCase()
+      : noun[0].toUpperCase() + noun.slice(1).toLowerCase();
+  return `${name} ${shown}`;
+}
+
 // Open Facts keeps a name per language. product_name is the one in
 // the product's main language (lang), and product_name_en is the
 // English one, when a contributor added it. The English name is only
@@ -540,6 +584,8 @@ function englishTags(tags: unknown): string[] | null {
 // is missing. The typed barcode is the last resort so the field is
 // never null.
 // name is chosen by openFactsName, and pack sizes are cut off it.
+// foodName then adds the noun back to a name that is its one
+// ingredient without it.
 // brands is kept as one string. Open Food Facts sometimes joins
 // several brands with commas, and splitting that is a later decision.
 // categories is the human string ("Cocoa and hazelnuts spreads"),
@@ -555,7 +601,7 @@ function normalizeOpenFacts(
   return {
     source: "Open Facts",
     barcode: asText(product.code) ?? asText(data.code) ?? barcode,
-    name: openFactsName(product),
+    name: foodName(openFactsName(product), asText(product.ingredients_text)),
     brand: asText(product.brands),
     description: null,
     quantity: asText(product.quantity),
@@ -625,7 +671,7 @@ function normalizeGoUpc(
       asText(product.ean) ??
       asText(product.upc) ??
       barcode,
-    name: cleanTitle(asText(product.name)),
+    name: foodName(cleanTitle(asText(product.name)), asText(ingredients.text)),
     brand: asText(product.brand),
     description: asText(product.description),
     quantity: netContentText(product.netContent) ?? quantityFromSpecs(product.specs),
@@ -712,8 +758,8 @@ function isNonFoodCategory(category: string): boolean {
 }
 
 // Lowercase words of three letters or more, with a trailing "s" cut
-// so "Olives" and "olive" meet. Sizes ("oz", "g") are too short to
-// count.
+// so "Olives" and "olive" meet, and "oes" cut to "o" so "Potatoes" and
+// "potato" do. Sizes ("oz", "g") are too short to count.
 function words(text: string | null | undefined): string[] {
   return (text ?? "")
     .normalize("NFD")
@@ -721,7 +767,7 @@ function words(text: string | null | undefined): string[] {
     .toLowerCase()
     .split(/[^a-z]+/)
     .filter((word) => word.length >= 3)
-    .map((word) => word.replace(/s$/, ""));
+    .map((word) => word.replace(/(?<=..o)es$|s$/, ""));
 }
 
 // A reseller listing (Go-UPC, UPCitemdb) is sometimes for another
@@ -788,6 +834,27 @@ export function aggregate(
 // What FINAL is. Same rule as the top of this file: null for no hits,
 // the normalized object itself for one, and the merge for two or more.
 export type FinalRecord = NormalizedProduct | AggregatedProduct;
+
+// A saved FINAL record with its name completed by foodName, for a row
+// saved before foodName existed. Only a record this file built is
+// touched: one with a source from sourceOrder, or a merge's sources.
+// Anything else (a name a user confirmed, say) is returned as it is.
+// Nothing is written: the caller decides what to keep.
+export function withFoodName<T extends object>(record: T): T {
+  const fromHere =
+    ("source" in record &&
+      sourceOrder.includes(record.source as SourceName)) ||
+    ("sources" in record && Array.isArray(record.sources));
+  if (!fromHere || !("name" in record) || !("ingredients" in record)) {
+    return record;
+  }
+
+  const name = typeof record.name === "string" ? record.name : null;
+  const ingredients =
+    typeof record.ingredients === "string" ? record.ingredients : null;
+  const completed = foodName(name, ingredients);
+  return completed === name ? record : { ...record, name: completed };
+}
 
 export type ProductLookup = {
   results: SourceResult[];

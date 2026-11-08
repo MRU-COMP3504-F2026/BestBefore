@@ -59,6 +59,9 @@ export type StorageWindow = {
   min: number | null;
   max: number | null;
   metric: string;
+  // Set on every window of the storage the row's own tips call the
+  // recommended one. See RECOMMENDED_TIP.
+  recommended?: true;
 };
 
 // headHit is true when the product contains the item's head word (or
@@ -187,6 +190,17 @@ const STORAGE_COLUMNS = [
 ] as const;
 
 export type StorageKey = (typeof STORAGE_COLUMNS)[number]["key"];
+
+// "pantryDop" and "pantry" are both the pantry, and so on.
+function storagePlace(key: StorageKey): string {
+  return key.startsWith("pantry") ? "pantry" : key.startsWith("freezer") ? "freezer" : "fridge";
+}
+
+// FoodKeeper's own word that one storage is the right one for a food.
+// Only Potatoes says it: "This is the recommended storage method for
+// whole potatoes." (Pantry_tips). The fridge tip on the same row warns
+// against the fridge.
+const RECOMMENDED_TIP = /\bthis is the recommended storage method\b/i;
 
 // Accents and ligatures as plain letters, so "décortiquées" reads as
 // "decortiquees" rather than the pieces "d", "cortiqu" and "es" that a
@@ -464,8 +478,18 @@ export class FoodKeeper {
   // Every storage window that has a metric. A column set with no
   // metric means the USDA gave no advice for that storage, and it is
   // skipped.
+  // A tip that says a storage is the recommended one marks every window
+  // of that storage, since the tip and the window it is about can sit in
+  // different columns (Potatoes: Pantry_tips, DOP_Pantry times).
   storageWindows(product: FoodKeeperProduct): StorageWindow[] {
     const windows: StorageWindow[] = [];
+    const recommended = new Set(
+      STORAGE_COLUMNS.filter((column) =>
+        RECOMMENDED_TIP.test(
+          asText(product.raw[`${column.prefix}_tips`]) ?? asText(product.raw[`${column.prefix}_Tips`]) ?? "",
+        ),
+      ).map((column) => storagePlace(column.key)),
+    );
 
     for (const column of STORAGE_COLUMNS) {
       const metric = asText(product.raw[`${column.prefix}_Metric`]);
@@ -477,6 +501,7 @@ export class FoodKeeper {
         min: asNumber(product.raw[`${column.prefix}_Min`]),
         max: asNumber(product.raw[`${column.prefix}_Max`]),
         metric,
+        ...(recommended.has(storagePlace(column.key)) && { recommended: true as const }),
       });
     }
 

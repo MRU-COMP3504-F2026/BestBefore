@@ -1,6 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { z } from 'zod'
-import { lookupHadFailure, lookupProduct } from '../../../testscripts/normalizer.js'
+import { lookupHadFailure, lookupProduct, withFoodName } from '../../../testscripts/normalizer.js'
 import { requireAuth } from '../auth/requireAuth.js'
 import { appCategory, suggestExpiry, suggestionFromShelfLife } from './expirySuggestion.js'
 import { GeminiError, identifyFoodImage, type GeminiErrorCode } from './gemini.js'
@@ -50,7 +50,9 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
 
   const saved = await findItem(barcode)
   if (saved) {
-    res.json({ product: saved.payload, category: appCategory(saved.payload.category) })
+    // A row saved before the normalizer completed names is shown as a lookup would build it now.
+    // The row itself is left as it is.
+    res.json({ product: withFoodName(saved.payload), category: appCategory(saved.payload.category) })
     return
   }
 
@@ -113,10 +115,19 @@ foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
     }
 
     const saved = parsed.data.barcode ? await findItem(parsed.data.barcode) : null
-    const record = saved && describesRecord(saved.payload, parsed.data) ? saved : null
-    // The record's English category tags, only while the form still describes it. A row saved
-    // before tags were kept has none, and is searched as before.
-    const input = { ...parsed.data, categoryTags: record?.payload.categoryTags ?? null }
+    // The form holds the name the lookup showed, completed or as saved.
+    const record =
+      saved &&
+      (describesRecord(withFoodName(saved.payload), parsed.data) || describesRecord(saved.payload, parsed.data))
+        ? saved
+        : null
+    // The record's English category tags and ingredients, only while the form still describes it.
+    // A row saved before tags were kept has none, and is searched as before.
+    const input = {
+      ...parsed.data,
+      categoryTags: record?.payload.categoryTags ?? null,
+      ingredients: record?.payload.ingredients ?? null,
+    }
     const reused = record?.expirySuggestion ? suggestionFromShelfLife(input, record.expirySuggestion) : null
     const suggestion = reused ?? (await suggestExpiry(input, res.locals.user!.id))
 
