@@ -110,6 +110,10 @@ export type ScanHandoff = {
   notice: string | null
 }
 
+// Handed from AI Vision to the add form: only what Gemini saw in the photo. Nothing is looked up,
+// so there is no barcode and no product record.
+export type PhotoHandoff = { food: IdentifiedFood }
+
 // A little longer than the server's own wait on the slowest product database.
 export const LOOKUP_TIMEOUT_MS = 12_000
 
@@ -184,6 +188,8 @@ export type ExpiryRequest = {
   category: string | null
   productCategory: string | null
   purchaseDate: string
+  // 'photo' keeps the answer to FoodKeeper alone: no barcode, product database or AI date.
+  source?: 'photo'
 }
 
 export async function fetchExpirySuggestion(item: ExpiryRequest, signal?: AbortSignal): Promise<ExpirySuggestion> {

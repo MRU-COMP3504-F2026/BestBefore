@@ -325,7 +325,12 @@ function limitedClient(userId: string, client: AiClient): AiClient {
   }
 }
 
-export async function suggestExpiry(input: ExpiryInput, userId: string): Promise<ExpirySuggestion> {
+// ai: false keeps the answer to FoodKeeper on this server, with no Gemini fallback (AI Vision).
+export async function suggestExpiry(
+  input: ExpiryInput,
+  userId: string,
+  { ai = true }: { ai?: boolean } = {},
+): Promise<ExpirySuggestion> {
   if (isUnsupportedDrink(input)) return noDate(NO_DRINK_DATE)
 
   const engine = getFoodKeeper()
@@ -359,7 +364,7 @@ export async function suggestExpiry(input: ExpiryInput, userId: string): Promise
     if (isResolved(result)) return toSuggestion(result, fromName, input)
   }
 
-  if (!config.enabled) return noDate(NO_SUGGESTION)
+  if (!config.enabled || !ai) return noDate(NO_SUGGESTION)
 
   // At most one Gemini request per suggestion: the engine makes one call for the real name.
   const result = await suggestWithFallback(engine, item, {

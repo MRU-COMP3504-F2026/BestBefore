@@ -32,6 +32,8 @@ const expiryRequestSchema = z.object({
   category: z.string().trim().max(100).nullable(),
   productCategory: z.string().trim().max(1000).nullable(),
   purchaseDate: z.iso.date(),
+  // 'photo' is AI Vision: a food named from a photo, with no product behind it.
+  source: z.enum(['barcode', 'photo']).optional(),
 })
 
 export const foodRouter = express.Router()
@@ -99,6 +101,16 @@ foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
   }
 
   try {
+    if (parsed.data.source === 'photo') {
+      // Only the name and category the photo gave, matched in FoodKeeper here. No saved product,
+      // no product database and no Gemini date: a photo can't say what the package does.
+      const { name, brand, productCategory, purchaseDate } = parsed.data
+      const category = appCategory(productCategory)
+      const input = { name, brand, barcode: null, category, productCategory, purchaseDate }
+      res.json(await suggestExpiry(input, res.locals.user!.id, { ai: false }))
+      return
+    }
+
     const saved = parsed.data.barcode ? await findItem(parsed.data.barcode) : null
     const record = saved && describesRecord(saved.payload, parsed.data) ? saved : null
     // The record's English category tags, only while the form still describes it. A row saved

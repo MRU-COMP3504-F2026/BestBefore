@@ -10,7 +10,12 @@ import TextField from '../components/TextField'
 import { ApiError } from '../lib/api'
 import { useAuthSession } from '../lib/authClient'
 import { formatDate, todayIsoDate } from '../lib/dates'
-import { fetchExpirySuggestion, type ExpiryRequest, type ScanHandoff } from '../lib/foodApi'
+import {
+  fetchExpirySuggestion,
+  type ExpiryRequest,
+  type PhotoHandoff,
+  type ScanHandoff,
+} from '../lib/foodApi'
 import { addInventoryItem, INVENTORY_QUERY_KEY } from '../lib/inventoryApi'
 import { rememberShelfLife, suggestionFromSession } from '../lib/shelfLifeSession'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
@@ -48,9 +53,13 @@ export default function AddItemPage() {
   const queryClient = useQueryClient()
   const userId = useAuthSession().data?.user.id
   // Set only when the scanner sent us here. Reload keeps it, so a lookup isn't spent twice.
-  const scan = (useLocation().state as { scan?: ScanHandoff } | null)?.scan ?? null
+  const handoff = useLocation().state as { scan?: ScanHandoff; photo?: PhotoHandoff } | null
+  const scan = handoff?.scan ?? null
+  // Set only when AI Vision sent us here: a food named from a photo, with nothing looked up.
+  const photo = scan ? null : (handoff?.photo ?? null)
   const product = scan?.product ?? null
-  const leaveTo = scan ? '/scan' : '/items'
+  const fromScanner = Boolean(scan || photo)
+  const leaveTo = fromScanner ? '/scan' : '/items'
   const [saveError, setSaveError] = useState<string | null>(null)
   const [acceptedDate, setAcceptedDate] = useState<string | null>(null)
   const {
@@ -63,7 +72,7 @@ export default function AddItemPage() {
   } = useForm<AddItemValues>({
     resolver: zodResolver(addItemSchema),
     defaultValues: {
-      name: product?.name ?? '',
+      name: product?.name ?? photo?.food.name ?? '',
       brand: product?.brand ?? '',
       barcode: product?.barcode ?? scan?.barcode ?? '',
       // Always a count of items. The product's own quantity is the package size.
@@ -77,17 +86,19 @@ export default function AddItemPage() {
     name: ['name', 'brand', 'barcode', 'purchaseDate', 'bestBefore'],
   })
   const category = scan?.category ?? null
-  const productCategory = product?.category ?? null
+  const productCategory = product?.category ?? photo?.food.category ?? null
   const request = useMemo<ExpiryRequest>(
     () => ({
       name: name.trim(),
       brand: brand?.trim() || null,
-      barcode: barcode?.trim() || null,
+      // A photo's suggestion is FoodKeeper only. A barcode typed here is saved, never looked up.
+      barcode: photo ? null : barcode?.trim() || null,
       category,
       productCategory,
       purchaseDate,
+      ...(photo && { source: 'photo' as const }),
     }),
-    [name, brand, barcode, category, productCategory, purchaseDate],
+    [photo, name, brand, barcode, category, productCategory, purchaseDate],
   )
   const settledRequest = useDebouncedValue(request, SUGGESTION_DEBOUNCE_MS)
   const isSettled = settledRequest === request
@@ -101,12 +112,12 @@ export default function AddItemPage() {
       return answer
     },
     enabled:
-      Boolean(scan && settledRequest.name && settledRequest.purchaseDate) &&
+      Boolean(fromScanner && settledRequest.name && settledRequest.purchaseDate) &&
       !suggestionFromSession(userId, settledRequest),
     retry: false,
     staleTime: Infinity,
   })
-  const wantsSuggestion = Boolean(scan && request.name && request.purchaseDate)
+  const wantsSuggestion = Boolean(fromScanner && request.name && request.purchaseDate)
   // Read again once an answer arrives, since that is what fills the session.
   const localSuggestion = useMemo(
     () => (scan ? suggestionFromSession(userId, request) : null),
@@ -143,7 +154,7 @@ export default function AddItemPage() {
       navigate('/scan/added', {
         state: {
           product: { name: item.name, expires: formatDate(item.bestBefore) },
-          source: scan ? 'scan' : 'manual',
+          source: fromScanner ? 'scan' : 'manual',
         },
       })
     } catch (err) {
@@ -161,6 +172,12 @@ export default function AddItemPage() {
         {scan?.notice && (
           <p className="add-item-notice" role="status">
             {scan.notice}
+          </p>
+        )}
+        {photo && (
+          <p className="add-item-notice" role="status">
+            AI Vision named this from your photo. Check the details, and use the date on the package if
+            it has one.
           </p>
         )}
 

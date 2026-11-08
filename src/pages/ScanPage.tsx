@@ -336,13 +336,26 @@ export default function ScanPage() {
         </motion.div>
         {hasResult ? (
           <>
+            {identified && (
+              <motion.div className="scan-controls-item" {...fadeUp(0)}>
+                <Button
+                  onClick={() =>
+                    navigate('/items/new', { state: { photo: { food: identified.food } } })
+                  }
+                >
+                  Add This Food
+                </Button>
+              </motion.div>
+            )}
             {recognized && (
               <motion.div className="scan-status" role="status" {...fadeUp(0)}>
                 <p className="scan-status-title">Looking up product…</p>
               </motion.div>
             )}
             <motion.div className="scan-controls-item" {...fadeUp(0)}>
-              <Button onClick={onRetry}>{retryLabel}</Button>
+              <Button variant={identified ? 'secondary' : undefined} onClick={onRetry}>
+                {retryLabel}
+              </Button>
             </motion.div>
           </>
         ) : isAi ? (
