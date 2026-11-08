@@ -11,33 +11,34 @@ const NAME_MAX = 255
 const BRAND_MAX = 255
 
 export async function lookupBarcode(barcode: string): Promise<ProductInfo | null> {
-  // Keep the barcode as a string. "07227479" must keep its leading zero.
   const code = barcode.trim()
   if (!code) return null
 
-  try {
-    const res = await fetch(
-      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json` +
-        `?fields=product_name,generic_name,brands,categories_tags`,
-    )
-    if (!res.ok) return null
+  // UPC-A (12 digits) is stored as EAN-13 (a leading 0 added) in Open Food Facts.
+  const candidates = [...new Set([code, code.padStart(13, '0')])]
 
-    const data = await res.json()
-    if (data.status !== 1) return null // barcode not in their database
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(
+        `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(candidate)}.json` +
+          `?fields=product_name,product_name_en,generic_name,brands,categories_tags`,
+      )
+      if (!res.ok) continue // 404 just means "not under this form", so try the next one
+      const data = await res.json()
+      if (data.status !== 1) continue
 
-    const p = data.product
-    const name = (p.product_name || p.generic_name || '').trim().slice(0, NAME_MAX)
-    if (!name) return null // products.name is NOT NULL, so a nameless hit is useless
+      const p = data.product
+      const name = (p.product_name || p.product_name_en || p.generic_name || '')
+        .trim()
+        .slice(0, NAME_MAX)
+      if (!name) continue
 
-    const brand = (p.brands?.split(',')[0] ?? '').trim().slice(0, BRAND_MAX)
-
-    return {
-      name,
-      barcode: code,
-      brand: brand || null,
-      categories: p.categories_tags ?? [],
+      const brand = (p.brands?.split(',')[0] ?? '').trim().slice(0, BRAND_MAX)
+      // Keep the barcode as scanned or typed.
+      return { name, barcode: code, brand: brand || null, categories: p.categories_tags ?? [] }
+    } catch (err) {
+      console.error('[lookup] failed', err)
     }
-  } catch {
-    return null // offline or network error
   }
+  return null
 }
