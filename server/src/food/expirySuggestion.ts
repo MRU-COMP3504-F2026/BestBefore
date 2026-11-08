@@ -5,6 +5,7 @@ import { formatDay, parseDay, predict, windowLength, type Storage } from '../../
 import { FoodKeeper, foldText, tokenize } from '../../../expiry-tests/foodkeeper.js'
 import { createGeminiClient, loadAiConfig, type AiClient, type AiConfig } from '../../../expiry-tests/gemini-expiry.js'
 import { FOODKEEPER_PATH } from '../../../expiry-tests/strategies.js'
+import { foodName } from '../../../testscripts/normalizer.js'
 import { claimExpiryAiSlot } from './rateLimit.js'
 
 export type ExpiryInput = {
@@ -18,6 +19,8 @@ export type ExpiryInput = {
   // Open Food Facts' English category tags ("en:chocolate-biscuits"), in its order. Only the server
   // fills this, from the saved record the request describes. The add form never sends it.
   categoryTags?: readonly string[] | null
+  // The saved record's ingredient list, filled the same way as categoryTags.
+  ingredients?: string | null
   purchaseDate: string
 }
 
@@ -231,15 +234,19 @@ function isSoyMilk(input: ExpiryInput): boolean {
 // Marketing names ("Cheerios", "Tiny Twists") share no word with it, but the product's category
 // often does ("Breakfast cereals", "Pretzel"). The display category goes first, in its own order,
 // then the English tags, narrowest first. Language-tagged segments ("fr:Goûter") and slugs
-// ("snacks-sales") can't match its English.
+// ("snacks-sales") can't match its English. A saved record whose name is its one ingredient without
+// the noun ("LITTLE YELLOWS", saved before the normalizer added it back) is searched with the noun
+// too, right after the name. It is not the name as the product gives it, so it is never high.
 function searchNames(input: ExpiryInput, crispBiscuit: boolean): { query: string; fromName: boolean }[] {
   const fromCategory = soyMilk(categoryText(input), input.name).filter(
     (segment) => !isBroad(segment) && !/[:-]/.test(segment),
   )
+  const completed = foodName(input.name, input.ingredients ?? null)
+  const fromIngredient = completed && completed !== input.name ? [completed] : []
 
   const seen = new Set<string>()
   const queries: { query: string; fromName: boolean }[] = []
-  for (const [index, text] of [input.name, ...fromCategory].entries()) {
+  for (const [index, text] of [input.name, ...fromIngredient, ...fromCategory].entries()) {
     const query = rewrite(text, crispBiscuit)
     const key = foldText(query).toLowerCase()
     if (seen.has(key)) continue
@@ -322,6 +329,24 @@ function sharesNameWord(id: number, input: ExpiryInput): boolean {
   return tokenize(row?.name ?? null).some((word) => words.has(word))
 }
 
+// The colours FoodKeeper tells a food's varieties apart by ("Onions: yellow, white, red"). Orange is
+// left out because it is also a fruit.
+const COLOR_WORDS = new Set(['yellow', 'white', 'red', 'green', 'black', 'brown', 'gold', 'golden', 'purple', 'pink', 'blue'])
+
+// A colour never says what the food is, so a row the texts only share colours with is no match:
+// "LITTLE YELLOWS" (potatoes) reached Onions on "yellow" alone.
+function sharesOnlyColor(id: number, texts: string[]): boolean {
+  const row = getFoodKeeper().products.find((product) => product.id === id)
+  const rowWords = new Set(tokenize(`${row?.name ?? ''} ${row?.subtitle ?? ''} ${row?.keywords ?? ''}`))
+  const shared = texts.flatMap((text) => tokenize(text)).filter((word) => rowWords.has(word))
+  return shared.length > 0 && shared.every((word) => COLOR_WORDS.has(word))
+}
+
+// Everything the product says it is, for checking a pick no single search made.
+function productText(input: ExpiryInput): string[] {
+  return [input.name, foodName(input.name, input.ingredients ?? null) ?? '', ...categoryText(input)]
+}
+
 // The engine's low and tie picks are its best guesses, not answers. On real products they said
 // ketchup was tomato paste and canned kidney beans were mung sprouts, so only a local pick it
 // is sure of counts. See docs/scanflow-expiry.md.
@@ -334,6 +359,10 @@ function isResolved(result: HybridResult): boolean {
 // A date with no words from the product's own name behind it is never fully trusted.
 function capConfidence(confidence: 'high' | 'medium' | 'low' | 'tie', fromName: boolean) {
   return !fromName && confidence === 'high' ? 'medium' : confidence
+}
+
+function storageKind(key: string): Storage {
+  return key.startsWith('pantry') ? 'pantry' : key.startsWith('freezer') ? 'freezer' : 'fridge'
 }
 
 function noDate(message: string): ExpirySuggestion {
@@ -442,6 +471,7 @@ export async function suggestExpiry(
     const result = await suggestWithFallback(engine, { ...item, name: query }, { config: localOnly })
     if (!isResolved(result) || isUnfounded(result.selected!.id, input)) continue
     const id = result.selected!.id
+    if (sharesOnlyColor(id, [query])) continue
     if (!fromName && !result.range && !isDrinkRow(id)) {
       held ??= toSuggestion(result, fromName, input)
       continue
@@ -458,7 +488,10 @@ export async function suggestExpiry(
     config,
     client: limitedClient(userId, createGeminiClient(config)),
   })
-  return result.aiUsed && isResolved(result) && !isUnfounded(result.selected!.id, input)
+  return result.aiUsed &&
+    isResolved(result) &&
+    !isUnfounded(result.selected!.id, input) &&
+    !sharesOnlyColor(result.selected!.id, productText(input))
     ? toSuggestion(result, true, input)
     : noDate(NO_SUGGESTION)
 }
@@ -475,6 +508,7 @@ export function suggestionFromShelfLife(input: ExpiryInput, stored: unknown): Ex
   const shelfLife = parsed.data
   if (isUnfoundedNutritionDrink(shelfLife.foodKeeperId, input)) return noDate(NO_DRINK_DATE)
   if (isUnfounded(shelfLife.foodKeeperId, input)) return null
+  if (sharesOnlyColor(shelfLife.foodKeeperId, productText(input))) return null
 
   // Anything that no longer matches what FoodKeeper says now, length included, is not reused.
   const current = shelfLifeOf(shelfLife.foodKeeperId, shelfLife)
@@ -482,7 +516,12 @@ export function suggestionFromShelfLife(input: ExpiryInput, stored: unknown): Ex
 
   const engine = getFoodKeeper()
   const row = engine.products.find((product) => product.id === shelfLife.foodKeeperId)!
-  const window = engine.storageWindows(row).find((item) => item.label === shelfLife.label)
+  const windows = engine.storageWindows(row)
+  // A rule saved before predict() went to the storage FoodKeeper recommends (Potatoes' pantry) is
+  // worked out again rather than kept on the fridge.
+  const recommended = windows.find((item) => item.recommended)
+  if (recommended && shelfLife.storage !== storageKind(recommended.key)) return null
+  const window = windows.find((item) => item.label === shelfLife.label)
   // Only the stored window, so predict() can't move on to a different one.
   const prediction = predict(window ? [window] : [], row.categoryId, parseDay(input.purchaseDate), shelfLife.storage)
   if (prediction.kind !== 'range' || prediction.label !== shelfLife.label) return null
