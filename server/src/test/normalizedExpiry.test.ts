@@ -133,6 +133,158 @@ describe('names and English category tags', () => {
   })
 })
 
+// Cached records Brian reported, with the name, category and English tags Open Food Facts gave
+// (fetched once on 2026-11-07 for the read-only audit; no request is made here).
+describe('reported cached records', () => {
+  beforeEach(() => {
+    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', 'false')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  const NO_DRINK_DATE = { status: 'none', message: 'FoodKeeper has no unopened date for this drink. Check the package.' }
+  const NO_SUGGESTION = { status: 'none', message: expect.stringMatching(/^No reliable suggestion/) }
+
+  const SILK = {
+    name: 'Soy Protein',
+    brand: 'Silk',
+    barcode: '025293600713',
+    productCategory: 'Dairies, Soy-based drinks',
+    categoryTags: [
+      'en:beverages-and-beverages-preparations',
+      'en:plant-based-foods-and-beverages',
+      'en:beverages',
+      'en:plant-based-foods',
+      'en:dairies',
+      'en:legumes-and-their-products',
+      'en:dairy-substitutes',
+      'en:milk-substitutes',
+      'en:plant-based-beverages',
+      'en:plant-based-milk-alternatives',
+      'en:legume-based-drinks',
+      'en:soy-based-drinks',
+    ],
+  }
+  const HEINZ = {
+    name: 'Tomato Ketchup',
+    brand: 'Heinz',
+    barcode: '057000063085',
+    productCategory: 'Tomato Ketchup, Groceries',
+    categoryTags: [
+      'en:plant-based-foods-and-beverages',
+      'en:plant-based-foods',
+      'en:fruits-and-vegetables-based-foods',
+      'en:vegetable-based-foods-and-beverages',
+      'en:condiments',
+      'en:vegetables-based-foods',
+      'en:tomatoes-and-their-products',
+      'en:sauces',
+      'en:tomato-sauces',
+      'en:ketchup',
+      'en:tomato-ketchup',
+    ],
+  }
+
+  type CachedRecord = { name: string; brand: string | null; productCategory: string | null; categoryTags?: string[] | null }
+  const run = (record: CachedRecord) =>
+    suggestExpiry(
+      {
+        barcode: null,
+        categoryTags: null,
+        ...record,
+        category: appCategory(record.productCategory),
+        purchaseDate: '2026-11-07',
+      },
+      'test-user',
+    )
+
+  it("finds soy milk for Silk's 'Soy Protein' and says to check the package", async () => {
+    expect(await run(SILK)).toEqual(NO_DRINK_DATE)
+    // A row saved before the tags were kept has only the category.
+    expect(await run({ ...SILK, categoryTags: null })).toEqual(NO_DRINK_DATE)
+  })
+
+  it('never gives a soy drink a soy food row', async () => {
+    // With no Beverages hint, "Soy Protein" alone reaches Textured soy protein with high confidence.
+    const drink = { name: 'Soy Protein', brand: 'Silk', productCategory: 'Plant-based beverages' }
+
+    expect(await run(drink)).not.toMatchObject({ matchedFood: expect.stringMatching(/soy protein/i) })
+    expect(await run({ ...drink, categoryTags: ['en:soy-based-drinks'] })).toEqual(NO_DRINK_DATE)
+  })
+
+  it('calls the milk-substitute tags soy milk only for a soy product', async () => {
+    const almond = {
+      name: 'Almond Breeze Original',
+      brand: 'Blue Diamond',
+      productCategory: null,
+      categoryTags: ['en:plant-based-beverages', 'en:milk-substitutes', 'en:plant-based-milk-alternatives'],
+    }
+
+    expect(await run(almond)).not.toEqual(NO_DRINK_DATE)
+  })
+
+  it.each([
+    ['the Open Food Facts record', HEINZ],
+    ['an old row with no tags', { ...HEINZ, categoryTags: null }],
+    ['the bare name', { name: 'Ketchup', brand: 'Heinz', productCategory: null }],
+  ])('matches Heinz ketchup to the ketchup row, from %s', async (_case, record) => {
+    expect(await run(record)).toMatchObject({
+      status: 'suggested',
+      matchedFood: 'Ketchup, cocktail, or chili sauce',
+      shelfLife: { length: { unit: 'months', min: 12, max: 12 } },
+    })
+  })
+
+  it('does not read ketchup chips as the condiment', async () => {
+    const suggestion = await run({ name: 'Ketchup Chips', brand: 'Lays', productCategory: null })
+
+    expect(suggestion).not.toMatchObject({ matchedFood: expect.stringMatching(/^Ketchup/) })
+  })
+
+  it('does not stop at a no-date category when a later one names the product', async () => {
+    // Display categories run broad to specific, so "Tomato sauces" (read the package) comes first.
+    const record = { name: 'Heinz Ketchup Squeeze Bottle', brand: 'Heinz', productCategory: 'Sauces, Tomato sauces, Ketchup' }
+
+    expect(await run(record)).toMatchObject({ status: 'suggested', matchedFood: 'Ketchup, cocktail, or chili sauce' })
+  })
+
+  it('keeps a no-date category when nothing later names the product', async () => {
+    // "Creams" alone ties two dated cream rows. Neither is this product.
+    const record = { name: 'Gay Lea Original', brand: 'Gay Lea', productCategory: 'Dairies, Creams, Sour creams' }
+
+    expect(await run(record)).toEqual(NO_SUGGESTION)
+  })
+
+  it('keeps no date for Compliments sour cream', async () => {
+    expect(
+      await run({ name: 'Sour Cream 14%', brand: 'Compliments', productCategory: 'Dairies, Creams, Sour creams' }),
+    ).toEqual(NO_SUGGESTION)
+  })
+
+  it('matches grated mozzarella to shredded cheese, and leaves grated parmesan where it was', async () => {
+    expect(await run({ name: 'Mozzarella Grated', brand: 'Armstrong', productCategory: null })).toMatchObject({
+      status: 'suggested',
+      matchedFood: 'Cheese (shredded; cheddar, mozzarella, etc.)',
+      shelfLife: { length: { unit: 'months', min: 1, max: 1 } },
+    })
+    expect(await run({ name: 'Grated Parmesan Cheese', brand: 'Kraft', productCategory: null })).toMatchObject({
+      matchedFood: 'Cheese (parmesan; shredded or grated)',
+    })
+  })
+
+  it('never calls a cake fruit cake unless it says fruit', async () => {
+    for (const name of ['Steam Cake', 'Steamed Cake', 'Chocolate Cake']) {
+      const suggestion = await run({ name, brand: 'T&T', productCategory: 'Cakes' })
+      expect(suggestion.status === 'suggested' && suggestion.matchedFood).not.toBe('Fruit cake')
+    }
+    expect(await run({ name: 'Christmas Fruit Cake', brand: null, productCategory: 'Cakes' })).toMatchObject({
+      matchedFood: 'Fruit cake',
+    })
+  })
+})
+
 describe('appCategory', () => {
   it.each([
     ['Dairies, Milks', 'Dairy'],

@@ -91,7 +91,7 @@
     },
     {
       "scannedBarcode": "013000006408",
-      "expectedMatch": null,
+      "expectedMatch": "Ketchup, cocktail, or chili sauce",
       "final": {
         "barcode": "013000006408",
         "sources": [
