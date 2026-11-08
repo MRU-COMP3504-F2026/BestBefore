@@ -11,7 +11,8 @@
     font-weight: 600;
   }
 
-  input {
+  input,
+  select {
     font: inherit;
     padding: 12px 14px;
     border: 1px solid var(--color-border);
@@ -38,7 +39,8 @@
   position: relative;
   display: flex;
 
-  input {
+  input,
+  select {
     flex: 1;
     min-width: 0;
   }

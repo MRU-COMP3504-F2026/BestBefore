@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader'
 import TextField from '../components/TextField'
 import { ApiError } from '../lib/api'
 import { useAuthSession } from '../lib/authClient'
+import { CATEGORIES } from '../lib/categories'
 import { formatDate, todayIsoDate } from '../lib/dates'
 import {
   fetchExpirySuggestion,
@@ -20,13 +21,14 @@ import { addInventoryItem, INVENTORY_QUERY_KEY } from '../lib/inventoryApi'
 import { rememberShelfLife, suggestionFromSession } from '../lib/shelfLifeSession'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import '../styles/AddItemPage.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 
 const addItemSchema = z
   .object({
     name: z.string().trim().min(1, 'Product name is required'),
     brand: z.string().trim().optional(),
     barcode: z.string().trim().optional(),
+    category: z.string().optional(),
     quantity: z
       .number({ error: 'Quantity is required' })
       .int('Quantity must be a whole number')
@@ -75,17 +77,22 @@ export default function AddItemPage() {
       name: product?.name ?? photo?.food.name ?? '',
       brand: product?.brand ?? '',
       barcode: product?.barcode ?? scan?.barcode ?? '',
+      category: scan?.category ?? '',
       // Always a count of items. The product's own quantity is the package size.
       quantity: 1,
       purchaseDate: todayIsoDate(),
     },
   })
 
-  const [name, brand, barcode, purchaseDate, bestBefore] = useWatch({
+  const [name, brand, barcode, categoryValue, purchaseDate, bestBefore] = useWatch({
     control,
-    name: ['name', 'brand', 'barcode', 'purchaseDate', 'bestBefore'],
+    name: ['name', 'brand', 'barcode', 'category', 'purchaseDate', 'bestBefore'],
   })
-  const category = scan?.category ?? null
+  const category = categoryValue || null
+  // A scan can hand over a label that isn't one of ours. Keep it choosable rather than lose it.
+  const categoryOptions =
+    scan?.category && !CATEGORIES.includes(scan.category) ? [...CATEGORIES, scan.category] : CATEGORIES
+  const categoryId = useId()
   const productCategory = product?.category ?? photo?.food.category ?? null
   const request = useMemo<ExpiryRequest>(
     () => ({
@@ -145,7 +152,7 @@ export default function AddItemPage() {
         name: values.name,
         brand: values.brand || null,
         barcode: values.barcode || null,
-        category,
+        category: values.category || null,
         quantity: values.quantity,
         purchaseDate: values.purchaseDate,
         bestBefore: values.bestBefore,
@@ -211,6 +218,25 @@ export default function AddItemPage() {
           error={errors.barcode?.message}
           {...register('barcode')}
         />
+
+        <div className="text-field">
+          <div className="text-field-label-row">
+            <label htmlFor={categoryId}>
+              Category
+              <span className="text-field-tag text-field-tag-optional">Optional</span>
+            </label>
+          </div>
+          <div className="text-field-input">
+            <select id={categoryId} disabled={isSubmitting} {...register('category')}>
+              <option value="">Not sure</option>
+              {categoryOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <TextField
           label="Quantity"
