@@ -3,16 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import PageHeader from '../components/PageHeader'
 import { categoryIcon } from '../lib/categoryIcon'
-import { formatDate, todayIsoDate } from '../lib/dates'
+import { formatDate } from '../lib/dates'
 import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
 import { useItemImageSrc } from '../lib/useItemImage'
 import '../styles/InventoryList.css'
 import '../styles/ProductDetailPage.css'
 
-function expiryLabel(bestBefore: string): string {
-  if (bestBefore < todayIsoDate()) return 'Expired'
-  return expiryTone(bestBefore) === 'amber' ? 'Expiring soon' : 'Fresh'
-}
+const EXPIRY_LABELS = { red: 'Expired', amber: 'Expiring soon', green: 'Fresh' }
 
 function detailRows(item: InventoryItem): [string, string][] {
   return [
@@ -90,8 +87,10 @@ export default function ProductDetailPage() {
       <ItemImage item={item} />
 
       <section className={`product-detail-expiry product-detail-expiry-${tone}`}>
-        <span className="product-detail-expiry-label">{expiryLabel(item.bestBefore)}</span>
-        <span className="product-detail-expiry-date">Best before {formatDate(item.bestBefore)}</span>
+        <span className="product-detail-expiry-label">{EXPIRY_LABELS[tone]}</span>
+        <span className="product-detail-expiry-date">
+          {tone === 'red' ? 'Expired on' : 'Best before'} {formatDate(item.bestBefore)}
+        </span>
       </section>
 
       <dl className="product-detail-list">

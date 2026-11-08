@@ -39,7 +39,7 @@ describe('ItemsPage', () => {
     expect(apiFetch).toHaveBeenCalledWith('/inventory')
   })
 
-  it('marks items expiring within 3 days (or expired) amber', async () => {
+  it('marks expired items red and items expiring within 3 days amber', async () => {
     vi.mocked(apiFetch).mockResolvedValue({ items: ITEMS })
     renderItems()
 
@@ -49,7 +49,7 @@ describe('ItemsPage', () => {
         .className
 
     await screen.findAllByRole('listitem')
-    expect(tone('Milk')).toContain('amber')
+    expect(tone('Milk')).toContain('red')
     expect(tone('Spinach')).toContain('amber')
     expect(tone('Eggs')).toContain('amber')
     expect(tone('Cheddar')).toContain('green')

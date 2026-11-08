@@ -40,6 +40,11 @@
   color: var(--color-text);
 }
 
+.product-detail-image-red {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
 .product-detail-image-icon svg {
   width: 56px;
   height: 56px;
@@ -61,6 +66,11 @@
 .product-detail-expiry-amber {
   background: var(--color-amber-light);
   color: var(--color-text);
+}
+
+.product-detail-expiry-red {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
 .product-detail-expiry-label {

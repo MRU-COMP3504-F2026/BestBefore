@@ -28,4 +28,14 @@ describe('ItemCard', () => {
 
     expect(container.querySelector('.item-card-tile-amber')).toBeInTheDocument()
   })
+
+  it('says an item expired on its date when the tone is red', () => {
+    const { container } = render(
+      <ItemCard name="Milk" expires="Oct 24, 2026" icon={<LeafIcon />} tone="red" />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Milk Expired on Oct 24, 2026' })).toBeInTheDocument()
+    expect(container.querySelector('.item-card-tile-red')).toBeInTheDocument()
+    expect(container.querySelector('.item-card-expires-red')).toBeInTheDocument()
+  })
 })
