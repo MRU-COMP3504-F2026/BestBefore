@@ -191,7 +191,10 @@ describe('ScanPage AI Vision (Beta)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Identify Food' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Add This Food' }))
 
-    expect(JSON.parse(screen.getByTestId('handoff').textContent!)).toEqual({ photo: { food: BANANA.food } })
+    // The still that was identified goes along as the item's picture, not a new capture.
+    expect(JSON.parse(screen.getByTestId('handoff').textContent!)).toEqual({
+      photo: { food: BANANA.food, frame: 'data:image/jpeg;base64,AA' },
+    })
     // Only the identify call: no barcode lookup and no expiry request from the scanner.
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
@@ -205,7 +208,12 @@ describe('ScanPage AI Vision (Beta)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Add This Food' }))
 
     expect(JSON.parse(screen.getByTestId('handoff').textContent!)).toEqual({
-      photo: { food: { ...BANANA.food, brand: 'Dole' }, provenance: 'signed.token' },
+      photo: {
+        food: { ...BANANA.food, brand: 'Dole' },
+        provenance: 'signed.token',
+        // The identified still, saved only with the user's own item.
+        frame: 'data:image/jpeg;base64,AA',
+      },
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { apiFetch } from './api'
+import { ApiError, apiFetch } from './api'
+import { getApiToken } from './authClient'
 import { todayIsoDate } from './dates'
 
 // Mirrors GET /api/inventory in server/src/inventory/routes.ts.
@@ -14,6 +15,10 @@ const inventoryItemSchema = z.object({
   unit: z.string().nullable(),
   purchaseDate: z.string(),
   bestBefore: z.string(),
+  // 'product' is a link to the barcode lookup's image; 'photo' is the AI Vision still, read with
+  // fetchItemPhoto. Missing on a server from before item pictures.
+  imageSource: z.enum(['product', 'photo']).nullable().default(null),
+  imageUrl: z.string().nullable().default(null),
   createdAt: z.string(),
 })
 
@@ -33,7 +38,14 @@ export type NewInventoryItem = {
   bestBefore: string
   // Only from an add form AI Vision filled. Lets the server share the product once it is saved.
   photoToken?: string
+  // At most one: the barcode lookup's image link, or the AI Vision still as a JPEG data URL.
+  imageUrl?: string | null
+  photo?: string | null
 }
+
+// Largest photo data URL the server takes. Mirrors MAX_PHOTO_DATA_URL_LENGTH in
+// server/src/inventory/itemImages.ts.
+export const MAX_PHOTO_DATA_URL_LENGTH = 1_048_640
 
 export const INVENTORY_QUERY_KEY = ['inventory']
 
@@ -50,6 +62,18 @@ export async function fetchInventory(): Promise<InventoryItem[]> {
 export async function addInventoryItem(item: NewInventoryItem): Promise<InventoryItem> {
   const body = await apiFetch<unknown>('/inventory', { method: 'POST', body: JSON.stringify(item) })
   return addedItemResponseSchema.parse(body).item
+}
+
+// The AI Vision still saved with one of the signed-in user's items. The route needs the token, so
+// an <img> can't load it directly.
+export async function fetchItemPhoto(id: number, signal?: AbortSignal): Promise<Blob> {
+  const token = await getApiToken()
+  const response = await fetch(`/api/inventory/${id}/photo`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal,
+  })
+  if (!response.ok) throw new ApiError(response.status)
+  return response.blob()
 }
 
 export function useInventory() {

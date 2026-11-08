@@ -36,10 +36,18 @@
   height: 56px;
   border-radius: var(--radius-md);
 
+  overflow: hidden;
+
   svg {
     width: 28px;
     height: 28px;
   }
+}
+
+.item-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .item-card-tile-green {

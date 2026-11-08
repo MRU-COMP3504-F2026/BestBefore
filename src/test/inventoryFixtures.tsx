@@ -17,6 +17,8 @@ function item(id: number, name: string, category: string | null, bestBefore: str
     unit: null,
     purchaseDate: '2026-10-20',
     bestBefore,
+    imageSource: null,
+    imageUrl: null,
     createdAt: '2026-10-20T12:00:00.000Z',
   }
 }

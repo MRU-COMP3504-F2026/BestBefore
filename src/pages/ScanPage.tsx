@@ -341,7 +341,14 @@ export default function ScanPage() {
                 <Button
                   onClick={() =>
                     navigate('/items/new', {
-                      state: { photo: { food: identified.food, provenance: identified.provenance } },
+                      state: {
+                        photo: {
+                          food: identified.food,
+                          provenance: identified.provenance,
+                          // The exact still that was identified becomes the item's picture.
+                          ...(identified.still.frame && { frame: identified.still.frame }),
+                        },
+                      },
                     })
                   }
                 >

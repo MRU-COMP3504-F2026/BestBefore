@@ -36,6 +36,13 @@
       "when": 1794098774592,
       "tag": "0004_photo_items_without_barcode",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794099433662,
+      "tag": "0005_item_images",
+      "breakpoints": true
     }
   ]
 }
