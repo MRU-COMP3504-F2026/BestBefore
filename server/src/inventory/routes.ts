@@ -1,10 +1,12 @@
 import express from 'express'
 import { and, asc, eq, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
+import { withFoodName } from '../../../testscripts/normalizer.js'
 import { requireAuth } from '../auth/requireAuth.js'
 import { db } from '../db/index.js'
 import { inventoryItems } from '../db/schema.js'
-import { rememberPhotoItem } from '../food/items.js'
+import { appCategory, suggestionFromShelfLife, type ExpirySuggestion } from '../food/expirySuggestion.js'
+import { describesRecord, findItem, rememberPhotoItem } from '../food/items.js'
 import { isShareableText, isValidGtin, photoProduct, verifyPhotoProvenance } from '../food/photoItems.js'
 import { ItemImageError, itemImageColumns, MAX_IMAGE_URL_LENGTH, MAX_PHOTO_DATA_URL_LENGTH } from './itemImages.js'
 
@@ -60,6 +62,30 @@ const newItemSchema = z
     path: ['bestBefore'],
   })
   .refine((item) => !(item.imageUrl && item.photo), { message: 'An item has one picture', path: ['photo'] })
+
+// What an edit may change. Only the user's own copy: barcode and picture stay as saved, and the
+// shared items row is never touched. Unknown keys, the owner and id among them, are dropped.
+const editItemSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    brand: optionalText(200),
+    category: optionalText(100),
+    quantity: z.number().int().min(1).max(10_000),
+    purchaseDate: z.iso.date(),
+    bestBefore: z.iso.date(),
+  })
+  .refine((item) => item.bestBefore >= item.purchaseDate, {
+    message: 'Best before date is before the purchase date',
+    path: ['bestBefore'],
+  })
+
+// A route id, or null for anything that can't be one.
+function itemId(raw: unknown): number | null {
+  const id = Number(raw)
+  return Number.isSafeInteger(id) && id >= 1 ? id : null
+}
+
+const NO_SAVED_SHELF_LIFE = 'No saved suggestion for this item. Check the package and enter the date.'
 
 // The signed-in user's items, soonest best-before first.
 inventoryRouter.get('/', requireAuth, async (_req, res) => {
@@ -175,5 +201,98 @@ inventoryRouter.get('/:id/photo', requireAuth, async (req, res) => {
     const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
     console.error(`Inventory photo read failed: ${err instanceof Error ? err.message : err}${cause}`)
     res.status(500).json({ error: "Couldn't load this photo." })
+  }
+})
+
+// Saves the signed-in user's edits to one of their own items and returns the row as stored. Only
+// inventory_items is written, and only the row this user owns: 404 for anyone else's, as for a
+// missing one, so ids can't be probed.
+inventoryRouter.patch('/:id', requireAuth, async (req, res) => {
+  const id = itemId(req.params.id)
+  const parsed = editItemSchema.safeParse(req.body)
+  if (id === null) {
+    res.status(404).json({ error: 'Item not found.' })
+    return
+  }
+  if (!parsed.success) {
+    res.status(400).json({ error: "That item isn't valid. Check the details and try again." })
+    return
+  }
+
+  try {
+    const [item] = await db
+      .update(inventoryItems)
+      .set(parsed.data)
+      .where(and(eq(inventoryItems.id, id), eq(inventoryItems.userId, res.locals.user!.id)))
+      .returning(ITEM_COLUMNS)
+
+    if (!item) {
+      res.status(404).json({ error: 'Item not found.' })
+      return
+    }
+    res.json({ item })
+  } catch (err) {
+    const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
+    console.error(`Inventory edit failed: ${err instanceof Error ? err.message : err}${cause}`)
+    res.status(500).json({ error: "Couldn't save your changes. Please try again." })
+  }
+})
+
+// A best-before suggestion for one of the signed-in user's items bought on ?purchaseDate, from the
+// shelf life already saved for its barcode. Read only: no engine, no Gemini and no write, so an edit
+// never changes the shared row. No saved shelf life, or one the item no longer describes, is an
+// honest 'none' rather than a fresh guess.
+inventoryRouter.get('/:id/expiry-suggestion', requireAuth, async (req, res) => {
+  const id = itemId(req.params.id)
+  const purchaseDate = z.iso.date().safeParse(req.query.purchaseDate)
+  if (id === null) {
+    res.status(404).json({ error: 'Item not found.' })
+    return
+  }
+  if (!purchaseDate.success) {
+    res.status(400).json({ error: 'Send the date bought as YYYY-MM-DD.' })
+    return
+  }
+
+  try {
+    const [item] = await db
+      .select({
+        name: inventoryItems.name,
+        brand: inventoryItems.brand,
+        barcode: inventoryItems.barcode,
+        category: inventoryItems.category,
+      })
+      .from(inventoryItems)
+      .where(and(eq(inventoryItems.id, id), eq(inventoryItems.userId, res.locals.user!.id)))
+
+    if (!item) {
+      res.status(404).json({ error: 'Item not found.' })
+      return
+    }
+
+    const none: ExpirySuggestion = { status: 'none', message: NO_SAVED_SHELF_LIFE }
+    const saved = item.barcode ? await findItem(item.barcode) : null
+    if (!saved?.expirySuggestion) {
+      res.json(none)
+      return
+    }
+
+    const input = {
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+      // Our label as the user saved it, else the one the record's own category maps to.
+      category: item.category ?? appCategory(saved.payload.category),
+      productCategory: saved.payload.category,
+      categoryTags: saved.payload.categoryTags ?? null,
+      ingredients: saved.payload.ingredients ?? null,
+      purchaseDate: purchaseDate.data,
+    }
+    // Same rule as the add form: only an item that still describes the saved product reuses it.
+    const describes = describesRecord(withFoodName(saved.payload), input) || describesRecord(saved.payload, input)
+    res.json((describes && suggestionFromShelfLife(input, saved.expirySuggestion)) || none)
+  } catch (err) {
+    console.error(`Inventory expiry suggestion failed: ${err instanceof Error ? err.message : err}`)
+    res.status(500).json({ error: "Couldn't get a suggested date." })
   }
 })

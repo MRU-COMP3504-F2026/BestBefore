@@ -3,11 +3,10 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
-import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import ItemCard from './ItemCard'
-import { BasketIcon, LeafIcon, MilkIcon } from './icons'
+import { categoryIcon } from '../lib/categoryIcon'
 import { formatDate } from '../lib/dates'
 import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
 import { listItem } from '../lib/motion'
@@ -18,17 +17,6 @@ type InventoryListProps = {
   className?: string
   // Show only the first `limit` items (they arrive soonest-expiring first).
   limit?: number
-}
-
-function categoryIcon(category: string | null): ReactNode {
-  switch (category?.toLowerCase()) {
-    case 'dairy':
-      return <MilkIcon />
-    case 'produce':
-      return <LeafIcon />
-    default:
-      return <BasketIcon />
-  }
 }
 
 function InventoryItemCard({ item }: { item: InventoryItem }) {

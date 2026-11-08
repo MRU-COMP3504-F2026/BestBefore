@@ -1,8 +1,11 @@
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import Button from '../components/Button'
 import PageHeader from '../components/PageHeader'
+import { categoryIcon } from '../lib/categoryIcon'
 import { formatDate, todayIsoDate } from '../lib/dates'
 import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
+import { useItemImageSrc } from '../lib/useItemImage'
 import '../styles/InventoryList.css'
 import '../styles/ProductDetailPage.css'
 
@@ -22,9 +25,36 @@ function detailRows(item: InventoryItem): [string, string][] {
   ]
 }
 
+// The item's own picture: the product image link, or the AI Vision still fetched with the token.
+// Its category icon shows while there is none and when it fails to load.
+function ItemImage({ item }: { item: InventoryItem }) {
+  const src = useItemImageSrc(item)
+  // Remembered per link, so a new picture gets its own try.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const tone = expiryTone(item.bestBefore)
+
+  return (
+    <figure className={`product-detail-image product-detail-image-${tone}`}>
+      {src && src !== failedSrc ? (
+        <img
+          src={src}
+          alt={item.imageSource === 'photo' ? 'Your photo' : 'Product'}
+          decoding="async"
+          // Product images are other sites' files; don't tell them which page asked.
+          referrerPolicy="no-referrer"
+          onError={() => setFailedSrc(src)}
+        />
+      ) : (
+        <span className="product-detail-image-icon">{categoryIcon(item.category)}</span>
+      )}
+    </figure>
+  )
+}
+
 // One inventory item, read from the same cached query as the item list.
 export default function ProductDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { data, isPending, isError } = useInventory()
   const item = data?.find((i) => i.id === Number(id))
 
@@ -57,6 +87,8 @@ export default function ProductDetailPage() {
     <div className="product-detail">
       <PageHeader title={item.name} backTo="/items" />
 
+      <ItemImage item={item} />
+
       <section className={`product-detail-expiry product-detail-expiry-${tone}`}>
         <span className="product-detail-expiry-label">{expiryLabel(item.bestBefore)}</span>
         <span className="product-detail-expiry-date">Best before {formatDate(item.bestBefore)}</span>
@@ -70,6 +102,10 @@ export default function ProductDetailPage() {
           </div>
         ))}
       </dl>
+
+      <Button variant="secondary" onClick={() => navigate(`/items/${item.id}/edit`)}>
+        Edit
+      </Button>
     </div>
   )
 }

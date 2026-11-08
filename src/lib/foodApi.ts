@@ -202,7 +202,7 @@ export const shelfLifeSchema = z.object({
 export type ShelfLife = z.infer<typeof shelfLifeSchema>
 
 // Mirrors ExpirySuggestion in server/src/food/expirySuggestion.ts.
-const expirySuggestionSchema = z.discriminatedUnion('status', [
+export const expirySuggestionSchema = z.discriminatedUnion('status', [
   z.object({
     status: z.literal('suggested'),
     earliest: z.string(),

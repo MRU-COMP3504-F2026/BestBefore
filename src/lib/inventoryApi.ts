@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { ApiError, apiFetch } from './api'
 import { getApiToken } from './authClient'
 import { todayIsoDate } from './dates'
+import { expirySuggestionSchema, type ExpirySuggestion } from './foodApi'
 
 // Mirrors GET /api/inventory in server/src/inventory/routes.ts.
 const inventoryItemSchema = z.object({
@@ -43,6 +44,12 @@ export type NewInventoryItem = {
   photo?: string | null
 }
 
+// What an edit may change. The barcode and picture stay as saved.
+export type InventoryItemEdit = Pick<
+  NewInventoryItem,
+  'name' | 'brand' | 'category' | 'quantity' | 'purchaseDate' | 'bestBefore'
+>
+
 // Largest photo data URL the server takes. Mirrors MAX_PHOTO_DATA_URL_LENGTH in
 // server/src/inventory/itemImages.ts.
 export const MAX_PHOTO_DATA_URL_LENGTH = 1_048_640
@@ -62,6 +69,25 @@ export async function fetchInventory(): Promise<InventoryItem[]> {
 export async function addInventoryItem(item: NewInventoryItem): Promise<InventoryItem> {
   const body = await apiFetch<unknown>('/inventory', { method: 'POST', body: JSON.stringify(item) })
   return addedItemResponseSchema.parse(body).item
+}
+
+// Saves edits to one of the signed-in user's items and returns the row the server stored. Only that
+// user's copy changes, never the shared product.
+export async function updateInventoryItem(id: number, edit: InventoryItemEdit): Promise<InventoryItem> {
+  const body = await apiFetch<unknown>(`/inventory/${id}`, { method: 'PATCH', body: JSON.stringify(edit) })
+  return addedItemResponseSchema.parse(body).item
+}
+
+// A best-before suggestion for one of the user's items bought on purchaseDate, from the shelf life
+// already saved for it. Only offered: nothing changes until the user accepts it and saves.
+export async function fetchItemExpirySuggestion(
+  id: number,
+  purchaseDate: string,
+  signal?: AbortSignal,
+): Promise<ExpirySuggestion> {
+  const query = new URLSearchParams({ purchaseDate })
+  const body = await apiFetch<unknown>(`/inventory/${id}/expiry-suggestion?${query}`, { signal })
+  return expirySuggestionSchema.parse(body)
 }
 
 // The AI Vision still saved with one of the signed-in user's items. The route needs the token, so
