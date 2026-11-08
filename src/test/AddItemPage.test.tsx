@@ -135,6 +135,8 @@ describe('AddItemPage', () => {
     await save()
 
     expect(await screen.findByRole('heading', { name: 'Item Added!' })).toBeInTheDocument()
+    // That date has passed, so the confirmation says so.
+    expect(screen.getByText('Expired on Oct 10, 2026')).toBeInTheDocument()
   })
 
   it('saves without a barcode, shows the pending state, then the confirmation', async () => {

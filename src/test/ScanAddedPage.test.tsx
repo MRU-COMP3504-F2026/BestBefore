@@ -25,6 +25,19 @@ describe('ScanAddedPage', () => {
     expect(screen.getByText('Scan')).toBeInTheDocument()
   })
 
+  it('shows when the added item expires', () => {
+    renderAdded({ product: PRODUCT })
+
+    expect(screen.getByText('Expires Apr 25, 2027')).toBeInTheDocument()
+  })
+
+  it('says an added item already expired when its date has passed', () => {
+    renderAdded({ product: { name: 'Old Milk', expires: 'Oct 24, 2026', expired: true } })
+
+    expect(screen.getByText('Expired on Oct 24, 2026')).toBeInTheDocument()
+    expect(screen.queryByText(/^Expires/)).not.toBeInTheDocument()
+  })
+
   it('goes to items from View My Items', async () => {
     renderAdded({ product: PRODUCT })
 

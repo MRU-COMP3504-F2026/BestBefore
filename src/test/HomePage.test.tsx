@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import HomePage from '../pages/HomePage'
@@ -44,5 +44,22 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: /Spinach/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Eggs/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Cheddar/ })).not.toBeInTheDocument()
+  })
+
+  it('shows the preview cards in their expiry colour with matching labels', async () => {
+    renderHome()
+
+    const card = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
+    const tile = (name: string) =>
+      within(card(name)).getByText((_, el) => el?.classList.contains('item-card-tile') ?? false).className
+
+    await screen.findAllByRole('listitem')
+    // Milk passed its date two days ago, Spinach is due today, Eggs in 3 days.
+    expect(tile('Milk')).toContain('item-card-tile-red')
+    expect(card('Milk')).toHaveTextContent('Expired on Oct 24, 2026')
+    expect(tile('Spinach')).toContain('item-card-tile-amber')
+    expect(card('Spinach')).toHaveTextContent('Expires Oct 26, 2026')
+    expect(tile('Eggs')).toContain('item-card-tile-amber')
+    expect(card('Eggs')).toHaveTextContent('Expires Oct 29, 2026')
   })
 })

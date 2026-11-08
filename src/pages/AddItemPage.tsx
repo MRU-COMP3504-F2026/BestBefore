@@ -19,7 +19,7 @@ import {
   type PhotoHandoff,
   type ScanHandoff,
 } from '../lib/foodApi'
-import { addInventoryItem, INVENTORY_QUERY_KEY, MAX_PHOTO_DATA_URL_LENGTH } from '../lib/inventoryApi'
+import { addInventoryItem, expiryTone, INVENTORY_QUERY_KEY, MAX_PHOTO_DATA_URL_LENGTH } from '../lib/inventoryApi'
 import { rememberShelfLife, suggestionFromSession } from '../lib/shelfLifeSession'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import '../styles/AddItemPage.css'
@@ -217,7 +217,11 @@ export default function AddItemPage() {
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEY })
       navigate('/scan/added', {
         state: {
-          product: { name: item.name, expires: formatDate(item.bestBefore) },
+          product: {
+            name: item.name,
+            expires: formatDate(item.bestBefore),
+            expired: expiryTone(item.bestBefore) === 'red',
+          },
           source: fromScanner ? 'scan' : 'manual',
         },
       })
