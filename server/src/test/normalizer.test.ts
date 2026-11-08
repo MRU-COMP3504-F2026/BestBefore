@@ -73,6 +73,99 @@ describe('Open Food Facts category tags', () => {
   })
 })
 
+// Hand-built bodies in the shape of two cached records Brian reported, not live captures.
+describe('merging sources that disagree', () => {
+  const upcItemDb = (item: Record<string, unknown>) => normalize('UPCitemdb', { total: 1, items: [item] }, '1')!
+  const goUpc = (product: Record<string, unknown>) => normalize('Go-UPC', { product }, '1')!
+
+  it("leaves out a reseller listing for another product (Becel's swimsuit)", () => {
+    const margarine = openFacts({
+      product_name: 'Margarine',
+      brands: 'Becel',
+      categories: 'Spreads, Margarines',
+      categories_tags: ['en:spreads', 'en:fats', 'en:margarines'],
+    })
+    const swimsuit = upcItemDb({
+      title: "Women's One Piece Swimsuit Tummy Control Bathing Suit",
+      brand: 'Unbranded',
+      description: 'Swimwear for women, quick dry fabric.',
+      category: 'Apparel & Accessories > Clothing > Swimwear',
+      images: ['https://example.com/swimsuit.jpg'],
+    })
+
+    const merged = aggregate([margarine, swimsuit], '1')
+
+    expect(merged).toMatchObject({
+      name: 'Margarine',
+      brand: 'Becel',
+      category: 'Spreads, Margarines',
+      description: null,
+      imageUrl: null,
+      sources: ['Open Facts'],
+    })
+  })
+
+  it('drops a non-food category but keeps the rest of a matching listing (Unico olives)', () => {
+    const olives = openFacts({ product_name: 'Kalamata Olives', brands: 'Unico' })
+    const listing = upcItemDb({
+      title: 'Unico Kalamata Olives, 375 ml',
+      brand: 'Unico',
+      description: 'Whole Kalamata olives in brine.',
+      category: 'Luggage & Bags',
+      images: ['https://example.com/olives.jpg'],
+    })
+
+    const merged = aggregate([olives, listing], '1')
+
+    expect(merged).toMatchObject({
+      category: null,
+      description: 'Whole Kalamata olives in brine.',
+      imageUrl: 'https://example.com/olives.jpg',
+      sources: ['Open Facts', 'UPCitemdb'],
+    })
+  })
+
+  it('takes the next food category when the first is not food', () => {
+    const olives = openFacts({ product_name: 'Kalamata Olives', brands: 'Unico' })
+    const merged = aggregate(
+      [
+        olives,
+        goUpc({ name: 'Unico Kalamata Olives', categoryPath: ['Luggage & Bags', 'Suitcases'] }),
+        upcItemDb({ title: 'Unico Kalamata Olives', category: 'Food, Beverages & Tobacco > Food Items > Olives' }),
+      ],
+      '1',
+    )
+
+    expect(merged.category).toBe('Food, Beverages & Tobacco > Food Items > Olives')
+  })
+
+  it.each<[string, Record<string, unknown>, Record<string, unknown>]>([
+    // A French name meets an English title through the English tags.
+    [
+      'by its tags',
+      { lang: 'fr', product_name: 'Amandes décortiquées', categories_tags: ['en:nuts', 'en:almonds'] },
+      { title: 'Whole Natural Almonds', description: 'Raw almonds.' },
+    ],
+    ['by its brand', { product_name: 'Original', brands: 'Becel' }, { title: 'Becel Spread', description: 'Spread.' }],
+    // Nothing to compare it against.
+    ['with no title or brand', { product_name: 'Margarine' }, { description: 'Spread.' }],
+  ])('keeps a listing that matches %s', (_case, product, item) => {
+    const merged = aggregate([openFacts(product), upcItemDb(item)], '1')
+
+    expect(merged.sources).toEqual(['Open Facts', 'UPCitemdb'])
+    expect(merged.description).not.toBeNull()
+  })
+
+  it('keeps every listing when Open Facts has no name to check against', () => {
+    const merged = aggregate(
+      [goUpc({ name: 'Margarine', description: 'Spread.' }), upcItemDb({ title: 'Swimsuit', description: 'Swimwear.' })],
+      '1',
+    )
+
+    expect(merged).toMatchObject({ name: 'Margarine', description: 'Spread.', sources: ['Go-UPC', 'UPCitemdb'] })
+  })
+})
+
 describe('cleanTitle', () => {
   it.each([
     ['Oreo Chocolate Sandwich Cookies, Family Size, 19.1 oz (Pack of 2)', 'Oreo Chocolate Sandwich Cookies, Family Size'],

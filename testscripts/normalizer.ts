@@ -27,7 +27,9 @@
 // are usually better there. Go-UPC is second because it is the one
 // that usually has a description. UPCitemdb fills whatever is still
 // empty. An empty string from a source is stored as null, so it does
-// not block the next source.
+// not block the next source. A reseller listing that shares no word
+// with the Open Facts product is left out, and so is a non-food
+// category (see isUnrelatedListing and isNonFoodCategory).
 //
 // The server imports lookupProduct from this file. Importing it runs
 // nothing: the prompt, the .env.local load, and the printing only
@@ -665,7 +667,7 @@ export function normalize(
 // A source that did not hit is simply not in products, so find
 // returns undefined and that slot is skipped. A null field is
 // skipped too, which is how Go-UPC's description fills in when
-// Open Facts has none.
+// Open Facts has none. A non-food category is skipped the same way.
 function pick(
   products: NormalizedProduct[],
   field: MergedField,
@@ -673,10 +675,77 @@ function pick(
   for (const sourceName of sourceOrder) {
     const product = products.find((item) => item.source === sourceName);
     const value = product?.[field];
+    if (field === "category" && value && isNonFoodCategory(value)) continue;
     if (value) return value;
   }
 
   return null;
+}
+
+// Top levels of the Google product taxonomy UPCitemdb and Go-UPC use
+// that never hold a food. Unico Kalamata olives came back filed under
+// "Luggage & Bags". Baby & Toddler, Health & Beauty, and Animals & Pet
+// Supplies are left out on purpose: baby food, nutrition drinks, and
+// pet food are filed under them.
+const NON_FOOD_ROOTS = new Set([
+  "apparel & accessories",
+  "arts & entertainment",
+  "business & industrial",
+  "cameras & optics",
+  "electronics",
+  "furniture",
+  "hardware",
+  "home & garden",
+  "luggage & bags",
+  "media",
+  "office supplies",
+  "religious & ceremonial",
+  "software",
+  "sporting goods",
+  "toys & games",
+  "vehicles & parts",
+]);
+
+function isNonFoodCategory(category: string): boolean {
+  const root = category.split(/>|,/)[0].trim().toLowerCase();
+  return NON_FOOD_ROOTS.has(root);
+}
+
+// Lowercase words of three letters or more, with a trailing "s" cut
+// so "Olives" and "olive" meet. Sizes ("oz", "g") are too short to
+// count.
+function words(text: string | null | undefined): string[] {
+  return (text ?? "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((word) => word.length >= 3)
+    .map((word) => word.replace(/s$/, ""));
+}
+
+// A reseller listing (Go-UPC, UPCitemdb) is sometimes for another
+// product sold under the same code: Becel margarine came back with a
+// swimsuit's title, description, and image. When Open Facts names the
+// product, a reseller whose title and brand share no word with Open
+// Facts' name, brand, or English tags is that other product, and
+// gives the merge nothing. A reseller with no title or brand can't be
+// checked, so it is kept.
+function isUnrelatedListing(
+  listing: NormalizedProduct,
+  openFacts: NormalizedProduct | undefined,
+): boolean {
+  if (listing.source === "Open Facts" || !openFacts?.name) return false;
+
+  const listed = [...words(listing.name), ...words(listing.brand)];
+  if (listed.length === 0) return false;
+
+  const known = new Set([
+    ...words(openFacts.name),
+    ...words(openFacts.brand),
+    ...(openFacts.categoryTags ?? []).flatMap((tag) => words(tag.slice(3))),
+  ]);
+  return !listed.some((word) => known.has(word));
 }
 
 // Builds the single merged record from two or more normalized hits.
@@ -684,14 +753,20 @@ function pick(
 // cannot disagree about which code this row is for.
 // sources is sourceOrder filtered down to who actually hit, which
 // keeps Open Facts before Go-UPC before UPCitemdb even if the HTTP
-// calls finished in another order.
+// calls finished in another order. A reseller listing for another
+// product (isUnrelatedListing) is not a contributor, so it is left
+// out of both the fields and sources.
 // The cast is because barcode and sources are filled first and the
 // field loop fills the rest. Every MergedField is assigned before
 // the object is returned.
 export function aggregate(
-  products: NormalizedProduct[],
+  hits: NormalizedProduct[],
   barcode: string,
 ): AggregatedProduct {
+  const openFacts = hits.find((product) => product.source === "Open Facts");
+  const products = hits.filter(
+    (product) => !isUnrelatedListing(product, openFacts),
+  );
   const merged = {
     barcode,
     sources: sourceOrder.filter((name) =>

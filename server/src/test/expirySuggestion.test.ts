@@ -103,7 +103,8 @@ describe('POST /api/food/expiry-suggestion', () => {
   })
 
   it('does not trust a low-confidence pick', async () => {
-    const response = await suggest({ ...YOGURT, name: 'Tomato Ketchup', brand: 'Heinz', category: 'Pantry' })
+    // Fresh ham and the cured kinds tie, with different dates.
+    const response = await suggest({ ...YOGURT, name: 'Smoked Ham', brand: 'Brand', category: 'Meat' })
 
     expect(response.body.status).toBe('none')
   })
@@ -202,6 +203,51 @@ describe('POST /api/food/expiry-suggestion', () => {
         matchedFood: 'Commercial cakes and muffins',
         confidence: 'medium',
         aiUsed: true,
+      })
+    })
+
+    it('does not take fruit cake from Gemini for a cake that never says fruit', async () => {
+      generateContent.mockResolvedValue({ text: JSON.stringify({ selectedId: 203, reason: 'A cake.' }) })
+
+      const response = await suggest(TIED_CAKE)
+
+      expect(generateContent).toHaveBeenCalledTimes(1)
+      expect(response.body.status).toBe('none')
+    })
+
+    describe('for a product its database calls a drink', () => {
+      // A name and category the local engine can't search, so Gemini is asked.
+      const DRINK = { ...UNKNOWN, category: null, productCategory: 'Plant-based beverages' }
+      const expandTo = (names: string[], categories: string[]) =>
+        generateContent.mockResolvedValue({
+          text: JSON.stringify({ alternativeNames: names, alternativeCategories: categories }),
+        })
+      const TSP: [string[], string[]] = [['Textured soy protein', 'Soy protein'], ['Vegetarian Proteins', 'Shelf Stable Foods']]
+
+      it('rejects a non-drink row Gemini leads to', async () => {
+        expandTo(...TSP)
+
+        expect(await suggestExpiry(DRINK, 'test-user')).toEqual({ status: 'none', message: expect.any(String) })
+        expect(generateContent).toHaveBeenCalledTimes(1)
+      })
+
+      it('takes a drink row Gemini leads to', async () => {
+        expandTo(['Soy milk', 'Soy beverage'], ['Dairy', 'Beverages'])
+
+        expect(await suggestExpiry(DRINK, 'test-user')).toEqual({
+          status: 'none',
+          message: 'FoodKeeper has no unopened date for this drink. Check the package.',
+        })
+      })
+
+      it('lets Gemini lead a food that is not a drink to the same row', async () => {
+        expandTo(...TSP)
+
+        expect(await suggestExpiry({ ...DRINK, productCategory: 'Meat alternatives' }, 'test-user')).toMatchObject({
+          status: 'suggested',
+          matchedFood: expect.stringMatching(/^Textured soy protein/),
+          aiUsed: true,
+        })
       })
     })
 

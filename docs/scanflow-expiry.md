@@ -121,7 +121,8 @@ A second round of rules (below, "Names, tags and bounded rewrites") moved five o
 date, judged by hand on the same records: Oreo, Prince and Nutella Biscuits to Cookies (crispy),
 Kraft Singles to Cheese (processed slices), and Alesto's Amandes décortiquées to Almonds (no shell).
 The other seven still offer no date. Nutella, milk and Coca-Cola are FoodKeeper's own "read the
-package". Ketchup and ham are still `low` or tied, and muesli and Pringles have no row that fits.
+package". Ketchup and ham were still `low` or tied (ketchup has its own rewrite since, see below),
+and muesli and Pringles have no row that fits.
 
 ## What changed because of it
 
@@ -160,6 +161,39 @@ package". Ketchup and ham are still `low` or tied, and muesli and Pringles have 
   calls a biscuit, with nothing saying dough, chilled, soft, mix or cracker, is searched as crispy
   cookies in the Bakery category. Plain "Almonds" is still a tie between in-shell and no-shell rows,
   and gets no date.
+
+### Reported cached records (2026-11-08)
+
+Fixes for records Brian reported from the items cache. Each one has a test in
+`normalizedExpiry.test.ts`, `expirySuggestion.test.ts` or `normalizer.test.ts`.
+
+- **Soy milk.** Silk's Open Food Facts name is "Soy Protein". "Soy-based drinks" (in the category or
+  the tags) is searched as "soy milk", in the Dairy category where FoodKeeper files it. So are
+  "Plant-based milk alternatives" and "Milk substitutes", but only when the product says soy. The Soy
+  milk row only says "Package use-by date", so the user gets the drink message and no date.
+- **A product its database calls a drink only gets a drink row.** This applies to the engine's picks
+  and Gemini's. Without it, "Soy Protein" reached Textured soy protein (2 years in the pantry).
+  Drink rows are FoodKeeper's Beverages category plus the milks, kefir, eggnog, drinkable yogurt and
+  the shelf-stable drinks. Parents such as "Plant-based foods and beverages" don't count as drinks.
+- **Ketchup.** A name ending in "ketchup" (or "tomato ketchup") is searched as FoodKeeper's own row
+  name, "Ketchup, cocktail, or chili sauce" (1 year in the pantry). "Ketchup Chips" is left alone.
+- **Grated mozzarella or cheddar is shredded cheese.** Armstrong's "Mozzarella Grated" was leaning
+  towards the parmesan row (12 months). It now reaches the shredded row (1 month). Parmesan, romano
+  and the other grating cheeses keep the word "grated".
+- **Fruit cake needs the word "fruit".** It used to win cake ties ("Steam Cake", "Chocolate Cake"),
+  and Gemini or a saved shelf life can no longer put a cake without fruit on it.
+- **A no-date category or tag no longer ends the search.** "Tomato sauces" (read the package) is
+  held, and a later category or tag can still reach a dated row named with a word of the product's
+  name. If none does, the held no-date answer stands. A no-date match from the product's own name
+  (sour cream) still ends the search, and so does a drink row's "check the package".
+- **The normalizer drops reseller data for another product.** When Open Food Facts names the
+  product, a Go-UPC or UPCitemdb listing is left out of the merge if its title and brand share no
+  word with Open Food Facts' name, brand or English tags. This is how Becel margarine picked up a
+  swimsuit's description and image. A category under a non-food Google taxonomy root ("Luggage &
+  Bags", "Apparel & Accessories") is skipped. Unico's olives keep the rest of the listing. A listing
+  with no title or brand is kept.
+- **Records already saved are unchanged.** The guards only apply to new lookups. Cached rows keep
+  whatever they were saved with until they are looked up again.
 
 ## Remaining risks
 

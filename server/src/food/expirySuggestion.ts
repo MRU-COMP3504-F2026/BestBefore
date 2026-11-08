@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { z } from 'zod'
 import { suggestWithFallback, type HybridResult } from '../../../expiry-tests/ai-fallback.js'
 import { formatDay, parseDay, predict, windowLength, type Storage } from '../../../expiry-tests/expiry.js'
-import { FoodKeeper, foldText } from '../../../expiry-tests/foodkeeper.js'
+import { FoodKeeper, foldText, tokenize } from '../../../expiry-tests/foodkeeper.js'
 import { createGeminiClient, loadAiConfig, type AiClient, type AiConfig } from '../../../expiry-tests/gemini-expiry.js'
 import { FOODKEEPER_PATH } from '../../../expiry-tests/strategies.js'
 import { claimExpiryAiSlot } from './rateLimit.js'
@@ -180,6 +180,11 @@ function isCrispBiscuit(input: ExpiryInput): boolean {
   )
 }
 
+// FoodKeeper's grated row is parmesan's. Grated mozzarella or cheddar is the shredded kind, so
+// "Mozzarella Grated" (Armstrong) is searched as shredded. The hard grating cheeses keep the word.
+const SHREDDING_CHEESE = /\b(mozzarella|cheddar|colby|monterey|marble|pizza|mexican|swiss|gouda|provolone|havarti)\b/i
+const GRATING_CHEESE = /\b(parmesan|parmigiano|romano|pecorino|asiago|grana)\b/i
+
 // Bounded rewrites of what is searched, each for a food FoodKeeper files under another name. Only
 // whole phrases change, and only for the product they are true of.
 function rewrite(text: string, crispBiscuit: boolean): string {
@@ -188,7 +193,38 @@ function rewrite(text: string, crispBiscuit: boolean): string {
   if (crispBiscuit && !/\bcrispy\b/i.test(query)) {
     query = query.replace(/\b(biscuits?|cookies?)\b/gi, 'crispy cookies')
   }
+  // FoodKeeper's row is "Ketchup, cocktail, or chili sauce", and every word of it the name lacks
+  // costs a point, so "Tomato Ketchup" tied Tomato paste. Only a name that ends in ketchup is the
+  // condiment: "Ketchup Chips" are not.
+  query = query.replace(/\b(tomato\s+)?(ketchup|catsup)\s*$/i, 'ketchup, cocktail, or chili sauce')
+  if (/\bgrated\b/i.test(query) && SHREDDING_CHEESE.test(query) && !GRATING_CHEESE.test(query)) {
+    query = query.replace(/\bgrated\b/gi, 'shredded')
+  }
   return query
+}
+
+// Open Food Facts files soy milk as "Soy-based drinks", under "Plant-based milk alternatives" and
+// "Milk substitutes". None of them reach FoodKeeper's "Soy milk": "drinks" ties supplement drinks
+// with soda. The parents say soy milk only for a product that says soy somewhere (Silk's name is
+// "Soy Protein"): an almond drink has them too.
+const SOY_DRINK = /^soya? (based )?(drinks?|beverages?|milks?)$/
+const MILK_ALTERNATIVE = /^(plant based )?milk (substitutes?|alternatives?)$/
+const SOY = /\bsoya?\b/
+
+function segmentKey(segment: string): string {
+  return foldText(segment).toLowerCase().replace(/-/g, ' ').trim()
+}
+
+function soyMilk(segments: string[], name: string): string[] {
+  const keys = segments.map(segmentKey)
+  const soy = SOY.test(segmentKey(name)) || keys.some((key) => SOY_DRINK.test(key))
+  return segments.map((segment, index) =>
+    SOY_DRINK.test(keys[index]) || (soy && MILK_ALTERNATIVE.test(keys[index])) ? 'soy milk' : segment,
+  )
+}
+
+function isSoyMilk(input: ExpiryInput): boolean {
+  return soyMilk(categoryText(input), input.name).includes('soy milk')
 }
 
 // Words to search FoodKeeper with, best first, and whether each is the product's own name.
@@ -197,7 +233,9 @@ function rewrite(text: string, crispBiscuit: boolean): string {
 // then the English tags, narrowest first. Language-tagged segments ("fr:Goûter") and slugs
 // ("snacks-sales") can't match its English.
 function searchNames(input: ExpiryInput, crispBiscuit: boolean): { query: string; fromName: boolean }[] {
-  const fromCategory = categoryText(input).filter((segment) => !isBroad(segment) && !/[:-]/.test(segment))
+  const fromCategory = soyMilk(categoryText(input), input.name).filter(
+    (segment) => !isBroad(segment) && !/[:-]/.test(segment),
+  )
 
   const seen = new Set<string>()
   const queries: { query: string; fromName: boolean }[] = []
@@ -246,6 +284,42 @@ function isUnfoundedNutritionDrink(id: number, input: ExpiryInput): boolean {
 function isDrinkRow(id: number): boolean {
   const row = getFoodKeeper().products.find((product) => product.id === id)
   return row?.categoryId === BEVERAGES_CATEGORY || OTHER_DRINK_ROWS.has(id)
+}
+
+// Every row a drink can be outside the Beverages category: the milks, buttermilk, kefir, eggnog,
+// drinkable yogurt, and the shelf-stable drinks. Wider than OTHER_DRINK_ROWS, which only lists the
+// ones with no unopened date.
+const DRINKABLE_ROWS = new Set([2, 20, 25, 27, 33, 421, 427, 428, 429, 543, 644, 651, 652, 659])
+// A category that ends by naming a drink. Open Food Facts' parents for foods of every kind
+// ("Plant-based foods and beverages", "Vegetable-based foods and beverages") don't.
+const DRINK_SEGMENT = /\b(drinks?|beverages?|milk (substitutes?|alternatives?))$/
+const FOODS_AND_BEVERAGES = /\bfoods and beverages$/
+
+function isDrinkProduct(input: ExpiryInput): boolean {
+  return categoryText(input)
+    .map(segmentKey)
+    .some((key) => DRINK_SEGMENT.test(key) && !FOODS_AND_BEVERAGES.test(key))
+}
+
+// Fruit cake was the tie winner for every cake ("Steam Cake", "Chocolate Cake"). A cake is only
+// fruit cake when the product says fruit.
+const FRUIT_CAKE_ROW = 203
+
+// A match on a row the product gives no reason for. "Textured soy protein" (two years in the
+// pantry) for a soy drink named "Soy Protein" is one, whether the engine or Gemini picked it: a
+// product its database calls a drink is only ever a drink row.
+function isUnfounded(id: number, input: ExpiryInput): boolean {
+  if (id === FRUIT_CAKE_ROW) {
+    return ![input.name, ...categoryText(input)].some((text) => /\bfruit/.test(segmentKey(text)))
+  }
+  return isDrinkProduct(input) && !isDrinkRow(id) && !DRINKABLE_ROWS.has(id)
+}
+
+// Whether a FoodKeeper row is named with a word of the product's own name.
+function sharesNameWord(id: number, input: ExpiryInput): boolean {
+  const row = getFoodKeeper().products.find((product) => product.id === id)
+  const words = new Set(tokenize(input.name))
+  return tokenize(row?.name ?? null).some((word) => words.has(word))
 }
 
 // The engine's low and tie picks are its best guesses, not answers. On real products they said
@@ -341,7 +415,8 @@ export async function suggestExpiry(
     barcode: input.barcode,
     // A crisp biscuit is a bakery item, whatever the trail's last segment says. "Snack dolci"
     // (Italian: sweet snacks) made Nutella Biscuits a Pantry item, where FoodKeeper has no cookies.
-    category: crispBiscuit ? 'Bakery' : input.category,
+    // Soy milk is filed under dairy, and a Beverages hint ("Soy-based drinks") searches only drinks.
+    category: crispBiscuit ? 'Bakery' : isSoyMilk(input) ? 'Dairy' : input.category,
     purchaseDate: input.purchaseDate,
     // Context for Gemini only. The local engine never reads these.
     productCategory: input.productCategory,
@@ -359,10 +434,22 @@ export async function suggestExpiry(
   // Every local search first, with AI held back, so Gemini is only ever asked as a last resort.
   const config = loadAiConfig()
   const localOnly: AiConfig = { ...config, enabled: false, tieBreak: false, expansion: false }
+  // A category or tag that reaches a food with no date ("tomato sauces" for ketchup) is held, not
+  // final: a later one can still reach a row named after the product. A drink row's "check the
+  // package" is FoodKeeper's own answer, and so is any no-date row the product's name reaches.
+  let held: ExpirySuggestion | undefined
   for (const { query, fromName } of searchNames(input, crispBiscuit)) {
     const result = await suggestWithFallback(engine, { ...item, name: query }, { config: localOnly })
-    if (isResolved(result)) return toSuggestion(result, fromName, input)
+    if (!isResolved(result) || isUnfounded(result.selected!.id, input)) continue
+    const id = result.selected!.id
+    if (!fromName && !result.range && !isDrinkRow(id)) {
+      held ??= toSuggestion(result, fromName, input)
+      continue
+    }
+    if (held && !sharesNameWord(id, input)) continue
+    return toSuggestion(result, fromName, input)
   }
+  if (held) return held
 
   if (!config.enabled || !ai) return noDate(NO_SUGGESTION)
 
@@ -371,7 +458,9 @@ export async function suggestExpiry(
     config,
     client: limitedClient(userId, createGeminiClient(config)),
   })
-  return result.aiUsed && isResolved(result) ? toSuggestion(result, true, input) : noDate(NO_SUGGESTION)
+  return result.aiUsed && isResolved(result) && !isUnfounded(result.selected!.id, input)
+    ? toSuggestion(result, true, input)
+    : noDate(NO_SUGGESTION)
 }
 
 // A stored shelf life, turned back into a date for this purchase. Costs no Gemini request. The
@@ -385,6 +474,7 @@ export function suggestionFromShelfLife(input: ExpiryInput, stored: unknown): Ex
   if (!parsed.success) return null
   const shelfLife = parsed.data
   if (isUnfoundedNutritionDrink(shelfLife.foodKeeperId, input)) return noDate(NO_DRINK_DATE)
+  if (isUnfounded(shelfLife.foodKeeperId, input)) return null
 
   // Anything that no longer matches what FoodKeeper says now, length included, is not reused.
   const current = shelfLifeOf(shelfLife.foodKeeperId, shelfLife)
