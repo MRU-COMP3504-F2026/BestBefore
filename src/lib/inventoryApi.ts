@@ -56,7 +56,7 @@ export const MAX_PHOTO_DATA_URL_LENGTH = 1_048_640
 
 export const INVENTORY_QUERY_KEY = ['inventory']
 
-// Items expiring within this many days (or already expired) show as amber.
+// Items expiring within this many days (today included) show as amber; past their date, red.
 export const EXPIRING_SOON_DAYS = 3
 
 // The signed-in user's items, soonest best-before first.
@@ -115,6 +115,8 @@ function daysUntil(isoDate: string): number {
   return Math.round((toUtc(isoDate) - toUtc(todayIsoDate())) / (24 * 60 * 60 * 1000))
 }
 
-export function expiryTone(bestBefore: string): 'green' | 'amber' {
-  return daysUntil(bestBefore) <= EXPIRING_SOON_DAYS ? 'amber' : 'green'
+export function expiryTone(bestBefore: string): 'green' | 'amber' | 'red' {
+  const days = daysUntil(bestBefore)
+  if (days < 0) return 'red'
+  return days <= EXPIRING_SOON_DAYS ? 'amber' : 'green'
 }

@@ -53,11 +53,23 @@ describe('ProductDetailPage', () => {
     expect(screen.getAllByText('Oct 20, 2026', { selector: 'dd' })).toHaveLength(2)
   })
 
-  it('labels a past best-before date as expired', async () => {
+  it('labels a past best-before date as expired, in red', async () => {
     vi.mocked(apiFetch).mockResolvedValue({ items: ITEMS })
-    renderDetail(1)
+    const { container } = renderDetail(1)
 
     expect(await screen.findByText('Expired')).toBeInTheDocument()
+    expect(screen.getByText('Expired on Oct 24, 2026')).toBeInTheDocument()
+    expect(container.querySelector('.product-detail-expiry-red')).toBeInTheDocument()
+    expect(container.querySelector('.product-detail-image-red')).toBeInTheDocument()
+  })
+
+  it('shows an item due today as expiring soon, not expired', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ items: ITEMS })
+    const { container } = renderDetail(2)
+
+    expect(await screen.findByText('Expiring soon')).toBeInTheDocument()
+    expect(screen.getByText('Best before Oct 26, 2026')).toBeInTheDocument()
+    expect(container.querySelector('.product-detail-expiry-amber')).toBeInTheDocument()
   })
 
   it('shows a not-found state for an unknown id', async () => {

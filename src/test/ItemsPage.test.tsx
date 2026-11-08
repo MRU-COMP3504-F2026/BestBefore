@@ -39,7 +39,7 @@ describe('ItemsPage', () => {
     expect(apiFetch).toHaveBeenCalledWith('/inventory')
   })
 
-  it('marks items expiring within 3 days (or expired) amber', async () => {
+  it('marks expired items red and items expiring within 3 days amber', async () => {
     vi.mocked(apiFetch).mockResolvedValue({ items: ITEMS })
     renderItems()
 
@@ -49,11 +49,48 @@ describe('ItemsPage', () => {
         .className
 
     await screen.findAllByRole('listitem')
-    expect(tone('Milk')).toContain('amber')
+    expect(tone('Milk')).toContain('red')
     expect(tone('Spinach')).toContain('amber')
     expect(tone('Eggs')).toContain('amber')
     expect(tone('Cheddar')).toContain('green')
     expect(tone('Tomatoes')).toContain('green')
+  })
+
+  it('says when an item expired and when the others expire', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ items: ITEMS })
+    renderItems()
+
+    expect(await screen.findByText('Expired on Oct 24, 2026')).toBeInTheDocument()
+    expect(screen.getByText('Expires Oct 26, 2026')).toBeInTheDocument()
+    expect(screen.getByText('Expires Oct 29, 2026')).toBeInTheDocument()
+    expect(screen.queryByText('Expires Oct 24, 2026')).not.toBeInTheDocument()
+  })
+
+  it('turns a card red only once its date has passed', async () => {
+    const day = (bestBefore: string, id: number, name: string) => ({ ...ITEMS[0], id, name, bestBefore })
+    vi.mocked(apiFetch).mockResolvedValue({
+      items: [
+        day('2026-10-25', 1, 'Yesterday Bread'),
+        day('2026-10-26', 2, 'Today Yogurt'),
+        day('2026-10-27', 3, 'Tomorrow Cream'),
+        day('2026-10-30', 4, 'Later Butter'),
+      ],
+    })
+    renderItems()
+
+    const card = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
+    const tile = (name: string) =>
+      within(card(name)).getByText((_, el) => el?.classList.contains('item-card-tile') ?? false).className
+
+    await screen.findAllByRole('listitem')
+    expect(tile('Yesterday Bread')).toContain('item-card-tile-red')
+    expect(card('Yesterday Bread')).toHaveTextContent('Expired on Oct 25, 2026')
+    expect(tile('Today Yogurt')).toContain('item-card-tile-amber')
+    expect(card('Today Yogurt')).toHaveTextContent('Expires Oct 26, 2026')
+    expect(tile('Tomorrow Cream')).toContain('item-card-tile-amber')
+    expect(card('Tomorrow Cream')).toHaveTextContent('Expires Oct 27, 2026')
+    expect(tile('Later Butter')).toContain('item-card-tile-green')
+    expect(card('Later Butter')).toHaveTextContent('Expires Oct 30, 2026')
   })
 
   it('shows a loading message while fetching', () => {

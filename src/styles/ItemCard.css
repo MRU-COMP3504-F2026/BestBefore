@@ -60,6 +60,11 @@
   color: var(--color-basket);
 }
 
+.item-card-tile-red {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
 .item-card-body {
   flex: 1;
   min-width: 0;
@@ -77,6 +82,10 @@
 
 .item-card-expires {
   color: var(--color-text-muted);
+}
+
+.item-card-expires-red {
+  color: var(--color-danger);
 }
 
 .item-card-chevron {

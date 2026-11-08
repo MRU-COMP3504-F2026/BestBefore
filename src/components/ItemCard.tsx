@@ -13,7 +13,8 @@ type ItemCardProps = {
   name: string
   expires: string
   icon: ReactNode
-  tone?: 'green' | 'amber'
+  // Red means the best-before date has passed.
+  tone?: 'green' | 'amber' | 'red'
   // The item's picture. The icon shows while there is none and when it fails to load.
   imageSrc?: string | null
   onClick?: () => void
@@ -50,7 +51,9 @@ export default function ItemCard({ name, expires, icon, tone = 'green', imageSrc
       </span>
       <span className="item-card-body">
         <span className="item-card-name">{name}</span>{' '}
-        <span className="item-card-expires">Expires {expires}</span>
+        <span className={`item-card-expires item-card-expires-${tone}`}>
+          {tone === 'red' ? `Expired on ${expires}` : `Expires ${expires}`}
+        </span>
       </span>
       <ChevronRightIcon className="item-card-chevron" />
     </motion.button>
