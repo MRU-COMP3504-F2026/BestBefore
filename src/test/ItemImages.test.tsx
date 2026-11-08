@@ -136,7 +136,7 @@ describe('InventoryList pictures', () => {
   })
 
   it('shows the product image, the saved photo, and the icon for an item with neither', async () => {
-    fetchMock.mockResolvedValue(new Response(new Blob(['jpeg'], { type: 'image/jpeg' })))
+    fetchMock.mockResolvedValue(new Response('jpeg', { headers: { 'Content-Type': 'image/jpeg' } }))
     const { container } = renderList()
 
     await waitFor(() => expect(container.querySelectorAll('img.item-card-image')).toHaveLength(2))
