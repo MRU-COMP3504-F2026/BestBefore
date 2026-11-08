@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:client": "vite",
-    "dev:server": "tsx watch server/src/server.ts",
+    "dev:server": "node --watch --import tsx server/src/server.ts",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build:client": "tsc -b && vite build",
     "build:server": "tsc -p server/tsconfig.json",
