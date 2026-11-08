@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import Quagga, { type QuaggaJSResultObject } from '@ericblade/quagga2'
 import { barsLine, measureBars, toGray, toPoints, type Point } from './barcodeGeometry'
+import { acceptBarcode, REQUIRED_REPEATS } from './gtin'
 
 export type TorchState = 'unsupported' | 'off' | 'on'
 
@@ -36,8 +37,10 @@ const READERS = ['upc_reader', 'ean_reader', 'upc_e_reader', 'ean_8_reader'] as 
 // Capping it leaves the main thread free for a smooth preview; two reads still take ~130ms.
 export const SCANS_PER_SECOND = 15
 
-// Quagga can misread a single frame, so a code must be read this many times in a row.
-const REQUIRED_MATCHES = 2
+// A code must be read this many times in a row; 8-digit codes need more (see gtin.ts).
+const DEFAULT_MATCHES = 3
+// A read whose median bar error is above this is treated as noise.
+const MAX_MEDIAN_ERROR = 0.1
 
 // How long a single read keeps the "barcode found" hint up while waiting for a confirming one.
 const FOUND_HOLD_MS = 800
@@ -203,23 +206,38 @@ export function useBarcodeScanner(targetRef: RefObject<HTMLElement | null>, enab
       }
     }
 
-    const onDetected = (result: QuaggaJSResultObject) => {
-      const code = result.codeResult.code
-      if (!active || !code) return
+const onDetected = (result: QuaggaJSResultObject) => {
+  const raw = result.codeResult.code
+  if (!active || !raw) return
 
-      matches = code === lastCode ? matches + 1 : 1
-      lastCode = code
-      if (matches < REQUIRED_MATCHES) return
+  // Median decode error of the bars; lower is a cleaner read.
+  const errors = (result.codeResult.decodedCodes ?? [])
+    .map((d) => d.error)
+    .filter((e): e is number => typeof e === 'number')
+    .sort((a, b) => a - b)
+  const medianError = errors.length ? errors[Math.floor(errors.length / 2)] : 0
+  if (medianError > MAX_MEDIAN_ERROR) return
 
-      console.log(`Scanned barcode: ${code}`)
-      let capture: RecognitionCapture | undefined
-      try {
-        capture = captureRecognition(result)
-      } catch {
-        // The capture is only cosmetic; the recognition stands without it.
-      }
-      finish({ status: 'recognized', barcode: code, capture })
-    }
+  // Length must match the format, and the check digit must be valid.
+  const code = acceptBarcode(raw, result.codeResult.format ?? '')
+  if (!code) {
+    console.log('Ignored read:', raw, result.codeResult.format)
+    return // keep scanning; don't reset the streak
+  }
+
+  matches = code === lastCode ? matches + 1 : 1
+  lastCode = code
+  if (matches < (REQUIRED_REPEATS[raw.length] ?? DEFAULT_MATCHES)) return
+
+  console.log(`Scanned barcode: ${code}`)
+  let capture: RecognitionCapture | undefined
+  try {
+    capture = captureRecognition(result)
+  } catch {
+    // The capture is only cosmetic; the recognition stands without it.
+  }
+  finish({ status: 'recognized', barcode: code, capture })
+}
 
     enqueue(async () => {
       if (!active) return
