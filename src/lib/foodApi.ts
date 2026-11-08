@@ -116,7 +116,8 @@ export type ScanHandoff = {
 
 // Handed from AI Vision to the add form: only what Gemini saw in the photo. Nothing is looked up,
 // so there is no barcode and no product record. provenance goes back with the save, unread.
-export type PhotoHandoff = { food: IdentifiedFood; provenance?: string }
+// frame is the still Gemini saw, as a JPEG data URL, saved as the item's picture.
+export type PhotoHandoff = { food: IdentifiedFood; provenance?: string; frame?: string }
 
 // The source of a product someone confirmed from a photo (PHOTO_SOURCE on the server).
 export const PHOTO_SOURCE = 'AI Vision'

@@ -9,8 +9,9 @@ import { motion } from 'motion/react'
 import ItemCard from './ItemCard'
 import { BasketIcon, LeafIcon, MilkIcon } from './icons'
 import { formatDate } from '../lib/dates'
-import { expiryTone, useInventory } from '../lib/inventoryApi'
+import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
 import { listItem } from '../lib/motion'
+import { useItemImageSrc } from '../lib/useItemImage'
 import '../styles/InventoryList.css'
 
 type InventoryListProps = {
@@ -30,10 +31,23 @@ function categoryIcon(category: string | null): ReactNode {
   }
 }
 
+function InventoryItemCard({ item }: { item: InventoryItem }) {
+  const navigate = useNavigate()
+  return (
+    <ItemCard
+      name={item.name}
+      expires={formatDate(item.bestBefore)}
+      icon={categoryIcon(item.category)}
+      tone={expiryTone(item.bestBefore)}
+      imageSrc={useItemImageSrc(item)}
+      onClick={() => navigate(`/items/${item.id}`)}
+    />
+  )
+}
+
 // The signed-in user's inventory as item cards, with loading, error and empty states.
 export default function InventoryList({ className, limit }: InventoryListProps) {
   const { data, isPending, isError } = useInventory()
-  const navigate = useNavigate();
 
   if (isPending) {
     return <p className="inventory-status">Loading your items…</p>
@@ -56,13 +70,7 @@ export default function InventoryList({ className, limit }: InventoryListProps) 
     <ul className={className}>
       {items.map((item, index) => (
         <motion.li key={item.id} {...listItem(index)}>
-          <ItemCard
-            name={item.name}
-            expires={formatDate(item.bestBefore)}
-            icon={categoryIcon(item.category)}
-            tone={expiryTone(item.bestBefore)}
-            onClick={() => navigate(`/items/${item.id}`)}
-          />
+          <InventoryItemCard item={item} />
         </motion.li>
       ))}
     </ul>

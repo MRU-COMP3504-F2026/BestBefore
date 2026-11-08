@@ -19,7 +19,7 @@ import {
   type PhotoHandoff,
   type ScanHandoff,
 } from '../lib/foodApi'
-import { addInventoryItem, INVENTORY_QUERY_KEY } from '../lib/inventoryApi'
+import { addInventoryItem, INVENTORY_QUERY_KEY, MAX_PHOTO_DATA_URL_LENGTH } from '../lib/inventoryApi'
 import { rememberShelfLife, suggestionFromSession } from '../lib/shelfLifeSession'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import '../styles/AddItemPage.css'
@@ -81,6 +81,13 @@ export default function AddItemPage() {
   // Gemini is told to leave the brand out unless it can read it on the package.
   const photoBrand = photo?.food.brand?.trim() || null
   const photoQuantity = photoCount(photo?.food)
+  // The picture saved with the item, only once it is: the still AI Vision identified, as taken, or
+  // the image the barcode lookup returned. A still too large to send is left out, not shrunk.
+  const photoFrame =
+    photo?.frame && photo.frame.length <= MAX_PHOTO_DATA_URL_LENGTH ? photo.frame : null
+  const productImage = product?.imageUrl ?? null
+  const preview = photoFrame ?? productImage
+  const [previewFailed, setPreviewFailed] = useState(false)
   const leaveTo = fromScanner ? '/scan' : '/items'
   const [saveError, setSaveError] = useState<string | null>(null)
   const [acceptedDate, setAcceptedDate] = useState<string | null>(null)
@@ -205,6 +212,7 @@ export default function AddItemPage() {
         bestBefore: values.bestBefore,
         // Lets the server share this product under the barcode, only once the item is saved.
         ...(photo?.provenance && { photoToken: photo.provenance }),
+        ...(photoFrame ? { photo: photoFrame } : productImage ? { imageUrl: productImage } : {}),
       })
       queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEY })
       navigate('/scan/added', {
@@ -246,6 +254,18 @@ export default function AddItemPage() {
               Use These Details
             </Button>
           </div>
+        )}
+
+        {preview && !previewFailed && (
+          <figure className="add-item-image">
+            <img
+              src={preview}
+              alt={photoFrame ? 'Your photo' : 'Product'}
+              referrerPolicy="no-referrer"
+              onError={() => setPreviewFailed(true)}
+            />
+            <figcaption>{photoFrame ? 'Your photo is saved with the item.' : 'Saved with the item.'}</figcaption>
+          </figure>
         )}
 
         <p className="add-item-required-note">
