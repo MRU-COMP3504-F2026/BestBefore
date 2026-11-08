@@ -13,6 +13,7 @@ import ItemsPage from '../pages/ItemsPage'
 import AddItemPage from '../pages/AddItemPage'
 import RequireAuth from '../components/RequireAuth'
 import ProductDetailPage from '../pages/ProductDetailPage'
+import EditItemPage from '../pages/EditItemPage'
 
 export const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
       {
         path: '/items/:id',
         element: <ProductDetailPage/>,
+      },
+      {
+        path: '/items/:id/edit',
+        element: <EditItemPage />,
       },
       {
         path: '/items/new',

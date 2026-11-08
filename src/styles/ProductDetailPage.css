@@ -13,6 +13,38 @@
   }
 }
 
+.product-detail-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  max-height: 240px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.product-detail-image-green {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.product-detail-image-amber {
+  background: var(--color-amber-light);
+  color: var(--color-text);
+}
+
+.product-detail-image-icon svg {
+  width: 56px;
+  height: 56px;
+}
+
 .product-detail-expiry {
   display: flex;
   flex-direction: column;
