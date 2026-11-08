@@ -90,6 +90,25 @@ describe('AddItemPage from AI Vision', () => {
     expect(callsTo('/food/expiry-suggestion').every(([, options]) => options?.method === 'POST')).toBe(true)
   })
 
+  it('leaves the category on Not sure when the photo category is not one of ours', () => {
+    renderPhoto()
+
+    expect(screen.getByLabelText(/Category/)).toHaveValue('')
+  })
+
+  it('picks the category when the photo names one of ours, and sends and saves it', async () => {
+    renderPhoto({ food: { ...APPLE.food, name: 'Greek Yogurt', category: 'dairy' } })
+
+    expect(screen.getByLabelText(/Category/)).toHaveValue('Dairy')
+    await waitFor(() => expect(callsTo('/food/expiry-suggestion')).toHaveLength(1))
+    expect(requestBody('/food/expiry-suggestion')).toMatchObject({ category: 'Dairy', source: 'photo' })
+
+    await userEvent.click(await screen.findByRole('button', { name: `Use ${formatDate('2026-12-07')}` }))
+    await save()
+    await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
+    expect(requestBody('/inventory')).toMatchObject({ category: 'Dairy', bestBefore: '2026-12-07' })
+  })
+
   it('keeps a typed barcode out of the suggestion request', async () => {
     renderPhoto()
     await userEvent.type(screen.getByLabelText(/^Barcode/), '012345678905')

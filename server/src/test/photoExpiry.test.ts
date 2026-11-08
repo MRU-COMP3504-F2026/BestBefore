@@ -87,6 +87,22 @@ describe('POST /api/food/expiry-suggestion for an AI Vision photo', () => {
     expect(generateContent).not.toHaveBeenCalled()
   })
 
+  it('never makes up a date for soy milk', async () => {
+    const response = await suggest({ ...APPLE, name: 'Soy milk', productCategory: 'Plant-based milk' })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual({ status: 'none', message: expect.stringMatching(/package/i) })
+    expect(generateContent).not.toHaveBeenCalled()
+  })
+
+  it('uses the category chosen on the form over the photo one', async () => {
+    const response = await suggest({ ...APPLE, name: 'Greek Yogurt', category: 'Dairy', productCategory: 'Fresh fruit' })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ status: 'suggested', matchedFood: 'Yogurt', storage: 'fridge', aiUsed: false })
+    expect(generateContent).not.toHaveBeenCalled()
+  })
+
   it('rejects an unknown source', async () => {
     expect((await suggest({ ...APPLE, source: 'gemini' })).status).toBe(400)
   })

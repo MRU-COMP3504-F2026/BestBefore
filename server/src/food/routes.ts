@@ -102,10 +102,11 @@ foodRouter.post('/expiry-suggestion', requireAuth, async (req, res) => {
 
   try {
     if (parsed.data.source === 'photo') {
-      // Only the name and category the photo gave, matched in FoodKeeper here. No saved product,
+      // Only the name and category the form holds, matched in FoodKeeper here. No saved product,
       // no product database and no Gemini date: a photo can't say what the package does.
+      // The category the user chose on the form, else our label for what Gemini called it.
       const { name, brand, productCategory, purchaseDate } = parsed.data
-      const category = appCategory(productCategory)
+      const category = parsed.data.category ?? appCategory(productCategory)
       const input = { name, brand, barcode: null, category, productCategory, purchaseDate }
       res.json(await suggestExpiry(input, res.locals.user!.id, { ai: false }))
       return

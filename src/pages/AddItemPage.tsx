@@ -61,6 +61,9 @@ export default function AddItemPage() {
   const photo = scan ? null : (handoff?.photo ?? null)
   const product = scan?.product ?? null
   const fromScanner = Boolean(scan || photo)
+  // Gemini's category is free text ("Fresh fruit"). It only picks a category when it is one of ours.
+  const photoCategory =
+    CATEGORIES.find((label) => label.toLowerCase() === photo?.food.category?.trim().toLowerCase()) ?? null
   const leaveTo = fromScanner ? '/scan' : '/items'
   const [saveError, setSaveError] = useState<string | null>(null)
   const [acceptedDate, setAcceptedDate] = useState<string | null>(null)
@@ -77,7 +80,7 @@ export default function AddItemPage() {
       name: product?.name ?? photo?.food.name ?? '',
       brand: product?.brand ?? '',
       barcode: product?.barcode ?? scan?.barcode ?? '',
-      category: scan?.category ?? '',
+      category: scan?.category ?? photoCategory ?? '',
       // Always a count of items. The product's own quantity is the package size.
       quantity: 1,
       purchaseDate: todayIsoDate(),
