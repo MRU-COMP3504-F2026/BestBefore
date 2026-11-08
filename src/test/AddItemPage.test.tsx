@@ -73,7 +73,8 @@ describe('AddItemPage', () => {
     expect(screen.getByLabelText(/Best before date/)).toBeRequired()
     expect(screen.getByLabelText(/^Barcode/)).not.toBeRequired()
     expect(screen.getByText('Recommended')).toBeInTheDocument()
-    expect(screen.getByText('Optional')).toBeInTheDocument()
+    // Brand and category.
+    expect(screen.getAllByText('Optional')).toHaveLength(2)
   })
 
   it('defaults quantity to 1 and date bought to today', () => {
