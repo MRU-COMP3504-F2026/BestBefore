@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { apiFetch } from '../lib/api'
+import { ApiError, apiFetch } from '../lib/api'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import { ITEMS, TODAY, renderWithQuery } from './inventoryFixtures'
 
@@ -23,6 +23,7 @@ function renderDetail(id: number) {
       <Routes>
         <Route path="/items/:id" element={<ProductDetailPage />} />
         <Route path="/items/:id/edit" element={<p>Edit page</p>} />
+        <Route path="/items" element={<p>My Items page</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -154,5 +155,58 @@ describe('ProductDetailPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Edit' }))
 
     expect(screen.getByText('Edit page')).toBeInTheDocument()
+  })
+
+  describe('delete', () => {
+    // GET /inventory answers with the list; DELETE with `deleteResult`.
+    function mockApi(deleteResult: () => Promise<unknown>) {
+      vi.mocked(apiFetch).mockImplementation(async (_path, options) =>
+        options?.method === 'DELETE' ? deleteResult() : { items: ITEMS },
+      )
+    }
+    const deleteCalls = () => vi.mocked(apiFetch).mock.calls.filter(([, options]) => options?.method === 'DELETE')
+
+    it('asks for confirmation before deleting, and Cancel deletes nothing', async () => {
+      mockApi(async () => ({ id: 4 }))
+      renderDetail(4)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+
+      expect(screen.getByRole('alertdialog', { name: 'Delete Old Cheddar?' })).toHaveTextContent("can't be undone")
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(deleteCalls()).toHaveLength(0)
+    })
+
+    it("deletes only this item's inventory record, then returns to My Items", async () => {
+      mockApi(async () => ({ id: 4 }))
+      renderDetail(4)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Delete item' }))
+
+      expect(await screen.findByText('My Items page')).toBeInTheDocument()
+      expect(deleteCalls()).toEqual([['/inventory/4', { method: 'DELETE' }]])
+      // Nothing else is written: no PATCH, POST or any other non-GET call.
+      expect(vi.mocked(apiFetch).mock.calls.every(([, options]) => !options?.method || options.method === 'DELETE')).toBe(
+        true,
+      )
+    })
+
+    it('stays on the item and shows the error when the delete fails', async () => {
+      mockApi(async () => {
+        throw new ApiError(404, 'Item not found.')
+      })
+      renderDetail(4)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Delete item' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Item not found.')
+      expect(screen.getByRole('heading', { name: 'Old Cheddar' })).toBeInTheDocument()
+      expect(screen.queryByText('My Items page')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Delete item' })).toBeEnabled()
+    })
   })
 })

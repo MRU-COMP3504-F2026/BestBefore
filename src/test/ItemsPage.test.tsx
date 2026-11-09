@@ -1,11 +1,14 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { apiFetch } from '../lib/api'
+import { ApiError, apiFetch } from '../lib/api'
 import ItemsPage from '../pages/ItemsPage'
 import { ITEMS, TODAY, renderWithQuery } from './inventoryFixtures'
 
-vi.mock('../lib/api', () => ({ apiFetch: vi.fn() }))
+vi.mock('../lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/api')>()),
+  apiFetch: vi.fn(),
+}))
 
 function renderItems() {
   renderWithQuery(
@@ -13,6 +16,7 @@ function renderItems() {
       <Routes>
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/items/new" element={<p>Add Item Form</p>} />
+        <Route path="/scan" element={<p>Scan page</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -44,7 +48,7 @@ describe('ItemsPage', () => {
     renderItems()
 
     const tone = (name: string) =>
-      within(screen.getByRole('button', { name: new RegExp(name) }))
+      within(screen.getByRole('button', { name: new RegExp(`^(?!Remove).*${name}`) }))
         .getByText((_, el) => el?.classList.contains('item-card-tile') ?? false)
         .className
 
@@ -78,7 +82,7 @@ describe('ItemsPage', () => {
     })
     renderItems()
 
-    const card = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
+    const card = (name: string) => screen.getByRole('button', { name: new RegExp(`^(?!Remove).*${name}`) })
     const tile = (name: string) =>
       within(card(name)).getByText((_, el) => el?.classList.contains('item-card-tile') ?? false).className
 
@@ -115,12 +119,93 @@ describe('ItemsPage', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
 
-  it('goes to the manual entry form from Add Item', async () => {
+  it('opens the scanner from Add Item, not the manual entry form', async () => {
     vi.mocked(apiFetch).mockResolvedValue({ items: [] })
     renderItems()
 
     await userEvent.click(screen.getByRole('button', { name: 'Add Item' }))
 
-    expect(screen.getByText('Add Item Form')).toBeInTheDocument()
+    expect(screen.getByText('Scan page')).toBeInTheDocument()
+    expect(screen.queryByText('Add Item Form')).not.toBeInTheDocument()
+  })
+
+  it('tints each whole card by its expiry', async () => {
+    vi.mocked(apiFetch).mockResolvedValue({ items: ITEMS })
+    renderItems()
+
+    await screen.findAllByRole('listitem')
+    expect(screen.getByRole('button', { name: /^Milk/ })).toHaveClass('item-card-red')
+    expect(screen.getByRole('button', { name: /^Baby Spinach/ })).toHaveClass('item-card-amber')
+    expect(screen.getByRole('button', { name: /^Old Cheddar/ })).toHaveClass('item-card-green')
+  })
+
+  describe('Remove on expired items', () => {
+    // GET /inventory answers with the list, less anything deleted; DELETE with `deleteResult`.
+    function mockApi(deleteResult: () => Promise<{ id: number }>) {
+      const deleted = new Set<number>()
+      vi.mocked(apiFetch).mockImplementation(async (_path, options) => {
+        if (options?.method !== 'DELETE') return { items: ITEMS.filter((i) => !deleted.has(i.id)) }
+        const result = await deleteResult()
+        deleted.add(result.id)
+        return result
+      })
+    }
+    const deleteCalls = () => vi.mocked(apiFetch).mock.calls.filter(([, options]) => options?.method === 'DELETE')
+
+    it('is offered only on cards whose date has passed', async () => {
+      mockApi(async () => ({ id: 1 }))
+      renderItems()
+
+      await screen.findAllByRole('listitem')
+      expect(screen.getAllByRole('button', { name: /^Remove/ })).toHaveLength(1)
+      expect(screen.getByRole('button', { name: 'Remove Milk 2%' })).toBeInTheDocument()
+      for (const name of ['Baby Spinach', 'Large Eggs', 'Old Cheddar', 'Diced Tomatoes']) {
+        expect(screen.queryByRole('button', { name: `Remove ${name}` })).not.toBeInTheDocument()
+      }
+    })
+
+    it('asks for confirmation, and Cancel deletes nothing', async () => {
+      mockApi(async () => ({ id: 1 }))
+      renderItems()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Remove Milk 2%' }))
+
+      expect(screen.getByRole('alertdialog', { name: 'Delete Milk 2%?' })).toHaveTextContent("can't be undone")
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(deleteCalls()).toHaveLength(0)
+      expect(screen.getByRole('button', { name: /^Milk/ })).toBeInTheDocument()
+    })
+
+    it("deletes only that item's inventory record and drops it from the list", async () => {
+      mockApi(async () => ({ id: 1 }))
+      renderItems()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Remove Milk 2%' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Delete item' }))
+
+      await vi.waitFor(() => expect(screen.queryByRole('button', { name: /^Milk/ })).not.toBeInTheDocument())
+      expect(deleteCalls()).toEqual([['/inventory/1', { method: 'DELETE' }]])
+      // Nothing else is written: every other call is a plain GET.
+      expect(vi.mocked(apiFetch).mock.calls.every(([, options]) => !options?.method || options.method === 'DELETE')).toBe(
+        true,
+      )
+      expect(screen.getByRole('button', { name: /^Baby Spinach/ })).toBeInTheDocument()
+    })
+
+    it('keeps the item and shows the error when the delete fails', async () => {
+      mockApi(async () => {
+        throw new ApiError(500, "Couldn't delete your item. Please try again.")
+      })
+      renderItems()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Remove Milk 2%' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Delete item' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't delete your item.")
+      expect(screen.getByRole('button', { name: /^Milk/ })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Delete item' })).toBeEnabled()
+    })
   })
 })

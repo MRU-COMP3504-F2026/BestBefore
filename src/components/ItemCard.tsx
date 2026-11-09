@@ -28,7 +28,7 @@ export default function ItemCard({ name, expires, icon, tone = 'green', imageSrc
   return (
     <motion.button
       type="button"
-      className="item-card"
+      className={`item-card item-card-${tone}`}
       onClick={onClick}
       whileTap={tap}
       transition={spring}

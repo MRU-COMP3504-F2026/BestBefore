@@ -46,6 +46,16 @@ describe('HomePage', () => {
     expect(screen.queryByRole('button', { name: /Cheddar/ })).not.toBeInTheDocument()
   })
 
+  it('tints each whole preview card by its expiry, with no Remove action on Home', async () => {
+    renderHome()
+
+    await screen.findAllByRole('listitem')
+    expect(screen.getByRole('button', { name: /Milk/ })).toHaveClass('item-card-red')
+    expect(screen.getByRole('button', { name: /Spinach/ })).toHaveClass('item-card-amber')
+    expect(screen.getByRole('button', { name: /Eggs/ })).toHaveClass('item-card-amber')
+    expect(screen.queryByRole('button', { name: /^Remove/ })).not.toBeInTheDocument()
+  })
+
   it('shows the preview cards in their expiry colour with matching labels', async () => {
     renderHome()
 
