@@ -36,14 +36,14 @@ describe('ProfilePage', () => {
     devAuth.AUTH_DISABLED = false
   })
 
-  it('renders the user details, household row and log out', () => {
+  it('renders the user details and log out, with no household placeholder', () => {
     renderProfile()
 
     expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/')
     expect(screen.getByText('Your Name')).toBeInTheDocument()
     expect(screen.getByText('you@example.com')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Household/ })).toBeInTheDocument()
+    expect(screen.queryByText(/Household/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
   })
 

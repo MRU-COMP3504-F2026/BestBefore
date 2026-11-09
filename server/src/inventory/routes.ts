@@ -238,6 +238,34 @@ inventoryRouter.patch('/:id', requireAuth, async (req, res) => {
   }
 })
 
+// Deletes one of the signed-in user's items. Only inventory_items is written, and only the row this
+// user owns: the shared items row stays for everyone else's scans. 404 for anyone else's item, as
+// for a missing one, so ids can't be probed.
+inventoryRouter.delete('/:id', requireAuth, async (req, res) => {
+  const id = itemId(req.params.id)
+  if (id === null) {
+    res.status(404).json({ error: 'Item not found.' })
+    return
+  }
+
+  try {
+    const [item] = await db
+      .delete(inventoryItems)
+      .where(and(eq(inventoryItems.id, id), eq(inventoryItems.userId, res.locals.user!.id)))
+      .returning({ id: inventoryItems.id })
+
+    if (!item) {
+      res.status(404).json({ error: 'Item not found.' })
+      return
+    }
+    res.json({ id: item.id })
+  } catch (err) {
+    const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
+    console.error(`Inventory delete failed: ${err instanceof Error ? err.message : err}${cause}`)
+    res.status(500).json({ error: "Couldn't delete your item. Please try again." })
+  }
+})
+
 // A best-before suggestion for one of the signed-in user's items bought on ?purchaseDate, from the
 // shelf life already saved for its barcode. Read only: no engine, no Gemini and no write, so an edit
 // never changes the shared row. No saved shelf life, or one the item no longer describes, is an

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Button from '../components/Button'
+import DeleteItemConfirm from '../components/DeleteItemConfirm'
 import PageHeader from '../components/PageHeader'
 import { categoryIcon } from '../lib/categoryIcon'
 import { formatDate } from '../lib/dates'
@@ -45,6 +46,28 @@ function ItemImage({ item }: { item: InventoryItem }) {
         <span className="product-detail-image-icon">{categoryIcon(item.category)}</span>
       )}
     </figure>
+  )
+}
+
+// Asks before deleting, then removes only the user's own copy and returns to the list.
+function DeleteItem({ item }: { item: InventoryItem }) {
+  const navigate = useNavigate()
+  const [confirming, setConfirming] = useState(false)
+
+  if (!confirming) {
+    return (
+      <Button variant="secondary" className="product-detail-delete" onClick={() => setConfirming(true)}>
+        Delete
+      </Button>
+    )
+  }
+
+  return (
+    <DeleteItemConfirm
+      item={item}
+      onCancel={() => setConfirming(false)}
+      onDeleted={() => navigate('/items', { replace: true })}
+    />
   )
 }
 
@@ -105,6 +128,8 @@ export default function ProductDetailPage() {
       <Button variant="secondary" onClick={() => navigate(`/items/${item.id}/edit`)}>
         Edit
       </Button>
+
+      <DeleteItem item={item} />
     </div>
   )
 }

@@ -78,6 +78,12 @@ export async function updateInventoryItem(id: number, edit: InventoryItemEdit): 
   return addedItemResponseSchema.parse(body).item
 }
 
+// Deletes one of the signed-in user's items. Only that user's copy goes, never the shared product.
+export async function deleteInventoryItem(id: number): Promise<void> {
+  const body = await apiFetch<unknown>(`/inventory/${id}`, { method: 'DELETE' })
+  z.object({ id: z.literal(id) }).parse(body)
+}
+
 // A best-before suggestion for one of the user's items bought on purchaseDate, from the shelf life
 // already saved for it. Only offered: nothing changes until the user accepts it and saves.
 export async function fetchItemExpirySuggestion(

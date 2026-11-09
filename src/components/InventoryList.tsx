@@ -3,8 +3,10 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
+import DeleteItemConfirm from './DeleteItemConfirm'
 import ItemCard from './ItemCard'
 import { categoryIcon } from '../lib/categoryIcon'
 import { formatDate } from '../lib/dates'
@@ -17,24 +19,49 @@ type InventoryListProps = {
   className?: string
   // Show only the first `limit` items (they arrive soonest-expiring first).
   limit?: number
+  // Offer a Remove action on cards whose best-before date has passed.
+  removeExpired?: boolean
 }
 
-function InventoryItemCard({ item }: { item: InventoryItem }) {
+function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; removeExpired: boolean }) {
   const navigate = useNavigate()
-  return (
+  const [confirming, setConfirming] = useState(false)
+  const tone = expiryTone(item.bestBefore)
+  const card = (
     <ItemCard
       name={item.name}
       expires={formatDate(item.bestBefore)}
       icon={categoryIcon(item.category)}
-      tone={expiryTone(item.bestBefore)}
+      tone={tone}
       imageSrc={useItemImageSrc(item)}
       onClick={() => navigate(`/items/${item.id}`)}
     />
   )
+
+  if (!removeExpired || tone !== 'red') return card
+
+  return (
+    <>
+      <div className="inventory-list-row">
+        {card}
+        {!confirming && (
+          <button
+            type="button"
+            className="inventory-remove"
+            aria-label={`Remove ${item.name}`}
+            onClick={() => setConfirming(true)}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {confirming && <DeleteItemConfirm item={item} onCancel={() => setConfirming(false)} />}
+    </>
+  )
 }
 
 // The signed-in user's inventory as item cards, with loading, error and empty states.
-export default function InventoryList({ className, limit }: InventoryListProps) {
+export default function InventoryList({ className, limit, removeExpired = false }: InventoryListProps) {
   const { data, isPending, isError } = useInventory()
 
   if (isPending) {
@@ -57,8 +84,8 @@ export default function InventoryList({ className, limit }: InventoryListProps) 
   return (
     <ul className={className}>
       {items.map((item, index) => (
-        <motion.li key={item.id} {...listItem(index)}>
-          <InventoryItemCard item={item} />
+        <motion.li key={item.id} className="inventory-list-item" {...listItem(index)}>
+          <InventoryItemCard item={item} removeExpired={removeExpired} />
         </motion.li>
       ))}
     </ul>

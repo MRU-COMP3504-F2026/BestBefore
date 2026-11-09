@@ -113,3 +113,11 @@
     overflow-wrap: anywhere;
   }
 }
+
+.button.product-detail-delete {
+  color: var(--color-danger);
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-danger);
+  }
+}

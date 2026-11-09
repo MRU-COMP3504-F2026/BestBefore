@@ -76,11 +76,10 @@ describe('manual add item', () => {
     ])
   })
 
-  it('goes from the list to the form, saves, and shows the new item in the list', async () => {
-    renderApp()
-    expect(await screen.findByText(/No items yet/)).toBeInTheDocument()
+  // My Items' Add Item opens the scanner (see ItemsPage.test.tsx), so the form is entered directly.
+  it('saves from the form and shows the new item in the list', async () => {
+    renderApp('/items/new')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Add Item' }))
     await userEvent.type(screen.getByLabelText(/Product name/), 'Greek Yogurt')
     await userEvent.selectOptions(category(), 'Dairy')
     const quantity = screen.getByLabelText(/Quantity/)

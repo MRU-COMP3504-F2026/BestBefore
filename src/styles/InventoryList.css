@@ -6,3 +6,46 @@
 .inventory-status-error {
   color: var(--color-danger);
 }
+
+.inventory-list-item + .inventory-list-item {
+  margin-top: var(--space-2);
+}
+
+.inventory-list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  .item-card {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    margin-right: 0;
+  }
+}
+
+.inventory-remove {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-danger);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-danger-light);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.inventory-list-item .delete-confirm {
+  margin-top: var(--space-2);
+}
