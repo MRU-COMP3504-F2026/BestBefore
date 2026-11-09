@@ -14,7 +14,7 @@
 }
 
 .inventory-list-item + .inventory-list-item {
-  margin-top: var(--space-3);
+  margin-top: 10px;
 }
 
 .inventory-list-row {
@@ -69,4 +69,15 @@
 
 .inventory-list-item .delete-confirm {
   margin-top: var(--space-2);
+}
+
+/* On the narrowest phones Remove drops under its card, so the name and date keep the full width. */
+@media (max-width: 360px) {
+  .inventory-list-row {
+    flex-wrap: wrap;
+  }
+
+  .inventory-remove {
+    flex: 1 0 100%;
+  }
 }

@@ -1,7 +1,7 @@
 .add-item-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 10px;
 }
 
 .add-item-required-note {
@@ -13,21 +13,21 @@
   }
 }
 
+/* Save and Cancel stay within thumb reach at the end of the form, a little apart from the fields. */
 .add-item-actions {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .add-item-notice {
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgb(31 48 36 / 8%);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-primary-light) 55%, var(--color-surface));
   font-size: 14px;
-  color: var(--color-text-muted);
+  color: var(--color-primary-dark);
 }
 
 .add-item-match {
@@ -56,5 +56,6 @@
 
 .add-item-error {
   font-size: var(--text-caption);
+  font-weight: 600;
   color: var(--color-danger);
 }
