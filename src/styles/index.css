@@ -13,15 +13,20 @@
   --color-border: #d4d4d4;
   --color-divider: #e8e8e8;
   --color-bg: #fff;
-  /* The app canvas behind cards and grouped lists, a warm off-white so white surfaces lift off it. */
-  --color-surface-muted: #f5f6f2;
+  /* The app canvas behind cards and grouped lists, a warm pantry cream so white surfaces lift off it. */
+  --color-surface-muted: #f6f4ee;
   --color-surface: #fff;
+  /* The deepest brand green, for header bands and the nav bar; cream is the text on it. */
+  --color-forest: #2f4b38;
+  --color-cream: #fbf7ec;
+  --color-amber-ink: #7a4f0e;
 
   /* Shape */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --radius-xl: 22px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
   --radius-full: 9999px;
 
   /* Elevation, tinted with the brand green rather than plain black */
@@ -43,8 +48,10 @@
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI',
     Roboto, 'Helvetica Neue', system-ui, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display',
-    'Segoe UI', Roboto, 'Helvetica Neue', system-ui, sans-serif;
+  /* Rounded where the platform has it (SF Pro Rounded on Apple), matching the basket mark's soft
+     strokes; other platforms fall back to their display face. */
+  --font-display: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+    'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Helvetica Neue', system-ui, sans-serif;
   --text-caption: 13px;
   --text-body: 16px;
   --text-section: 20px;
@@ -54,6 +61,8 @@
   /* Layout */
   --app-max-width: 480px;
   --bottom-nav-height: 68px;
+  /* The floating nav's gap from the screen edges. */
+  --bottom-nav-inset: var(--space-3);
   --page-gutter: var(--space-5);
 
   font: var(--text-body) / 1.45 var(--font-sans);
@@ -78,6 +87,8 @@
 body {
   margin: 0;
   background: var(--color-surface-muted);
+  /* Full-bleed header bands may reach past the column; clip (unlike hidden) keeps sticky working. */
+  overflow-x: clip;
 }
 
 /* Taps act at once, without the double-tap zoom delay. */

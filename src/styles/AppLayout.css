@@ -9,7 +9,7 @@
   padding: var(--space-4) var(--page-gutter);
   padding-top: calc(var(--space-4) + env(safe-area-inset-top));
   padding-right: max(var(--page-gutter), env(safe-area-inset-right));
-  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-8));
+  padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-inset) + env(safe-area-inset-bottom) + var(--space-8));
   padding-left: max(var(--page-gutter), env(safe-area-inset-left));
 }
 
