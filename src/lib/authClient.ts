@@ -68,8 +68,11 @@ export async function signOut(): Promise<AuthResult> {
 
 // Short-lived (15 min) JWT for authenticating requests to our own API.
 // With auth disabled the server's requireAuth accepts token-less requests.
+// Neon Auth puts the JWT on session.token (from the set-auth-jwt header). Its token() call is
+// served from the session cache once useSession has run, so it returns { session, user } and
+// has no top-level token; read the session the same way the SDK's own getJWTToken does.
 export async function getApiToken(): Promise<string | null> {
   if (AUTH_DISABLED) return null
-  const { data } = await authClient.token()
-  return data?.token ?? null
+  const { data } = await authClient.getSession()
+  return data?.session?.token ?? null
 }

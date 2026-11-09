@@ -1,0 +1,2533 @@
+{
+  "strategy": "consensus",
+  "ranAt": "2026-10-31T07:48:23.166Z",
+  "referenceDate": "2026-10-31",
+  "summary": {
+    "items": 50,
+    "correct": 40,
+    "inTop3": 45,
+    "noMatch": 0,
+    "fallbacks": 0,
+    "accuracy": 80,
+    "top3Accuracy": 90,
+    "highConfidence": 39,
+    "highConfidenceCorrect": 35,
+    "avgFirstSearchMicros": 182.9,
+    "steadySearchMicros": 56.4,
+    "averaged": 0,
+    "suggestionPrecision": 80,
+    "coverage": 100,
+    "retrievalTop3": 46,
+    "poolRecall": 47
+  },
+  "results": [
+    {
+      "id": 1,
+      "name": "Heavy Cream",
+      "category": "Dairy",
+      "expectedId": 14,
+      "expectedName": "Cream (heavy)",
+      "pick": {
+        "id": 14,
+        "name": "Cream (heavy)",
+        "foodKeeperCategory": "Dairy Products & Eggs",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 14,
+          "name": "Cream (heavy)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 12,
+          "name": "Cream (whipped, sweetened)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 6,
+          "indexRank": 3,
+          "categoryRank": 3
+        },
+        {
+          "id": 13,
+          "name": "Cream (half and half)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 6,
+          "indexRank": 4,
+          "categoryRank": 4
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #14, category-first #14); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-11-08 to 2026-11-08 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-19",
+      "searchMicros": 2812.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 2,
+      "name": "Cottage Cheese",
+      "category": "Dairy",
+      "expectedId": 9,
+      "expectedName": "Cottage cheese",
+      "pick": {
+        "id": 9,
+        "name": "Cottage cheese",
+        "foodKeeperCategory": "Dairy Products & Eggs",
+        "score": 11,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 9,
+          "name": "Cottage cheese",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 11,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 7,
+          "name": "Cheese (soft such as brie, bel paese, goat)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 6,
+          "indexRank": 4,
+          "categoryRank": 4
+        },
+        {
+          "id": 6,
+          "name": "Cheese (processed slices)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 6,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #9, category-first #9); ahead by 5",
+      "usedFallback": false,
+      "predicted": "2026-11-11 to 2026-11-11 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-11",
+      "searchMicros": 304.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 3,
+      "name": "Grated Parmesan",
+      "category": "Dairy",
+      "expectedId": 4,
+      "expectedName": "Cheese (parmesan; shredded or grated)",
+      "pick": {
+        "id": 4,
+        "name": "Cheese (parmesan; shredded or grated)",
+        "foodKeeperCategory": "Dairy Products & Eggs",
+        "score": 4,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 4,
+          "name": "Cheese (parmesan; shredded or grated)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 3,
+          "name": "Cheese (hard such as cheddar, swiss, block parmesan)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 2,
+          "indexRank": 2,
+          "categoryRank": 2
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #4, category-first #4); ahead by 2",
+      "usedFallback": false,
+      "predicted": "2027-10-21 to 2027-10-21 (Fridge (from purchase))",
+      "seededBestBefore": "2027-02-18",
+      "searchMicros": 118.4,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 4,
+      "name": "Brie",
+      "category": "Dairy",
+      "expectedId": 7,
+      "expectedName": "Cheese (soft such as brie, bel paese, goat)",
+      "pick": {
+        "id": 7,
+        "name": "Cheese (soft such as brie, bel paese, goat)",
+        "foodKeeperCategory": "Dairy Products & Eggs",
+        "score": 4,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 7,
+          "name": "Cheese (soft such as brie, bel paese, goat)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #7, category-first #7); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-03 to 2026-11-10 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-26",
+      "searchMicros": 71.1,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 5,
+      "name": "Kefir",
+      "category": "Dairy",
+      "expectedId": 25,
+      "expectedName": "Kefir (fermented milk)",
+      "pick": {
+        "id": 25,
+        "name": "Kefir (fermented milk)",
+        "foodKeeperCategory": "Dairy Products & Eggs",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 25,
+          "name": "Kefir (fermented milk)",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #25, category-first #25); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-05 to 2026-11-05 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-19",
+      "searchMicros": 93.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 6,
+      "name": "Buttermilk",
+      "category": "Dairy",
+      "expectedId": 2,
+      "expectedName": "Buttermilk",
+      "pick": {
+        "id": 2,
+        "name": "Buttermilk",
+        "foodKeeperCategory": "Dairy Products & Eggs",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 2,
+          "name": "Buttermilk",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #2, category-first #2); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-04 to 2026-11-11 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-11",
+      "searchMicros": 70,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 7,
+      "name": "Blueberries",
+      "category": "Produce",
+      "expectedId": 254,
+      "expectedName": "Blueberries",
+      "pick": {
+        "id": 254,
+        "name": "Blueberries",
+        "foodKeeperCategory": "Produce / Fresh Fruits",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 254,
+          "name": "Blueberries",
+          "foodKeeperCategory": "Produce / Fresh Fruits",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #254, category-first #254); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-06 to 2026-11-13 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-06",
+      "searchMicros": 63.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 8,
+      "name": "Green Grapes",
+      "category": "Produce",
+      "expectedId": 261,
+      "expectedName": "Grapes",
+      "pick": {
+        "id": 261,
+        "name": "Grapes",
+        "foodKeeperCategory": "Produce / Fresh Fruits",
+        "score": 6,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 261,
+          "name": "Grapes",
+          "foodKeeperCategory": "Produce / Fresh Fruits",
+          "score": 6,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 287,
+          "name": "Greens",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 3,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 295,
+          "name": "Onions (spring or green)",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 0,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #261, category-first #261); ahead by 3",
+      "usedFallback": false,
+      "predicted": "2026-11-05 to 2026-11-05 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-08",
+      "searchMicros": 180.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 9,
+      "name": "Lemons",
+      "category": "Produce",
+      "expectedId": 256,
+      "expectedName": "Citrus fruit (lemon, lime, orange, grapefruit, tangerines, clementines)",
+      "pick": {
+        "id": 536,
+        "name": "Lemon juice (fresh squeezed)",
+        "foodKeeperCategory": "Beverages",
+        "score": 4,
+        "indexRank": 3,
+        "categoryRank": null
+      },
+      "candidates": [
+        {
+          "id": 536,
+          "name": "Lemon juice (fresh squeezed)",
+          "foodKeeperCategory": "Beverages",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": null
+        },
+        {
+          "id": 448,
+          "name": "Lemon juice",
+          "foodKeeperCategory": "Beverages",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": null
+        },
+        {
+          "id": 529,
+          "name": "Lemon extract",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": null
+        }
+      ],
+      "correct": false,
+      "inTop3": false,
+      "confidence": "tie",
+      "confidenceReason": "name evidence decided: ahead of the other pick by 2 (index-first #536, category-first #256); tied with #448",
+      "usedFallback": false,
+      "predicted": "2026-11-01 to 2026-11-01 (Fridge)",
+      "seededBestBefore": "2026-11-16",
+      "searchMicros": 193.1,
+      "resolution": "reranked",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 10,
+      "name": "Cucumbers",
+      "category": "Produce",
+      "expectedId": 283,
+      "expectedName": "Cucumbers",
+      "pick": {
+        "id": 283,
+        "name": "Cucumbers",
+        "foodKeeperCategory": "Produce / Fresh Vegetables",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 283,
+          "name": "Cucumbers",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #283, category-first #283); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-02 to 2026-11-04 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-05",
+      "searchMicros": 73.7,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 11,
+      "name": "Cremini Mushrooms",
+      "category": "Produce",
+      "expectedId": 292,
+      "expectedName": "Mushrooms",
+      "pick": {
+        "id": 292,
+        "name": "Mushrooms",
+        "foodKeeperCategory": "Produce / Fresh Vegetables",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 292,
+          "name": "Mushrooms",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 385,
+          "name": "Mushrooms (dried)",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": null
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #292, category-first #292); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-11-02 to 2026-11-06 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-06",
+      "searchMicros": 65.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 12,
+      "name": "Red Bell Peppers",
+      "category": "Produce",
+      "expectedId": 296,
+      "expectedName": "Peppers",
+      "pick": {
+        "id": 296,
+        "name": "Peppers",
+        "foodKeeperCategory": "Produce / Fresh Vegetables",
+        "score": 6,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 296,
+          "name": "Peppers",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 6,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 458,
+          "name": "Roasted red peppers (jar)",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 5,
+          "indexRank": 2,
+          "categoryRank": null
+        },
+        {
+          "id": 548,
+          "name": "Hot peppers",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": 2
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "low",
+      "confidenceReason": "both strategies picked it (index-first #296, category-first #296); ahead by only 1",
+      "usedFallback": false,
+      "predicted": "2026-11-02 to 2026-11-12 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-08",
+      "searchMicros": 122.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 13,
+      "name": "Iceberg Lettuce",
+      "category": "Produce",
+      "expectedId": 290,
+      "expectedName": "Lettuce (iceberg, romaine)",
+      "pick": {
+        "id": 290,
+        "name": "Lettuce (iceberg, romaine)",
+        "foodKeeperCategory": "Produce / Fresh Vegetables",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 290,
+          "name": "Lettuce (iceberg, romaine)",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 291,
+          "name": "Lettuce (leaf, spinach)",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 415,
+          "name": "Bagged greens (leaf, spinach, lettuce, etc.)",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": -2,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #290, category-first #290); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-11-04 to 2026-11-11 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-07",
+      "searchMicros": 82,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 14,
+      "name": "Sweet Potatoes",
+      "category": "Produce",
+      "expectedId": 422,
+      "expectedName": "Yams/sweet potatoes",
+      "pick": {
+        "id": 422,
+        "name": "Yams/sweet potatoes",
+        "foodKeeperCategory": "Produce / Fresh Vegetables",
+        "score": 9,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 422,
+          "name": "Yams/sweet potatoes",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 9,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 297,
+          "name": "Potatoes",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 191,
+          "name": "Potato salad",
+          "foodKeeperCategory": "Deli & Prepared Foods",
+          "score": 2,
+          "indexRank": 4,
+          "categoryRank": null
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #422, category-first #422); ahead by 3",
+      "usedFallback": false,
+      "predicted": "2026-11-08 to 2026-11-15 (Pantry (from purchase))",
+      "seededBestBefore": "2026-11-24",
+      "searchMicros": 120,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 15,
+      "name": "Quick Oats",
+      "category": "Pantry",
+      "expectedId": 375,
+      "expectedName": "Cereal (cook before eating (oatmeal, etc.))",
+      "pick": {
+        "id": 586,
+        "name": "Oats (flour, meal)",
+        "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+        "score": 8,
+        "indexRank": 2,
+        "categoryRank": 2
+      },
+      "candidates": [
+        {
+          "id": 586,
+          "name": "Oats (flour, meal)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 8,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 585,
+          "name": "Oats (whole grain)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 375,
+          "name": "Cereal (cook before eating (oatmeal, etc.))",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 2,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": false,
+      "inTop3": true,
+      "confidence": "tie",
+      "confidenceReason": "both strategies picked it (index-first #586, category-first #586); tied with #585",
+      "usedFallback": false,
+      "predicted": "2026-12-11 to 2026-12-11 (Pantry)",
+      "seededBestBefore": "2027-10-11",
+      "searchMicros": 85.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 16,
+      "name": "Corn Flakes",
+      "category": "Pantry",
+      "expectedId": 374,
+      "expectedName": "Cereal (ready-to-eat)",
+      "pick": {
+        "id": 650,
+        "name": "Corn syrup",
+        "foodKeeperCategory": "Shelf Stable Foods",
+        "score": 3,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 650,
+          "name": "Corn syrup",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 3,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 553,
+          "name": "Tortillas (corn)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 2,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 219,
+          "name": "Cornmeal (stone ground or blue)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 1,
+          "indexRank": 4,
+          "categoryRank": 4
+        }
+      ],
+      "correct": false,
+      "inTop3": false,
+      "confidence": "low",
+      "confidenceReason": "both strategies picked it, but its score is weak (index-first #650, category-first #650); score 3 is under 4",
+      "usedFallback": false,
+      "predicted": "2029-10-17 to 2029-10-17 (Pantry)",
+      "seededBestBefore": "2027-07-14",
+      "searchMicros": 143.4,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": false,
+      "inPool": false,
+      "averagedFrom": []
+    },
+    {
+      "id": 17,
+      "name": "Real Mayonnaise",
+      "category": "Pantry",
+      "expectedId": 350,
+      "expectedName": "Mayonnaise (commercial)",
+      "pick": {
+        "id": 350,
+        "name": "Mayonnaise (commercial)",
+        "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 350,
+          "name": "Mayonnaise (commercial)",
+          "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 670,
+          "name": "Aioli (homemade)",
+          "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+          "score": 0,
+          "indexRank": 2,
+          "categoryRank": 2
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #350, category-first #350); ahead by 8",
+      "usedFallback": false,
+      "predicted": "2027-01-23 to 2027-04-23 (Pantry (from purchase))",
+      "seededBestBefore": "2027-04-21",
+      "searchMicros": 55.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 18,
+      "name": "Strawberry Jam",
+      "category": "Pantry",
+      "expectedId": 347,
+      "expectedName": "Jams, jellies, and preserves",
+      "pick": {
+        "id": 347,
+        "name": "Jams, jellies, and preserves",
+        "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+        "score": 0,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 347,
+          "name": "Jams, jellies, and preserves",
+          "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+          "score": 0,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 235,
+          "name": "Garlic (chopped, commercial jars)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": -2,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 346,
+          "name": "Horseradish (in jar)",
+          "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+          "score": -2,
+          "indexRank": 4,
+          "categoryRank": 4
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "low",
+      "confidenceReason": "both strategies picked it, but its score is weak (index-first #347, category-first #347); score 0 is under 4",
+      "usedFallback": false,
+      "predicted": "2027-04-01 to 2028-04-01 (Pantry (from purchase))",
+      "seededBestBefore": "2027-10-01",
+      "searchMicros": 177.2,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 19,
+      "name": "Brown Rice",
+      "category": "Pantry",
+      "expectedId": 339,
+      "expectedName": "Rice (brown)",
+      "pick": {
+        "id": 339,
+        "name": "Rice (brown)",
+        "foodKeeperCategory": "Grains, Beans & Pasta",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 339,
+          "name": "Rice (brown)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 338,
+          "name": "Rice (white or wild)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 428,
+          "name": "Rice milk",
+          "foodKeeperCategory": "Dairy Products & Eggs",
+          "score": 2,
+          "indexRank": 3,
+          "categoryRank": null
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #339, category-first #339); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2027-10-06 to 2027-10-06 (Pantry (from purchase))",
+      "seededBestBefore": "2027-04-04",
+      "searchMicros": 100.2,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 20,
+      "name": "Dried Lentils",
+      "category": "Pantry",
+      "expectedId": 334,
+      "expectedName": "Lentils (dried)",
+      "pick": {
+        "id": 334,
+        "name": "Lentils (dried)",
+        "foodKeeperCategory": "Grains, Beans & Pasta",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 334,
+          "name": "Lentils (dried)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 379,
+          "name": "Fruits, dried (raisins, apricots, mangoes, cranberries, etc.)",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 1,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 684,
+          "name": "Mustard (dried, ground)",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 0,
+          "indexRank": 9,
+          "categoryRank": 9
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #334, category-first #334); ahead by 9",
+      "usedFallback": false,
+      "predicted": "2027-09-21 to 2027-09-21 (Pantry (from purchase))",
+      "seededBestBefore": "2027-09-21",
+      "searchMicros": 131.7,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 21,
+      "name": "Canned Corn",
+      "category": "Pantry",
+      "expectedId": 372,
+      "expectedName": "Canned goods (low acid (such as meat, poultry, fish, gravy, stew, soups, beans, carrots, corn, pasta, peas, potatoes, spinach))",
+      "pick": {
+        "id": 372,
+        "name": "Canned goods (low acid (such as meat, poultry, fish, gravy, stew, soups, beans, carrots, corn, pasta, peas, potatoes, spinach))",
+        "foodKeeperCategory": "Shelf Stable Foods",
+        "score": 7,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 372,
+          "name": "Canned goods (low acid (such as meat, poultry, fish, gravy, stew, soups, beans, carrots, corn, pasta, peas, potatoes, spinach))",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 7,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 650,
+          "name": "Corn syrup",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 553,
+          "name": "Tortillas (corn)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 2,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #372, category-first #372); ahead by 3",
+      "usedFallback": false,
+      "predicted": "2028-10-16 to 2031-10-16 (Pantry (from purchase))",
+      "seededBestBefore": "2028-10-15",
+      "searchMicros": 214.2,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 22,
+      "name": "Tomato Paste",
+      "category": "Pantry",
+      "expectedId": 501,
+      "expectedName": "Tomato paste",
+      "pick": {
+        "id": 501,
+        "name": "Tomato paste",
+        "foodKeeperCategory": "Shelf Stable Foods",
+        "score": 9,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 501,
+          "name": "Tomato paste",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 9,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 231,
+          "name": "Tamarind paste",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 2,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 373,
+          "name": "Canned goods (high acid (such as juices, fruit, pickles, sauerkraut, tomato soup, and foods in vinegar-based sauce))",
+          "foodKeeperCategory": "Shelf Stable Foods",
+          "score": 1,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #501, category-first #501); ahead by 7",
+      "usedFallback": false,
+      "predicted": "2029-01-11 to 2029-01-11 (Pantry (from purchase))",
+      "seededBestBefore": "2028-04-03",
+      "searchMicros": 200.3,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 23,
+      "name": "Extra Virgin Olive Oil",
+      "category": "Pantry",
+      "expectedId": 227,
+      "expectedName": "Oils (olive or vegetable)",
+      "pick": {
+        "id": 227,
+        "name": "Oils (olive or vegetable)",
+        "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 227,
+          "name": "Oils (olive or vegetable)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 526,
+          "name": "Frying oil (re-used)",
+          "foodKeeperCategory": "Condiments, Sauces & Canned Goods",
+          "score": 4,
+          "indexRank": 8,
+          "categoryRank": 8
+        },
+        {
+          "id": 228,
+          "name": "Nut oils",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #227, category-first #227); ahead by 6",
+      "usedFallback": false,
+      "predicted": "2027-04-01 to 2027-10-01 (Pantry (from purchase))",
+      "seededBestBefore": "2028-03-24",
+      "searchMicros": 138.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 24,
+      "name": "Pork Tenderloin",
+      "category": "Meat",
+      "expectedId": 67,
+      "expectedName": "Pork (tenderloin)",
+      "pick": {
+        "id": 67,
+        "name": "Pork (tenderloin)",
+        "foodKeeperCategory": "Meat / Fresh",
+        "score": 9,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 67,
+          "name": "Pork (tenderloin)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 9,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 69,
+          "name": "Pork (tenderloin medallions or loin cubes)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 9,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 73,
+          "name": "Pork (ground)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 3,
+          "indexRank": 10,
+          "categoryRank": 10
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #67, category-first #67); near tie with 1 other(s), all predict the same dates",
+      "usedFallback": false,
+      "predicted": "2026-11-02 to 2026-11-04 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-03",
+      "searchMicros": 214.4,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 25,
+      "name": "Sliced Pepperoni",
+      "category": "Meat",
+      "expectedId": 104,
+      "expectedName": "Sausage (hard, dry (pepperoni), sliced)",
+      "pick": {
+        "id": 104,
+        "name": "Sausage (hard, dry (pepperoni), sliced)",
+        "foodKeeperCategory": "Meat / Smoked or Processed",
+        "score": 6,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 104,
+          "name": "Sausage (hard, dry (pepperoni), sliced)",
+          "foodKeeperCategory": "Meat / Smoked or Processed",
+          "score": 6,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #104, category-first #104); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-09 to 2026-11-16 (Fridge (from purchase))",
+      "seededBestBefore": "2026-12-10",
+      "searchMicros": 64.2,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 26,
+      "name": "Ground Pork",
+      "category": "Meat",
+      "expectedId": 73,
+      "expectedName": "Pork (ground)",
+      "pick": {
+        "id": 73,
+        "name": "Pork (ground)",
+        "foodKeeperCategory": "Meat / Fresh",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 73,
+          "name": "Pork (ground)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 60,
+          "name": "Pork (loin roast, bone-in)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 61,
+          "name": "Pork (loin roast, boneless)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 6,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #73, category-first #73); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 116.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 27,
+      "name": "Beef Stew Meat",
+      "category": "Meat",
+      "expectedId": 41,
+      "expectedName": "Beef (stew, cubes)",
+      "pick": {
+        "id": 41,
+        "name": "Beef (stew, cubes)",
+        "foodKeeperCategory": "Meat / Fresh",
+        "score": 5,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 41,
+          "name": "Beef (stew, cubes)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 5,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 53,
+          "name": "Lamb (stew meat, pieces)",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 71,
+          "name": "Goat (less tender whole cuts (stew meat, riblets, shanks))",
+          "foodKeeperCategory": "Meat / Fresh",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #41, category-first #41); near tie with 2 other(s), all predict the same dates",
+      "usedFallback": false,
+      "predicted": "2026-11-02 to 2026-11-04 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-03",
+      "searchMicros": 144.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 28,
+      "name": "Breakfast Sausage",
+      "category": "Meat",
+      "expectedId": 102,
+      "expectedName": "Sausage (raw bulk type or patties)",
+      "pick": {
+        "id": 104,
+        "name": "Sausage (hard, dry (pepperoni), sliced)",
+        "foodKeeperCategory": "Meat / Smoked or Processed",
+        "score": 6,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 104,
+          "name": "Sausage (hard, dry (pepperoni), sliced)",
+          "foodKeeperCategory": "Meat / Smoked or Processed",
+          "score": 6,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 102,
+          "name": "Sausage (raw bulk type or patties)",
+          "foodKeeperCategory": "Meat / Smoked or Processed",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 322,
+          "name": "Sausages (uncooked)",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": null
+        }
+      ],
+      "correct": false,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #104, category-first #104); ahead by 2",
+      "usedFallback": false,
+      "predicted": "2026-11-12 to 2026-11-19 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-05",
+      "searchMicros": 84.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 29,
+      "name": "Chicken Thighs",
+      "category": "Poultry",
+      "expectedId": 118,
+      "expectedName": "Chicken parts (legs or thighs)",
+      "pick": {
+        "id": 118,
+        "name": "Chicken parts (legs or thighs)",
+        "foodKeeperCategory": "Poultry / Fresh",
+        "score": 7,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 118,
+          "name": "Chicken parts (legs or thighs)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 7,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 113,
+          "name": "Chicken (whole)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 3,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 116,
+          "name": "Chicken parts (breast halves, bone-in)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 1,
+          "indexRank": 4,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #118, category-first #118); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 113,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 30,
+      "name": "Turkey Bacon",
+      "category": "Poultry",
+      "expectedId": 431,
+      "expectedName": "Turkey bacon",
+      "pick": {
+        "id": 431,
+        "name": "Turkey bacon",
+        "foodKeeperCategory": "Poultry / Cooked or Processed",
+        "score": 11,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 431,
+          "name": "Turkey bacon",
+          "foodKeeperCategory": "Poultry / Cooked or Processed",
+          "score": 11,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 79,
+          "name": "Bacon",
+          "foodKeeperCategory": "Meat / Smoked or Processed",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": null
+        },
+        {
+          "id": 683,
+          "name": "Bacon (uncured)",
+          "foodKeeperCategory": "Meat / Smoked or Processed",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": null
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #431, category-first #431); ahead by 7",
+      "usedFallback": false,
+      "predicted": "2026-11-11 to 2026-11-11 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-11",
+      "searchMicros": 130.1,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 31,
+      "name": "Whole Turkey",
+      "category": "Poultry",
+      "expectedId": 114,
+      "expectedName": "Turkey (whole)",
+      "pick": {
+        "id": 114,
+        "name": "Turkey (whole)",
+        "foodKeeperCategory": "Poultry / Fresh",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 114,
+          "name": "Turkey (whole)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 119,
+          "name": "Turkey parts (breast halves, bone-in)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": 2
+        },
+        {
+          "id": 120,
+          "name": "Turkey parts (breast halves, boneless)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 4,
+          "indexRank": 4,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #114, category-first #114); ahead by 6",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 140.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 32,
+      "name": "Ground Chicken",
+      "category": "Poultry",
+      "expectedId": 115,
+      "expectedName": "Ground turkey or chicken",
+      "pick": {
+        "id": 115,
+        "name": "Ground turkey or chicken",
+        "foodKeeperCategory": "Poultry / Fresh",
+        "score": 9,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 115,
+          "name": "Ground turkey or chicken",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 9,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 113,
+          "name": "Chicken (whole)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 116,
+          "name": "Chicken parts (breast halves, bone-in)",
+          "foodKeeperCategory": "Poultry / Fresh",
+          "score": 4,
+          "indexRank": 4,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #115, category-first #115); ahead by 3",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 120.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 33,
+      "name": "Sea Scallops",
+      "category": "Seafood",
+      "expectedId": 150,
+      "expectedName": "Scallops",
+      "pick": {
+        "id": 150,
+        "name": "Scallops",
+        "foodKeeperCategory": "Seafood / Shellfish",
+        "score": 6,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 150,
+          "name": "Scallops",
+          "foodKeeperCategory": "Seafood / Shellfish",
+          "score": 6,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 145,
+          "name": "Lean fish (pollock, ocean perch, rockfish, sea trout.)",
+          "foodKeeperCategory": "Seafood / Fresh",
+          "score": -2,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 149,
+          "name": "Surimi seafood",
+          "foodKeeperCategory": "Seafood / Fresh",
+          "score": -3,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #150, category-first #150); ahead by 8",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-02 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 45.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 34,
+      "name": "Mackerel Fillets",
+      "category": "Seafood",
+      "expectedId": 146,
+      "expectedName": "Fatty fish (bluefish, catfish, mackerel, mullet, salmon, tuna, etc.)",
+      "pick": {
+        "id": 146,
+        "name": "Fatty fish (bluefish, catfish, mackerel, mullet, salmon, tuna, etc.)",
+        "foodKeeperCategory": "Seafood / Fresh",
+        "score": 0,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 146,
+          "name": "Fatty fish (bluefish, catfish, mackerel, mullet, salmon, tuna, etc.)",
+          "foodKeeperCategory": "Seafood / Fresh",
+          "score": 0,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "low",
+      "confidenceReason": "both strategies picked it, but its score is weak (index-first #146, category-first #146); score 0 is under 4",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 63.3,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 35,
+      "name": "Haddock Fillets",
+      "category": "Seafood",
+      "expectedId": 144,
+      "expectedName": "Lean fish (cod, flounder, haddock, halibut, sole, etc.)",
+      "pick": {
+        "id": 144,
+        "name": "Lean fish (cod, flounder, haddock, halibut, sole, etc.)",
+        "foodKeeperCategory": "Seafood / Fresh",
+        "score": 0,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 144,
+          "name": "Lean fish (cod, flounder, haddock, halibut, sole, etc.)",
+          "foodKeeperCategory": "Seafood / Fresh",
+          "score": 0,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "low",
+      "confidenceReason": "both strategies picked it, but its score is weak (index-first #144, category-first #144); score 0 is under 4",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 34.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 36,
+      "name": "Live Lobster",
+      "category": "Seafood",
+      "expectedId": 158,
+      "expectedName": "Fresh whole lobster (live)",
+      "pick": {
+        "id": 158,
+        "name": "Fresh whole lobster (live)",
+        "foodKeeperCategory": "Seafood / Shellfish",
+        "score": 6,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 158,
+          "name": "Fresh whole lobster (live)",
+          "foodKeeperCategory": "Seafood / Shellfish",
+          "score": 6,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 320,
+          "name": "Lobster tails",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 2,
+          "indexRank": 2,
+          "categoryRank": null
+        },
+        {
+          "id": 161,
+          "name": "Fresh whole lobster (frozen)",
+          "foodKeeperCategory": "Seafood / Shellfish",
+          "score": 0,
+          "indexRank": 4,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #158, category-first #158); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-11-01 to 2026-11-01 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-01",
+      "searchMicros": 63.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 37,
+      "name": "Hamburger Buns",
+      "category": "Bakery",
+      "expectedId": 195,
+      "expectedName": "Commercial bread products (including pan breads, flat breads, rolls, and buns)",
+      "pick": {
+        "id": 635,
+        "name": "Cinnamon rolls (baked)",
+        "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+        "score": 4,
+        "indexRank": 2,
+        "categoryRank": 2
+      },
+      "candidates": [
+        {
+          "id": 635,
+          "name": "Cinnamon rolls (baked)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 195,
+          "name": "Commercial bread products (including pan breads, flat breads, rolls, and buns)",
+          "foodKeeperCategory": "Baked Goods / Bakery",
+          "score": 4,
+          "indexRank": 3,
+          "categoryRank": 3
+        },
+        {
+          "id": 634,
+          "name": "Cinnamon rolls (unbaked, tube)",
+          "foodKeeperCategory": "Baked Goods / Refrigerated Dough",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": false,
+      "inTop3": true,
+      "confidence": "tie",
+      "confidenceReason": "both strategies picked it (index-first #635, category-first #635); tied with #195",
+      "usedFallback": false,
+      "predicted": "2026-10-30 to 2026-11-01 (Pantry)",
+      "seededBestBefore": "2026-11-05",
+      "searchMicros": 107.3,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 38,
+      "name": "Dinner Rolls",
+      "category": "Bakery",
+      "expectedId": 195,
+      "expectedName": "Commercial bread products (including pan breads, flat breads, rolls, and buns)",
+      "pick": {
+        "id": 635,
+        "name": "Cinnamon rolls (baked)",
+        "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+        "score": 4,
+        "indexRank": 2,
+        "categoryRank": 2
+      },
+      "candidates": [
+        {
+          "id": 635,
+          "name": "Cinnamon rolls (baked)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 634,
+          "name": "Cinnamon rolls (unbaked, tube)",
+          "foodKeeperCategory": "Baked Goods / Refrigerated Dough",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 436,
+          "name": "Pork roll",
+          "foodKeeperCategory": "Meat / Smoked or Processed",
+          "score": 2,
+          "indexRank": 3,
+          "categoryRank": null
+        }
+      ],
+      "correct": false,
+      "inTop3": false,
+      "confidence": "tie",
+      "confidenceReason": "both strategies picked it (index-first #635, category-first #635); tied with #634",
+      "usedFallback": false,
+      "predicted": "2026-10-31 to 2026-11-02 (Pantry)",
+      "seededBestBefore": "2026-11-04",
+      "searchMicros": 88.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": false,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 39,
+      "name": "Corn Tortillas",
+      "category": "Bakery",
+      "expectedId": 553,
+      "expectedName": "Tortillas (corn)",
+      "pick": {
+        "id": 553,
+        "name": "Tortillas (corn)",
+        "foodKeeperCategory": "Grains, Beans & Pasta",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 553,
+          "name": "Tortillas (corn)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 196,
+          "name": "Tortillas (flour)",
+          "foodKeeperCategory": "Grains, Beans & Pasta",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 219,
+          "name": "Cornmeal (stone ground or blue)",
+          "foodKeeperCategory": "Baked Goods / Baking and Cooking",
+          "score": -1,
+          "indexRank": 4,
+          "categoryRank": 4
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #553, category-first #553); ahead by 4",
+      "usedFallback": false,
+      "predicted": "2026-11-18 to 2026-12-08 (Pantry (from purchase))",
+      "seededBestBefore": "2026-11-23",
+      "searchMicros": 95.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 40,
+      "name": "Blueberry Muffins",
+      "category": "Bakery",
+      "expectedId": 452,
+      "expectedName": "Muffin (commercially packaged)",
+      "pick": {
+        "id": 451,
+        "name": "Muffin (homemade - including bran, blueberry, banana, corn, chocolate chip)",
+        "foodKeeperCategory": "Baked Goods / Bakery",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 451,
+          "name": "Muffin (homemade - including bran, blueberry, banana, corn, chocolate chip)",
+          "foodKeeperCategory": "Baked Goods / Bakery",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 452,
+          "name": "Muffin (commercially packaged)",
+          "foodKeeperCategory": "Baked Goods / Bakery",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 453,
+          "name": "Muffin (mix, dry, commercially packaged)",
+          "foodKeeperCategory": "Baked Goods / Bakery",
+          "score": 6,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": false,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #451, category-first #451); ahead by 2",
+      "usedFallback": false,
+      "predicted": "2026-11-01 to 2026-11-05 (Pantry)",
+      "seededBestBefore": "2026-11-05",
+      "searchMicros": 64.1,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 41,
+      "name": "Ground Coffee",
+      "category": "Beverages",
+      "expectedId": 541,
+      "expectedName": "Coffee (commercial ground, non-vacuum)",
+      "pick": {
+        "id": 401,
+        "name": "Coffee (home ground, non-vacuum)",
+        "foodKeeperCategory": "Beverages",
+        "score": 10,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 401,
+          "name": "Coffee (home ground, non-vacuum)",
+          "foodKeeperCategory": "Beverages",
+          "score": 10,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 541,
+          "name": "Coffee (commercial ground, non-vacuum)",
+          "foodKeeperCategory": "Beverages",
+          "score": 10,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 400,
+          "name": "Coffee (whole beans)",
+          "foodKeeperCategory": "Beverages",
+          "score": 6,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": false,
+      "inTop3": true,
+      "confidence": "tie",
+      "confidenceReason": "both strategies picked it (index-first #401, category-first #401); tied with #541",
+      "usedFallback": false,
+      "predicted": "2027-01-19 to 2027-03-19 (Pantry (from purchase))",
+      "seededBestBefore": "2027-04-17",
+      "searchMicros": 228.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 42,
+      "name": "Apple Juice",
+      "category": "Beverages",
+      "expectedId": 404,
+      "expectedName": "Fruit Juice in cartons, fruit drinks, punch",
+      "pick": {
+        "id": 537,
+        "name": "Apple juice (fresh squeezed)",
+        "foodKeeperCategory": "Beverages",
+        "score": 11,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 537,
+          "name": "Apple juice (fresh squeezed)",
+          "foodKeeperCategory": "Beverages",
+          "score": 11,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 457,
+          "name": "Orange juice (freshly squeezed)",
+          "foodKeeperCategory": "Beverages",
+          "score": 4,
+          "indexRank": 6,
+          "categoryRank": 6
+        },
+        {
+          "id": 536,
+          "name": "Lemon juice (fresh squeezed)",
+          "foodKeeperCategory": "Beverages",
+          "score": 4,
+          "indexRank": 7,
+          "categoryRank": 7
+        }
+      ],
+      "correct": false,
+      "inTop3": false,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #537, category-first #537); ahead by 7",
+      "usedFallback": false,
+      "predicted": "2026-10-27 to 2026-10-27 (Fridge)",
+      "seededBestBefore": "2027-07-18",
+      "searchMicros": 760.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": false,
+      "inPool": false,
+      "averagedFrom": []
+    },
+    {
+      "id": 43,
+      "name": "Coconut Water",
+      "category": "Beverages",
+      "expectedId": 660,
+      "expectedName": "Coconut water",
+      "pick": {
+        "id": 660,
+        "name": "Coconut water",
+        "foodKeeperCategory": "Beverages",
+        "score": 11,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 660,
+          "name": "Coconut water",
+          "foodKeeperCategory": "Beverages",
+          "score": 11,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 413,
+          "name": "Water (commercially bottled)",
+          "foodKeeperCategory": "Beverages",
+          "score": 6,
+          "indexRank": 2,
+          "categoryRank": 2
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #660, category-first #660); ahead by 5",
+      "usedFallback": false,
+      "predicted": "2027-10-25 to 2027-10-25 (Pantry (from purchase))",
+      "seededBestBefore": "2027-07-22",
+      "searchMicros": 116.7,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 44,
+      "name": "Frozen French Fries",
+      "category": "Frozen",
+      "expectedId": 313,
+      "expectedName": "Frozen potato products (fries, hashbrowns, tater tots)",
+      "pick": {
+        "id": 313,
+        "name": "Frozen potato products (fries, hashbrowns, tater tots)",
+        "foodKeeperCategory": "Food Purchased Frozen",
+        "score": 3,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 313,
+          "name": "Frozen potato products (fries, hashbrowns, tater tots)",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 3,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 314,
+          "name": "Frozen pretzels",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": -1,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 330,
+          "name": "Frozen entrees (prepared meals)",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": -1,
+          "indexRank": 3,
+          "categoryRank": 3
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "low",
+      "confidenceReason": "both strategies picked it, but its score is weak (index-first #313, category-first #313); score 3 is under 4",
+      "usedFallback": false,
+      "predicted": "2027-10-16 to 2027-10-16 (Freezer (from purchase))",
+      "seededBestBefore": "2027-10-16",
+      "searchMicros": 139.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 45,
+      "name": "Frozen Mixed Vegetables",
+      "category": "Frozen",
+      "expectedId": 331,
+      "expectedName": "Vegetables",
+      "pick": {
+        "id": 331,
+        "name": "Vegetables",
+        "foodKeeperCategory": "Food Purchased Frozen",
+        "score": 4,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 331,
+          "name": "Vegetables",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 365,
+          "name": "Vegetables",
+          "foodKeeperCategory": "Baby Food",
+          "score": 2,
+          "indexRank": 2,
+          "categoryRank": null
+        },
+        {
+          "id": 570,
+          "name": "Marinated vegetables (in oil)",
+          "foodKeeperCategory": "Produce / Fresh Vegetables",
+          "score": 0,
+          "indexRank": 5,
+          "categoryRank": null
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #331, category-first #331); ahead by 2",
+      "usedFallback": false,
+      "predicted": "2027-08-11 to 2028-04-11 (Freezer (from purchase))",
+      "seededBestBefore": "2027-08-07",
+      "searchMicros": 152.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 46,
+      "name": "Frozen Blueberries",
+      "category": "Frozen",
+      "expectedId": 315,
+      "expectedName": "Fruits (such as berries, melons)",
+      "pick": {
+        "id": 254,
+        "name": "Blueberries",
+        "foodKeeperCategory": "Produce / Fresh Fruits",
+        "score": 4,
+        "indexRank": 1,
+        "categoryRank": null
+      },
+      "candidates": [
+        {
+          "id": 254,
+          "name": "Blueberries",
+          "foodKeeperCategory": "Produce / Fresh Fruits",
+          "score": 4,
+          "indexRank": 1,
+          "categoryRank": null
+        },
+        {
+          "id": 314,
+          "name": "Frozen pretzels",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 1,
+          "indexRank": 2,
+          "categoryRank": 1
+        },
+        {
+          "id": 330,
+          "name": "Frozen entrees (prepared meals)",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 1,
+          "indexRank": 3,
+          "categoryRank": 2
+        }
+      ],
+      "correct": false,
+      "inTop3": false,
+      "confidence": "high",
+      "confidenceReason": "name evidence decided: ahead of the other pick by 3 (index-first #254, category-first #314); ahead by 3",
+      "usedFallback": false,
+      "predicted": "2026-10-13 to 2026-10-20 (Fridge (from purchase))",
+      "seededBestBefore": "2027-08-02",
+      "searchMicros": 101.3,
+      "resolution": "reranked",
+      "estimate": false,
+      "inRetrievalTop3": false,
+      "inPool": false,
+      "averagedFrom": []
+    },
+    {
+      "id": 47,
+      "name": "Fish Sticks",
+      "category": "Frozen",
+      "expectedId": 311,
+      "expectedName": "Fish (breaded)",
+      "pick": {
+        "id": 311,
+        "name": "Fish (breaded)",
+        "foodKeeperCategory": "Food Purchased Frozen",
+        "score": 5,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 311,
+          "name": "Fish (breaded)",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 5,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 312,
+          "name": "Fish (raw but headed and gutted)",
+          "foodKeeperCategory": "Food Purchased Frozen",
+          "score": 3,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 144,
+          "name": "Lean fish (cod, flounder, haddock, halibut, sole, etc.)",
+          "foodKeeperCategory": "Seafood / Fresh",
+          "score": 1,
+          "indexRank": 7,
+          "categoryRank": null
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #311, category-first #311); ahead by 2",
+      "usedFallback": false,
+      "predicted": "2028-04-13 to 2028-04-13 (Freezer (from purchase))",
+      "seededBestBefore": "2027-06-10",
+      "searchMicros": 115.2,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 48,
+      "name": "Genoa Salami",
+      "category": "Deli",
+      "expectedId": 516,
+      "expectedName": "Salami  (pre-packaged, luncheon/deli meat)",
+      "pick": {
+        "id": 516,
+        "name": "Salami  (pre-packaged, luncheon/deli meat)",
+        "foodKeeperCategory": "Deli & Prepared Foods",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 516,
+          "name": "Salami  (pre-packaged, luncheon/deli meat)",
+          "foodKeeperCategory": "Deli & Prepared Foods",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #516, category-first #516); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-11 to 2026-11-11 (Fridge (from purchase))",
+      "seededBestBefore": "2026-11-18",
+      "searchMicros": 46.5,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 49,
+      "name": "Chicken Salad",
+      "category": "Deli",
+      "expectedId": 418,
+      "expectedName": "Chicken salad",
+      "pick": {
+        "id": 418,
+        "name": "Chicken salad",
+        "foodKeeperCategory": "Deli & Prepared Foods",
+        "score": 11,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 418,
+          "name": "Chicken salad",
+          "foodKeeperCategory": "Deli & Prepared Foods",
+          "score": 11,
+          "indexRank": 1,
+          "categoryRank": 1
+        },
+        {
+          "id": 190,
+          "name": "Egg salad",
+          "foodKeeperCategory": "Deli & Prepared Foods",
+          "score": 4,
+          "indexRank": 2,
+          "categoryRank": 2
+        },
+        {
+          "id": 417,
+          "name": "Seafood salads ((tuna salad, shrimp salad, salmon salad, mixed seafood salad, etc.))",
+          "foodKeeperCategory": "Deli & Prepared Foods",
+          "score": 4,
+          "indexRank": 4,
+          "categoryRank": 4
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #418, category-first #418); ahead by 7",
+      "usedFallback": false,
+      "predicted": "2026-11-02 to 2026-11-03 (Fridge)",
+      "seededBestBefore": "2026-11-03",
+      "searchMicros": 139.6,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    },
+    {
+      "id": 50,
+      "name": "Guacamole",
+      "category": "Deli",
+      "expectedId": 180,
+      "expectedName": "Guacamole",
+      "pick": {
+        "id": 180,
+        "name": "Guacamole",
+        "foodKeeperCategory": "Deli & Prepared Foods",
+        "score": 8,
+        "indexRank": 1,
+        "categoryRank": 1
+      },
+      "candidates": [
+        {
+          "id": 180,
+          "name": "Guacamole",
+          "foodKeeperCategory": "Deli & Prepared Foods",
+          "score": 8,
+          "indexRank": 1,
+          "categoryRank": 1
+        }
+      ],
+      "correct": true,
+      "inTop3": true,
+      "confidence": "high",
+      "confidenceReason": "both strategies picked it (index-first #180, category-first #180); only credible candidate",
+      "usedFallback": false,
+      "predicted": "2026-11-01 to 2026-11-02 (Fridge)",
+      "seededBestBefore": "2026-11-12",
+      "searchMicros": 31.9,
+      "resolution": "consensus",
+      "estimate": false,
+      "inRetrievalTop3": true,
+      "inPool": true,
+      "averagedFrom": []
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+.delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--color-danger-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.delete-confirm-title {
+  font-weight: 700;
+}
+
+.delete-confirm-error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.button.delete-confirm-button {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  box-shadow: 0 6px 16px rgb(192 57 43 / 25%);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: var(--color-danger);
+    filter: brightness(0.9);
+  }
+}

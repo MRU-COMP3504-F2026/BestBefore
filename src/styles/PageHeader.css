@@ -1,32 +1,68 @@
+/* A sticky app bar: it stays put while the page scrolls under it, frosted over the content. */
 .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
+  gap: var(--space-3);
+  min-height: 60px;
+  /* Bleeds to the column edges, cancelling .app-content's padding, so the frosted bar spans it. */
+  margin: calc(-1 * (var(--space-4) + env(safe-area-inset-top))) calc(-1 * var(--page-gutter)) var(--space-5);
+  padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--page-gutter) var(--space-2);
+  background: rgb(246 244 238 / 90%);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
 }
 
+/* A round white chip, so the way back reads as a button rather than loose glyph. */
 .page-header-back {
+  flex-shrink: 0;
   display: flex;
-  margin-left: calc(-1 * var(--space-2));
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgb(31 48 36 / 8%);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-forest);
+  transition: background-color 0.15s;
 
   svg {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
+    margin-left: -2px;
   }
 
   &:hover {
     background: var(--color-primary-light);
   }
 
+  &:active {
+    background: color-mix(in srgb, var(--color-primary-light) 70%, var(--color-primary) 15%);
+  }
+
   &:focus-visible {
     outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
 .page-header-title {
-  font-size: var(--text-heading);
-  font-weight: 700;
+  min-width: 0;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--color-forest);
+}
+
+/* A pushed screen (one with a back button) gets a compact bar title; tab roots keep the large one. */
+.page-header:has(.page-header-back) .page-header-title {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
 }

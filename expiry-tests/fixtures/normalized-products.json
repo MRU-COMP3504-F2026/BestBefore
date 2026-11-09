@@ -1,0 +1,327 @@
+{
+  "capturedAt": "2026-11-07",
+  "note": "Real normalizer FINAL records from a live lookup, without Go-UPC (no key in that run). expectedMatch is hand-judged: the start of the FoodKeeper row a date may come from, or null when offering no date is the wanted result. Re-judged on 2026-11-07 for the biscuit, American cheese and shelled almond rules in expirySuggestion.ts and foodkeeper.ts; the records themselves are unchanged.",
+  "items": [
+    {
+      "scannedBarcode": "3017620422003",
+      "expectedMatch": null,
+      "final": {
+        "source": "Open Facts",
+        "barcode": "3017620422003",
+        "name": "Nutella",
+        "brand": "Nutella, Ferrero",
+        "description": null,
+        "quantity": "400 g e",
+        "category": "Snacks, Cocoa powders, Confectionary based spreads, Hazelnutx, Petit-déjeuners, Produits à tartiner, Produits à tartiner sucrés, Pâtes à tartiner, fr:Goûter, fr:Nutella, fr:Nuttela",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/301/762/042/2003/front_en.879.400.jpg",
+        "ingredients": "sugar, palm oil"
+      }
+    },
+    {
+      "scannedBarcode": "5449000000996",
+      "expectedMatch": null,
+      "final": {
+        "barcode": "5449000000996",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Coca-Cola Original",
+        "brand": "COCA-COLA SERVICES SA/NV",
+        "description": null,
+        "quantity": "330 ml",
+        "category": "Colas, pt:bebidas cafeína",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/544/900/000/0996/front_en.1129.400.jpg",
+        "ingredients": "Agua carbonatada, azúcar, colorante (E-150d), acidulante (ácido fosfórico), aromas naturales (contiene cafeína)."
+      }
+    },
+    {
+      "scannedBarcode": "044000032029",
+      "expectedMatch": "Cookies (crispy)",
+      "final": {
+        "barcode": "044000032029",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "oreo cookies shelf",
+        "brand": "Oreo, Nabisco",
+        "description": "INGREDIENTS: INGREDIENTS: UNBLEACHED ENRICHED FLOUR (WHEAT FLOUR, NIACIN, REDUCED IRON, THIAMINE MONONITRATE {VITAMIN B1}, RIBOFLAVIN {VITAMIN B2}, FOLIC ACID), SUGAR, PALM AND/OR CANOLA OIL, COCOA (PROCESSED WITH ALKALI), HIGH FRUCTOSE CORN SYRUP, LEAVENING (BAKING SODA AND/OR CALCIUM PHOSPHATE), SALT, SOY LECITHIN, CHOCOLATE, ARTIFICIAL FLAVOR.",
+        "quantity": "14.3 oz (405 g)",
+        "category": "Biscuits",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/004/400/003/2029/front_en.7.400.jpg",
+        "ingredients": "unbleached enriched flour (wheat flour, niacin, reduced iron, thiamine mononitrate {vitamin b1}, riboflavin {vitamin b2}, folic acid), sugar, palm and/or canola oil, cocoa (processed with alkali), high fructose corn syrup, leavening (baking soda and/or calcium phosphate), salt, soy lecithin, chocolate, artificial flavor,"
+      }
+    },
+    {
+      "scannedBarcode": "016000275287",
+      "expectedMatch": "Cereal (ready-to-eat)",
+      "final": {
+        "barcode": "016000275287",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Cheerios",
+        "brand": "Cheerios",
+        "description": "INGREDIENTS: WHOLE GRAIN OATS, CORN STARCH, SUGAR, SALT, TRIPOTASSIUM PHOSPHATE. VITAMIN E (MIXED TOCOPHEROLS) ADDED TO PRESERVE FRESHNESS.VITAMINS AND MINERALS: CALCIUM CARBONATE, IRON AND ZINC (MINERAL NUTRIENTS), VITAMIN C (SODIUM ASCORBATE), A B VITAMIN (NIACINAMIDE), VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE), VITAMIN A (PALMITATE), VITAMIN B1 (THIAMIN MONONITRATE), A B VITAMIN (FOLIC ACID), VITAMIN B12, VITAMIN D3.",
+        "quantity": "18 oz (510 g)",
+        "category": "Breakfast cereals",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/001/600/027/5287/front_en.8.400.jpg",
+        "ingredients": "Whole grain oats, corn starch, sugar, salt, tripotassium phosphate, vitamin e (mixed tocopherols) added to preserve freshness,vitamins and minerals: calcium carbonate, iron and zinc (mineral nutrients), vitamin c (sodium ascorbate), a b vitamin (niacinamide), vitamin b6 (pyridoxine hydrochloride), vitamin a (palmitate), vitamin b1 (thiamin mononitrate), a b vitamin (folic acid), vitamin b12, vitamin d3"
+      }
+    },
+    {
+      "scannedBarcode": "021000615261",
+      "expectedMatch": "Cheese (processed slices)",
+      "final": {
+        "barcode": "021000615261",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "American",
+        "brand": "Kraft Singles",
+        "description": "One 24 pack of Kraft Singles American SlicesKraft Singles American Slices have no artificial preservatives or flavorsAmerican cheese is mild and creamySliced cheese cuts prep time and melts easily over hot foodsMade with fresh milk for quality and consistencyUse in deli sandwiches, burgers, hot dishes and moreKeep refrigerated",
+        "quantity": "16 oz",
+        "category": "American cheeses",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/002/100/061/5261/front_en.87.400.jpg",
+        "ingredients": "milk, cheddar cheese (milk, cheese culture, salt, enzymes), whey, milk protein concentrate, milkfat, calcium phosphate, sodium phosphate, contains less than 2% of modified food starch, whey protéin concentrate, salt lactic acid, annatto and paprika extract (color), natamycin (a natural mold inhibitor), enzymes, cheese culture, vitamin d3"
+      }
+    },
+    {
+      "scannedBarcode": "013000006408",
+      "expectedMatch": "Ketchup, cocktail, or chili sauce",
+      "final": {
+        "barcode": "013000006408",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Tomato Ketchup",
+        "brand": "Heinz",
+        "description": "INGREDIENTS: TOMATO CONCENTRATE FROM RED RIPE TOMATOES, DISTILLED VINEGAR, HIGH FRUCTOSE CORN SYRUP, CORN SYRUP, SALT, SPICE, ONION POWDER, NATURAL FLAVORING.",
+        "quantity": "20 oz - 570g",
+        "category": "Ketchup, Groceries",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/001/300/000/6408/front_en.26.400.jpg",
+        "ingredients": "Tomatoes (148g per 100g ketchup), Natural Vinegar, Sugar, Salt, Spice and Herb Extracts (contains Celery), Spices."
+      }
+    },
+    {
+      "scannedBarcode": "8076800195057",
+      "expectedMatch": "Pasta (dry, without eggs)",
+      "final": {
+        "barcode": "8076800195057",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Spaghetti Nº5",
+        "brand": "Barilla",
+        "description": null,
+        "quantity": "500 g",
+        "category": "Durum wheat spaghetti, Dry durum wheat pasta",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/807/680/019/5057/front_en.3881.400.jpg",
+        "ingredients": "DURUM WHEAT SEMOLINA PASTA"
+      }
+    },
+    {
+      "scannedBarcode": "7622210449283",
+      "expectedMatch": "Cookies (crispy)",
+      "final": {
+        "source": "Open Facts",
+        "barcode": "7622210449283",
+        "name": "Prince",
+        "brand": "LU, Prince",
+        "description": null,
+        "quantity": "300 g ℮",
+        "category": "Chocolate biscuits",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/762/221/044/9283/front_en.605.400.jpg",
+        "ingredients": "Céréale 50 % (Farine de blé 34,8 %, farine de blé complet 15,2 %), sucre, huiles végétales (palme, colza), cacao maigre en poudre 4,5 %, sirop de glucose, amidon de blé, poudres à lever (carbonates d'ammonium, carbonates de sodium), émulsifiant (lécithines de soja), sel, lait écrémé en poudre, perméat de lactosérum (de lait), arômes. Peut contenir œuf."
+      }
+    },
+    {
+      "scannedBarcode": "3274080005003",
+      "expectedMatch": "Water (commercially bottled)",
+      "final": {
+        "source": "Open Facts",
+        "barcode": "3274080005003",
+        "name": "isabelle",
+        "brand": "Cristaline",
+        "description": null,
+        "quantity": "1500 ml",
+        "category": "Spring waters, Unsweetened beverages",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/327/408/000/5003/front_en.797.400.jpg",
+        "ingredients": "Eau de source"
+      }
+    },
+    {
+      "scannedBarcode": "3229820129488",
+      "expectedMatch": null,
+      "final": {
+        "source": "Open Facts",
+        "barcode": "3229820129488",
+        "name": "muesli raisin,datte,figue",
+        "brand": "Bjorg",
+        "description": null,
+        "quantity": "375 g",
+        "category": "Bircher-style sugar free muesli flakes with fruits",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/322/982/012/9488/front_fr.238.400.jpg",
+        "ingredients": "Flocons d'avoine* complète, Flocons de blé* complet, Raisins 8% (raisins*, huile de tournesol*), Figues* séchées 8% (figues*, farine de riz*), Flocons d'épeautre* complet, Pétales de maïs*, Dattes* 4 % (dattes*, farine de riz*), Abricots* secs 3% (abricots*, farine de riz*), Graines de tournesol*, Pétales d'épeautre* complet, Graines de lin*, Graines de courge*.\r\n \r\n *Ingrédients biologiques."
+      }
+    },
+    {
+      "scannedBarcode": "028400047685",
+      "expectedMatch": "Pretzels",
+      "final": {
+        "barcode": "028400047685",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Tiny Twists Original",
+        "brand": "Rold Gold",
+        "description": "INGREDIENTS: Ingredients: Enriched Flour (Wheat Flour, Niacin, Reduced Iron, Thiamin Mononitrate, Riboflavin, Folic Acid), Salt, Corn Oil, Corn Syrup, Ammonium Bicarbonate, Malt Extract, and Yeast.  CONTAINS A WHEAT INGREDIENT.",
+        "quantity": "16 OZ. (1 LB), 453.6g",
+        "category": "Pretzel, amuse-gueules, biscuits-aperitifs, biscuits-sucres-&-biscuits-aperitifs, bretzels, snacks-sales",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/002/840/004/7685/front_en.74.400.jpg",
+        "ingredients": "enriched flour (wheat flour, niacin, reduced iron, thiamin mononitrate, riboflavin, folic acid), salt, corn oil, corn syrup, ammonium bicarbonate, malt extract, and yeast, contains a wheat ingredient,"
+      }
+    },
+    {
+      "scannedBarcode": "038000138416",
+      "expectedMatch": null,
+      "final": {
+        "barcode": "038000138416",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Original Potato Crisps",
+        "brand": "Pringles",
+        "description": "INGREDIENTS: DRIED POTATOES, VEGETABLE OIL (CONTAINS ONE OR MORE OF THE FOLLOWING: CORN OIL, COTTONSEED OIL, SOYBEAN OIL, AND/OR SUNFLOWER OIL), DEGERMINATED YELLOW CORN FLOUR, CORNSTARCH, RICE FLOUR, MALTODEXTRIN, MONO- AND DIGLYCERIDES, SALT, WHEAT STARCH.",
+        "quantity": "5.2 oz",
+        "category": "Stacked extruded potato crisps",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/003/800/013/8416/front_en.140.400.jpg",
+        "ingredients": "DRIED POTATOES, VEGETABLE OIL (CORN, COTTONSEED, HIGH OLEIC SOYBEAN, SUNFLOWER OIL), DEGERMINATED YELLOW CORN FLOUR, CORNSTARCH, RICE FLOUR, MALTODEXTRIN, MONO -  AND DIGLYCERIDES, SALT, WHEAT STARCH."
+      }
+    },
+    {
+      "scannedBarcode": "041196910759",
+      "expectedMatch": "Canned goods",
+      "final": {
+        "barcode": "041196910759",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Beef & Vegetable Soup",
+        "brand": "Progresso",
+        "description": "INGREDIENTS: BEEF BROTH, WATER, COOKED DICED SEASONED BEEF AND MODIFIED FOOD STARCH PRODUCT (BEEF, BEEF BROTH, HYDROLYZED SOY PROTEIN, MODIFIED FOOD STARCH, SALT, SODIUM PHOSPHATES, NATURAL FLAVOR, MALTODEXTRIN), POTATOES, CARROTS, TOMATOES, GREEN BEANS, MODIFIED FOOD STARCH. CONTAINS LESS THAN 2% OF: SUGAR, CORN PROTEIN (HYDROLYZED), ONION, SALT, SOYBEAN OIL, POTASSIUM CHLORIDE, VEGETABLE JUICE CONCENTRATES (CARROT, CELERIAC, RED BEET, LETTUCE, SPINACH, CITRIC ACID, NATURAL FLAVOR), YEAST EXTRACT, GARLIC POWDER, FLAVORING, TOMATO EXTRACT, ONION POWDER, CARAMEL COLOR, DRIED PARSLEY, SPICE, BEEF FAT, BEEF EXTRACT, CALCIUM CHLORIDE, CITRIC ACID, NATURAL FLAVOR.",
+        "quantity": "18.5 oz.",
+        "category": "Canned soups",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/004/119/691/0759/front_en.25.400.jpg",
+        "ingredients": "Beef broth, water, cooked diced seasoned beef and modified food starch product (beef, beef broth, hydrolyzed soy protein, modified food starch, salt, sodium phosphates, natural flavor, maltodextrin), potatoes, carrots, tomatoes, green beans, modified food starch. contains less than 2% of: sugar, corn protein (hydrolyzed), onion, salt, soybean oil, potassium chloride, vegetable juice concentrates (carrot, celeriac, red beet, lettuce, spinach, citric acid, natural flavor), yeast extract, garlic powder, flavoring, tomato extract, onion powder, caramel color, dried parsley, spice, beef fat, beef extract, calcium chloride, citric acid, natural flavor."
+      }
+    },
+    {
+      "scannedBarcode": "078742370859",
+      "expectedMatch": "Canned goods",
+      "final": {
+        "barcode": "078742370859",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Dark Red Kidney Beans",
+        "brand": "Great Value",
+        "description": "INGREDIENTS: PREPARED KIDNEY BEANS, WATER, SUGAR, SALT, CALCIUM CHLORIDE (FIRMING AGENT), DISODIUM EDTA ADDED TO PROMOTE COLOR RETENTION.",
+        "quantity": null,
+        "category": "Canned common beans, Red beans",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/007/874/237/0859/front_en.26.400.jpg",
+        "ingredients": "prepared kidney beans, water, sugar, salt, calcium chloride (firming agent), disodium edta added to promote color retention,"
+      }
+    },
+    {
+      "scannedBarcode": "041303014592",
+      "expectedMatch": null,
+      "final": {
+        "barcode": "041303014592",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Smoked Ham",
+        "brand": "Essential Everyday",
+        "description": "INGREDIENTS: CURED WITH: WATER, SALT, CONTAINS 2% OR LESS OF VINEGAR, DEXTROSE, SUGAR, SODIUM PHOSPHATES, SODIUM ERYTHORBATE, SODIUM NITRITE.",
+        "quantity": "9 oz",
+        "category": "Prepared meats, Meats",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/004/130/301/4592/front_en.9.400.jpg",
+        "ingredients": "Cured with: water, salt, contains 2% or less of vinegar, dextrose, sugar, sodium phosphates, sodium erythorbate, sodium nitrite."
+      }
+    },
+    {
+      "scannedBarcode": "3033490004743",
+      "expectedMatch": "Yogurt",
+      "final": {
+        "source": "Open Facts",
+        "barcode": "3033490004743",
+        "name": "Skyr",
+        "brand": "Danone",
+        "description": null,
+        "quantity": "140 g",
+        "category": "Cheeses, Yogurts, Plain skyrs",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/303/349/000/4743/front_fr.148.400.jpg",
+        "ingredients": "Lait écrémé, ferments lactiques (lait)."
+      }
+    },
+    {
+      "scannedBarcode": "8000500310427",
+      "expectedMatch": "Cookies (crispy)",
+      "final": {
+        "barcode": "8000500310427",
+        "sources": [
+          "Open Facts",
+          "UPCitemdb"
+        ],
+        "name": "Biscuits NUTELLA Biscuits Noisettes et Cacao x22 - 304g",
+        "brand": "Ferrero Technical Services Srl, Nutella biscuits",
+        "description": null,
+        "quantity": "304 g",
+        "category": "Biscuits/Cookies (Shelf Stable), Biscotti, Snack dolci",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/800/050/031/0427/front_fr.593.400.jpg",
+        "ingredients": "Pâte à tartiner aux NOISETTES et au cacao 40% (sucre, huile de palme, NOISETTES 13%**, LAIT écrémé en poudre 8,7%**, cacao maigre 7,4%**, émulsifiants : lécithines [SOJA]; vanilline), farine de FROMENT 32,5%, graisses végétales (palme, palmiste), sucre de canne (contient BLE) 8,5%, LACTOSE, son de BLE, LAIT en poudre, miel, poudres à lever (diphosphate disodique, carbonate acide de sodium, carbonate acide d'ammonium), farine d'ORGE malté, cacao maigre en poudre, sel, extrait en poudre de malt d'ORGE et de maïs, amidon de FROMENT, émulsifiants: lécithines [SOJA]; vanilline."
+      }
+    },
+    {
+      "scannedBarcode": "20724696",
+      "expectedMatch": "Almonds  (no shell)",
+      "final": {
+        "source": "Open Facts",
+        "barcode": "20724696",
+        "name": "Amandes décortiquées",
+        "brand": "Alesto",
+        "description": null,
+        "quantity": "200 g",
+        "category": "Almonds",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/000/002/072/4696/front_en.384.400.jpg",
+        "ingredients": "shelled almonds"
+      }
+    },
+    {
+      "scannedBarcode": "068700011016",
+      "expectedMatch": null,
+      "final": {
+        "source": "Open Facts",
+        "barcode": "0068700011016",
+        "name": "Partly Skimmed Milk",
+        "brand": "Dairyland",
+        "description": null,
+        "quantity": "4 L",
+        "category": "Semi-skimmed milks, Skimmed milks",
+        "imageUrl": "https://images.openfoodfacts.org/images/products/006/870/001/1016/front_en.99.400.jpg",
+        "ingredients": "PARTLY SKIMMED MILK, VITAMIN A PALMITATE, VITAMIN D3."
+      }
+    }
+  ]
+}

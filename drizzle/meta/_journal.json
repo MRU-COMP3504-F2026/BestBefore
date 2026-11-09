@@ -15,6 +15,34 @@
       "when": 1792979043273,
       "tag": "0001_unknown_talkback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794018286593,
+      "tag": "0002_hot_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794018932142,
+      "tag": "0003_futuristic_raza",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794098774592,
+      "tag": "0004_photo_items_without_barcode",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794099433662,
+      "tag": "0005_item_images",
+      "breakpoints": true
     }
   ]
 }

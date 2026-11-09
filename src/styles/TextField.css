@@ -1,36 +1,80 @@
+/* Inset fields: the label sits inside the white box above the value, so each field is one tappable
+   card (the label focuses its input) and a form reads as a tidy stack of labelled slots. */
 .text-field {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  padding: 10px var(--space-4) var(--space-2);
+  border: 1px solid rgb(31 48 36 / 10%);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  &:has([aria-invalid='true']) {
+    border-color: var(--color-danger);
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgb(192 57 43 / 20%);
+    }
+  }
+
+  &:has(input:disabled, select:disabled) {
+    background: color-mix(in srgb, var(--color-surface-muted) 60%, var(--color-surface));
+    box-shadow: none;
+  }
 
   label {
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: var(--color-text-muted);
   }
 
-  input {
+  input,
+  select {
+    width: 100%;
+    min-height: 32px;
+    margin: 0;
+    padding: 2px 0 4px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    /* 16px+ keeps iOS Safari from zooming into the field on focus. */
     font: inherit;
-    padding: 12px 14px;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-bg);
-    color: inherit;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--color-text);
+    outline: none;
 
-    &:focus {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 1px;
-    }
-
-    &[aria-invalid='true'] {
-      border-color: var(--color-danger);
+    &::placeholder {
+      font-weight: 400;
+      color: #747a72;
     }
 
     &:disabled {
-      opacity: 0.6;
+      opacity: 0.65;
     }
+  }
+
+  /* Drawn chevron instead of the native control, so the value lines up with the other fields. */
+  select {
+    padding-right: 28px;
+    appearance: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b5e45' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+      right 0 center / 20px 20px no-repeat;
+    cursor: pointer;
   }
 }
 
@@ -38,7 +82,8 @@
   position: relative;
   display: flex;
 
-  input {
+  input,
+  select {
     flex: 1;
     min-width: 0;
   }
@@ -49,18 +94,19 @@
   }
 }
 
+/* Reaches into the card's padding so its tap area stays 44px+ though the input row is shorter. */
 .text-field-toggle {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 44px;
+  top: -8px;
+  right: calc(-1 * var(--space-3));
+  bottom: -8px;
+  width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: none;
-  border-radius: 0 10px 10px 0;
+  border-radius: var(--radius-md);
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -84,7 +130,8 @@
 .text-field-label-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .text-field-required {
@@ -96,7 +143,8 @@
   padding: 1px var(--space-2);
   border-radius: var(--radius-full);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: 0.02em;
 }
 
 .text-field-tag-recommended {
@@ -105,16 +153,19 @@
 }
 
 .text-field-tag-optional {
-  background: var(--color-divider);
+  background: var(--color-surface-muted);
   color: var(--color-text-muted);
 }
 
 .text-field-hint {
+  padding-bottom: 2px;
   font-size: var(--text-caption);
   color: var(--color-text-muted);
 }
 
 .text-field-error {
+  padding-bottom: 2px;
   font-size: var(--text-caption);
+  font-weight: 600;
   color: var(--color-danger);
 }

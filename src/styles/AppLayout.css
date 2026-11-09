@@ -6,6 +6,19 @@
 }
 
 .app-content {
-  padding: var(--space-6) var(--space-5);
-  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + var(--space-6));
+  padding: var(--space-4) var(--page-gutter);
+  padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+  padding-right: max(var(--page-gutter), env(safe-area-inset-right));
+  padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-inset) + env(safe-area-inset-bottom) + var(--space-8));
+  padding-left: max(var(--page-gutter), env(safe-area-inset-left));
+}
+
+/* Past phone widths, frame the column like a device so it doesn't float on an empty canvas. */
+@media (min-width: 560px) {
+  .app-layout {
+    background: var(--color-surface-muted);
+    box-shadow:
+      0 0 0 1px var(--color-divider),
+      0 12px 40px rgb(31 48 36 / 8%);
+  }
 }

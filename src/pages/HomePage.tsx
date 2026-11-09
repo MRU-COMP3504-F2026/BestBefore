@@ -4,11 +4,16 @@ import InventoryList from '../components/InventoryList'
 import ProfileButton from '../components/ProfileButton'
 import { BasketIcon, ScanBarcodeIcon } from '../components/icons'
 import '../styles/HomePage.css'
+import { useEffect } from 'react'
 
 // Home previews only the soonest-expiring items; My Items shows them all.
 const HOME_ITEM_LIMIT = 3
 
 export default function HomePage() {
+  useEffect(() => {
+    document.title = 'BestBefore | Home'
+  }, [])
+
   const navigate = useNavigate()
 
   return (
@@ -18,14 +23,17 @@ export default function HomePage() {
         <ProfileButton onClick={() => navigate('/profile')} />
       </header>
 
-      <section className="home-hero">
-        <h2 className="home-greeting">Good Morning!</h2>
-        <BasketIcon className="home-basket" />
-      </section>
+      {/* The greeting and Scan share one panel: the screen's starting point. */}
+      <div className="home-start">
+        <section className="home-hero">
+          <h2 className="home-greeting">Good Morning!</h2>
+          <BasketIcon className="home-basket" />
+        </section>
 
-      <Button icon={<ScanBarcodeIcon />} onClick={() => navigate('/scan')}>
-        Scan Barcode
-      </Button>
+        <Button icon={<ScanBarcodeIcon />} onClick={() => navigate('/scan')}>
+          Scan Barcode
+        </Button>
+      </div>
 
       <section className="home-items">
         <h2 className="home-section-title">My Items</h2>

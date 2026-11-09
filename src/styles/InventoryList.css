@@ -1,8 +1,83 @@
 .inventory-status {
+  padding: var(--space-6) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: center;
   color: var(--color-text-muted);
-  padding: var(--space-4) 0;
 }
 
 .inventory-status-error {
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
+  background: var(--color-danger-light);
   color: var(--color-danger);
+}
+
+.inventory-list-item + .inventory-list-item {
+  margin-top: 10px;
+}
+
+.inventory-list-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+
+  .item-card {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  /* The Remove button beside it is the row's end, so the card gives its chevron's room to the text. */
+  &:has(.inventory-remove) .item-card-chevron {
+    display: none;
+  }
+}
+
+.inventory-remove {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--color-danger);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
+  }
+
+  &:active {
+    background: var(--color-danger-light);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.inventory-list-item .delete-confirm {
+  margin-top: var(--space-2);
+}
+
+/* On the narrowest phones Remove drops under its card, so the name and date keep the full width. */
+@media (max-width: 360px) {
+  .inventory-list-row {
+    flex-wrap: wrap;
+  }
+
+  .inventory-remove {
+    flex: 1 0 100%;
+  }
 }
