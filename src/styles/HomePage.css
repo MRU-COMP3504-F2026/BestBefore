@@ -1,10 +1,9 @@
-/* Home on the shared cream canvas, built around a pantry shelf: the greeting and basket rest on a
-   gold shelf line, the same rule runs out from the My Items heading, and Scan is a wide forest
-   action tile. The item preview uses the same cards as My Items. */
+/* Home is a quiet utility screen: a small brand bar, the greeting set as a large title like the other
+   tab roots, one prominent Scan button, then the soonest-expiring items on the shared cards.
+   Branding stays small so the action and the items carry the screen. */
 .home {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
 }
 
 .home-header {
@@ -12,109 +11,59 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .home-wordmark {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--color-primary-dark);
 }
 
-/* The shelf: the basket sits on the gold line, the greeting beside it. */
 .home-hero {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-top: var(--space-2);
-  border-bottom: 4px solid color-mix(in srgb, var(--color-basket) 55%, transparent);
-  border-radius: 0 0 2px 2px;
+  margin-top: var(--space-5);
 }
 
+/* Same size and weight as the large titles on My Items, so Home reads as one of the tab roots. */
 .home-greeting {
-  padding-bottom: var(--space-4);
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.1;
   letter-spacing: -0.03em;
   color: var(--color-forest);
 }
 
+/* The basket as a plain glyph in the brand gold: no tile behind it, so it can't be mistaken for a
+   button next to the real profile button above. */
 .home-basket {
   flex-shrink: 0;
-  width: 104px;
-  height: 104px;
-  /* The icon's box has empty space under the basket; this lands it on the shelf. */
-  margin-bottom: -10px;
+  width: 44px;
+  height: 44px;
   color: var(--color-basket);
 }
 
-/* Scan as a wide action tile: forest, with the barcode glyph in a cream disc and the label set
-   left like a list action, so it reads as the screen's one big thing to do. */
+/* The screen's one prominent action: the standard primary button, given a little more height. */
 .home > .button {
-  justify-content: flex-start;
-  gap: var(--space-4);
-  min-height: 72px;
-  margin-top: var(--space-1);
-  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-3);
-  border: none;
-  border-radius: var(--radius-xl);
-  background: var(--color-forest);
-  box-shadow:
-    0 10px 24px rgb(31 48 36 / 22%),
-    0 2px 4px rgb(31 48 36 / 12%);
-  font-size: 18px;
-  color: var(--color-cream);
-
-  .button-icon {
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-full);
-    background: var(--color-cream);
-    color: var(--color-forest);
-
-    svg {
-      width: 24px;
-      height: 24px;
-    }
-  }
-
-  &:hover:not(:disabled) {
-    background: var(--color-primary-dark);
-  }
-
-  &:focus-visible {
-    outline-color: var(--color-forest);
-  }
+  min-height: 56px;
+  margin-top: var(--space-5);
 }
 
 .home-items {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-3);
+  margin-top: var(--space-8);
 }
 
-/* The heading with a short shelf rule running out to the right. */
 .home-section-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--color-forest);
-
-  &::after {
-    content: '';
-    flex: 1;
-    height: 3px;
-    border-radius: var(--radius-full);
-    background: color-mix(in srgb, var(--color-basket) 35%, transparent);
-  }
+  font-size: var(--text-section);
+  font-weight: 750;
+  color: var(--color-text);
 }
 
 .home-item-list {
@@ -129,8 +78,7 @@
   }
 
   .home-basket {
-    width: 84px;
-    height: 84px;
-    margin-bottom: -8px;
+    width: 38px;
+    height: 38px;
   }
 }
