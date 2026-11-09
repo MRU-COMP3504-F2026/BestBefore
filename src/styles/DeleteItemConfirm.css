@@ -3,9 +3,10 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
+  border-radius: var(--radius-lg);
   background: var(--color-danger-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .delete-confirm-title {
@@ -20,6 +21,7 @@
 .button.delete-confirm-button {
   border-color: var(--color-danger);
   background: var(--color-danger);
+  box-shadow: 0 6px 16px rgb(192 57 43 / 25%);
   color: #fff;
 
   &:hover:not(:disabled) {

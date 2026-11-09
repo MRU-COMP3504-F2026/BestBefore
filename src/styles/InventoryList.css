@@ -1,42 +1,63 @@
 .inventory-status {
+  padding: var(--space-6) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: center;
   color: var(--color-text-muted);
-  padding: var(--space-4) 0;
 }
 
 .inventory-status-error {
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
+  background: var(--color-danger-light);
   color: var(--color-danger);
 }
 
 .inventory-list-item + .inventory-list-item {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .inventory-list-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-2);
 
   .item-card {
     flex: 1;
     min-width: 0;
     width: auto;
-    margin-right: 0;
+  }
+
+  /* The Remove button beside it is the row's end, so the card gives its chevron's room to the text. */
+  &:has(.inventory-remove) .item-card-chevron {
+    display: none;
   }
 }
 
 .inventory-remove {
   flex-shrink: 0;
+  min-width: 44px;
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
   font: inherit;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
   color: var(--color-danger);
   cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 
   &:hover {
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
+  }
+
+  &:active {
     background: var(--color-danger-light);
   }
 

@@ -1,20 +1,26 @@
 .item-card {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  margin: 0 calc(-1 * var(--space-2));
-  width: calc(100% + 2 * var(--space-2));
-  padding: var(--space-3) var(--space-2);
-  border: none;
-  border-radius: var(--radius-md);
-  background: none;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 76px;
+  padding: var(--space-3);
+  padding-right: var(--space-2);
+  border: 1px solid rgb(31 48 36 / 6%);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s;
 
   &:hover {
     background: var(--color-primary-light);
+    box-shadow: var(--shadow-md);
   }
 
   &:active {
@@ -27,16 +33,16 @@
   }
 }
 
-/* A light wash of the expiry colour, behind the darker text and the full-strength tile. The tile
-   gets an inset edge so it still reads against the tint. */
+/* A light wash of the expiry colour over the white card, behind the darker text and the
+   full-strength tile. The tile gets an inset edge so it still reads against the tint. */
 .item-card-green,
 .item-card-amber,
 .item-card-red {
   --item-card-tint: transparent;
-  background: color-mix(in srgb, var(--item-card-tint) 45%, transparent);
+  background: color-mix(in srgb, var(--item-card-tint) 45%, var(--color-surface));
 
   &:hover {
-    background: color-mix(in srgb, var(--item-card-tint) 80%, transparent);
+    background: color-mix(in srgb, var(--item-card-tint) 80%, var(--color-surface));
   }
 
   &:active {
@@ -65,9 +71,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-md);
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
 
   overflow: hidden;
 
@@ -109,12 +115,25 @@
 }
 
 .item-card-name {
-  font-size: 18px;
-  font-weight: 600;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .item-card-expires {
+  margin-top: 2px;
+  font-size: 14px;
   color: var(--color-text-muted);
+}
+
+.item-card-expires-amber {
+  color: #8a5a12;
 }
 
 .item-card-expires-red {
@@ -125,5 +144,5 @@
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--color-text-muted) 70%, transparent);
 }

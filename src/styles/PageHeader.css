@@ -1,16 +1,31 @@
+/* A sticky app bar: it stays put while the page scrolls under it, frosted over the content. */
 .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-6);
+  gap: var(--space-1);
+  min-height: 56px;
+  /* Bleeds to the column edges, cancelling .app-content's padding, so the frosted bar spans it. */
+  margin: calc(-1 * (var(--space-4) + env(safe-area-inset-top))) calc(-1 * var(--page-gutter)) var(--space-5);
+  padding: calc(var(--space-2) + env(safe-area-inset-top)) var(--page-gutter) var(--space-2);
+  background: rgb(245 246 242 / 88%);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
 }
 
 .page-header-back {
+  flex-shrink: 0;
   display: flex;
-  margin-left: calc(-1 * var(--space-2));
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: calc(-1 * var(--space-3));
+  border-radius: var(--radius-full);
+  color: var(--color-primary-dark);
+  transition: background-color 0.15s;
 
   svg {
     width: 28px;
@@ -21,12 +36,19 @@
     background: var(--color-primary-light);
   }
 
+  &:active {
+    background: color-mix(in srgb, var(--color-primary-light) 70%, var(--color-primary) 15%);
+  }
+
   &:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary);
   }
 }
 
 .page-header-title {
-  font-size: var(--text-heading);
-  font-weight: 700;
+  min-width: 0;
+  font-size: 26px;
+  font-weight: 750;
+  line-height: 1.15;
 }

@@ -3,18 +3,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   padding: 0;
-  border: none;
+  border: 2px solid var(--color-surface);
   border-radius: var(--radius-full);
   background: var(--color-primary-dark);
+  box-shadow: var(--shadow-md);
   color: #fff;
   cursor: pointer;
+  transition: background-color 0.15s;
 
   svg {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
   }
 
   &:hover {
