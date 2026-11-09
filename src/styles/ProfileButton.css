@@ -1,3 +1,4 @@
+/* A round white chip, the same family as the app bar's back button. */
 .profile-button {
   flex-shrink: 0;
   display: flex;
@@ -6,10 +7,11 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid rgb(251 247 236 / 28%);
+  border: 1px solid rgb(31 48 36 / 8%);
   border-radius: var(--radius-full);
-  background: rgb(251 247 236 / 12%);
-  color: var(--color-cream);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-forest);
   cursor: pointer;
   transition: background-color 0.15s;
 
@@ -19,11 +21,11 @@
   }
 
   &:hover {
-    background: rgb(251 247 236 / 22%);
+    background: var(--color-primary-light);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-cream);
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 }

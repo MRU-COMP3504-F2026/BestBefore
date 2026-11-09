@@ -1,39 +1,10 @@
-/* Home opens on a forest-green band holding the wordmark, greeting and basket; the Scan button
-   straddles its lower edge, and the item preview sits on the cream canvas below. */
+/* Home on the shared cream canvas, built around a pantry shelf: the greeting and basket rest on a
+   gold shelf line, the same rule runs out from the My Items heading, and Scan is a wide forest
+   action tile. The item preview uses the same cards as My Items. */
 .home {
-  --home-band-height: 252px;
-  position: relative;
-  isolation: isolate;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-
-  &::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    top: calc(-1 * (var(--space-4) + env(safe-area-inset-top)));
-    left: calc(-1 * var(--page-gutter));
-    right: calc(-1 * var(--page-gutter));
-    height: calc(var(--home-band-height) + env(safe-area-inset-top));
-    border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
-    background: linear-gradient(170deg, #36553f 0%, var(--color-forest) 70%);
-  }
-
-  /* The Scan button rides the band's edge, cream on green, like a label stuck across it. */
-  > .button {
-    border-color: transparent;
-    background: var(--color-cream);
-    color: var(--color-forest);
-    box-shadow:
-      0 10px 24px rgb(31 48 36 / 22%),
-      0 2px 4px rgb(31 48 36 / 12%);
-
-    &:hover:not(:disabled) {
-      border-color: transparent;
-      background: #fff;
-    }
-  }
+  gap: var(--space-5);
 }
 
 .home-header {
@@ -48,46 +19,102 @@
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--color-cream);
+  color: var(--color-primary-dark);
 }
 
+/* The shelf: the basket sits on the gold line, the greeting beside it. */
 .home-hero {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 104px;
-  padding-bottom: var(--space-3);
+  margin-top: var(--space-2);
+  border-bottom: 4px solid color-mix(in srgb, var(--color-basket) 55%, transparent);
+  border-radius: 0 0 2px 2px;
 }
 
 .home-greeting {
+  padding-bottom: var(--space-4);
   font-size: 34px;
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1.08;
   letter-spacing: -0.03em;
-  color: #fff;
+  color: var(--color-forest);
 }
 
 .home-basket {
   flex-shrink: 0;
-  width: 96px;
-  height: 96px;
+  width: 104px;
+  height: 104px;
+  /* The icon's box has empty space under the basket; this lands it on the shelf. */
+  margin-bottom: -10px;
   color: var(--color-basket);
+}
+
+/* Scan as a wide action tile: forest, with the barcode glyph in a cream disc and the label set
+   left like a list action, so it reads as the screen's one big thing to do. */
+.home > .button {
+  justify-content: flex-start;
+  gap: var(--space-4);
+  min-height: 72px;
+  margin-top: var(--space-1);
+  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-3);
+  border: none;
+  border-radius: var(--radius-xl);
+  background: var(--color-forest);
+  box-shadow:
+    0 10px 24px rgb(31 48 36 / 22%),
+    0 2px 4px rgb(31 48 36 / 12%);
+  font-size: 18px;
+  color: var(--color-cream);
+
+  .button-icon {
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    background: var(--color-cream);
+    color: var(--color-forest);
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+  }
+
+  &:focus-visible {
+    outline-color: var(--color-forest);
+  }
 }
 
 .home-items {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
 }
 
+/* The heading with a short shelf rule running out to the right. */
 .home-section-title {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-forest);
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 3px;
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-basket) 35%, transparent);
+  }
 }
 
 .home-item-list {
@@ -97,16 +124,13 @@
 }
 
 @media (max-width: 360px) {
-  .home {
-    --home-band-height: 236px;
-  }
-
   .home-greeting {
     font-size: 28px;
   }
 
   .home-basket {
-    width: 76px;
-    height: 76px;
+    width: 84px;
+    height: 84px;
+    margin-bottom: -8px;
   }
 }
