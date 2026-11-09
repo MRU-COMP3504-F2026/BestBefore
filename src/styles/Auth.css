@@ -1,61 +1,77 @@
+/* The sign-in screens share Home's language: a forest band with the basket mark and wordmark, and
+   the form on a white sheet rising over its lower edge. */
 .auth {
+  --auth-band-height: 300px;
+  position: relative;
+  isolation: isolate;
   width: 100%;
-  max-width: 400px;
+  max-width: 440px;
   min-height: 100svh;
   margin: 0 auto;
-  padding: calc(var(--space-10) + env(safe-area-inset-top)) var(--space-6)
+  padding: calc(var(--space-10) + env(safe-area-inset-top)) var(--space-5)
     calc(var(--space-8) + env(safe-area-inset-bottom));
   box-sizing: border-box;
   text-align: left;
   color: var(--color-text);
   font-size: 15px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--auth-band-height) + env(safe-area-inset-top));
+    border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+    background: linear-gradient(170deg, #36553f 0%, var(--color-forest) 70%);
+  }
 }
 
 .auth-logo {
-  width: 112px;
-  height: 112px;
+  width: 96px;
+  height: 96px;
   margin: 0 auto;
-  border-radius: 32px;
-  background: linear-gradient(145deg, var(--color-primary-light), #d3e6da);
-  box-shadow:
-    var(--shadow-md),
-    inset 0 0 0 1px rgb(255 255 255 / 70%);
+  border-radius: 28px;
+  background: var(--color-cream);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
   color: var(--color-basket);
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
   }
 }
 
 .auth .auth-title {
-  margin: var(--space-5) 0 var(--space-8);
+  margin: var(--space-4) 0 var(--space-6);
   text-align: center;
-  font-size: 38px;
+  font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--color-primary-dark);
+  color: var(--color-cream);
 }
 
-/* The fields sit together on one white card. */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: var(--space-5);
-  border: 1px solid rgb(31 48 36 / 6%);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    0 16px 40px rgb(31 48 36 / 14%),
+    0 2px 6px rgb(31 48 36 / 8%);
 
-  .text-field input {
-    box-shadow: none;
+  /* Inside the white sheet the fields switch to cream so they still read as slots. */
+  .text-field {
     background: var(--color-surface-muted);
+    box-shadow: none;
 
-    &:focus {
+    &:focus-within {
       background: var(--color-surface);
       box-shadow: var(--focus-ring);
     }
@@ -69,7 +85,10 @@
   text-underline-offset: 2px;
 }
 
+/* Forgot password sits in the field's label row; padding gives it a finger-sized target. */
 .auth-link-small {
+  margin: -10px -8px -10px 0;
+  padding: 10px 8px;
   font-size: 13px;
 }
 
@@ -79,6 +98,7 @@
 }
 
 .auth-form-error {
+  font-weight: 600;
   text-align: center;
 }
 
@@ -92,7 +112,7 @@
   font-size: 17px;
   font-weight: 650;
   min-height: 52px;
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   padding: 12px;
   border: none;
   border-radius: var(--radius-lg);
@@ -128,7 +148,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: var(--space-8) 0 var(--space-5);
+  margin: var(--space-6) var(--space-2) var(--space-4);
   font-size: 13px;
   color: var(--color-text-muted);
 
@@ -144,24 +164,43 @@
   text-align: center;
 }
 
+/* Past phone widths the band spans the whole window rather than hanging off the column. */
+@media (min-width: 560px) {
+  .auth::before {
+    left: calc(50% - 50vw);
+    right: calc(50% - 50vw);
+    border-radius: 0 0 48px 48px;
+  }
+}
+
 @media (max-height: 700px) {
   .auth {
+    --auth-band-height: 236px;
     padding-top: calc(var(--space-6) + env(safe-area-inset-top));
   }
 
   .auth-logo {
-    width: 88px;
-    height: 88px;
-    border-radius: 26px;
+    width: 76px;
+    height: 76px;
+    border-radius: 22px;
 
     svg {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
     }
   }
 
   .auth .auth-title {
     margin: var(--space-3) 0 var(--space-5);
-    font-size: 32px;
+    font-size: 30px;
   }
+}
+
+/* Forgot password's "check your email" note stands in for the form, so it takes the sheet's place. */
+.auth > .auth-message {
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
 }

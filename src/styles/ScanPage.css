@@ -19,7 +19,7 @@
      leaves room for the controls sheet that overlaps the camera's lower edge. */
   padding: calc(var(--space-4) + 44px + var(--space-3) + env(safe-area-inset-top)) var(--space-4)
     calc(var(--space-6) + var(--space-5));
-  background: linear-gradient(180deg, var(--color-primary-dark) 0%, var(--color-primary) 55%);
+  background: linear-gradient(180deg, #1f3327 0%, var(--color-forest) 60%);
 }
 
 /* Above the viewfinder, which would otherwise paint over these where they overlap. */

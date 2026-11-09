@@ -1,10 +1,10 @@
 .product-detail {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 
   .page-header {
-    margin-bottom: 0;
+    margin-bottom: var(--space-1);
   }
 
   .page-header-title {
@@ -13,6 +13,8 @@
   }
 }
 
+/* The picture and the date make one "label" card: the image or icon on top, the best-before date
+   below it on a tinted strip, separated by a perforation like a tear-off tag. */
 .product-detail-image {
   display: flex;
   align-items: center;
@@ -21,8 +23,7 @@
   aspect-ratio: 4 / 3;
   max-height: 260px;
   overflow: hidden;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 
   img {
     width: 100%;
@@ -34,7 +35,7 @@
 /* With no picture, the category icon needs only a short banner, not a photo-sized frame. */
 .product-detail-image:has(.product-detail-image-icon) {
   aspect-ratio: 16 / 7;
-  max-height: 180px;
+  max-height: 168px;
 }
 
 .product-detail-image-green {
@@ -44,7 +45,7 @@
 
 .product-detail-image-amber {
   background: var(--color-amber-light);
-  color: var(--color-text);
+  color: var(--color-amber-ink);
 }
 
 .product-detail-image-red {
@@ -54,59 +55,73 @@
 
 .product-detail-image-icon {
   display: flex;
-  padding: var(--space-5);
-  border-radius: var(--radius-full);
-  background: rgb(255 255 255 / 55%);
+  padding: var(--space-4);
+  border-radius: 28px;
+  background: rgb(255 255 255 / 65%);
+  box-shadow: 0 6px 16px rgb(31 48 36 / 8%);
 
   svg {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
   }
 }
 
 .product-detail-expiry {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-lg);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
+  /* Pulls up against the picture so the two read as one card. */
+  margin-top: calc(-1 * var(--space-3));
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+
+  /* The perforation along the top edge. */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: var(--space-5);
+    right: var(--space-5);
+    border-top: 2px dashed color-mix(in srgb, currentColor 30%, transparent);
+  }
 }
 
 .product-detail-expiry-green {
-  background: var(--color-primary-light);
   color: var(--color-primary-dark);
 }
 
 .product-detail-expiry-amber {
-  background: var(--color-amber-light);
-  color: #6b4610;
+  color: var(--color-amber-ink);
 }
 
 .product-detail-expiry-red {
-  background: var(--color-danger-light);
   color: var(--color-danger);
 }
 
 .product-detail-expiry-label {
-  font-size: var(--text-caption);
-  font-weight: 600;
+  margin-top: var(--space-1);
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 .product-detail-expiry-date {
   font-family: var(--font-display);
-  font-size: 21px;
-  font-weight: 750;
-  letter-spacing: -0.01em;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 /* An inset grouped list: the details sit together on one white card. */
 .product-detail-list {
-  margin: 0;
+  margin: var(--space-2) 0 0;
   padding: 0 var(--space-4);
-  border: 1px solid rgb(31 48 36 / 6%);
+  border: 1px solid rgb(31 48 36 / 7%);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
@@ -117,7 +132,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 50px;
+  min-height: 48px;
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-divider);
 
@@ -140,10 +155,16 @@
   }
 }
 
+.product-detail > .button:first-of-type {
+  margin-top: var(--space-2);
+}
+
 .button.product-detail-delete {
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
   color: var(--color-danger);
 
   &:hover:not(:disabled) {
     border-color: var(--color-danger);
+    background: var(--color-danger-light);
   }
 }
