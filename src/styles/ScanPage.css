@@ -15,9 +15,10 @@
   gap: var(--space-4);
   align-items: center;
   justify-content: center;
-  /* Top padding clears the close and flashlight buttons (16px offset + 44px button). */
-  padding: calc(var(--space-10) + var(--space-6) + env(safe-area-inset-top)) var(--space-5)
-    calc(var(--space-10) + var(--space-4));
+  /* Top padding clears the close and flashlight buttons (16px offset + 44px button); the bottom
+     leaves room for the controls sheet that overlaps the camera's lower edge. */
+  padding: calc(var(--space-4) + 44px + var(--space-3) + env(safe-area-inset-top)) var(--space-4)
+    calc(var(--space-6) + var(--space-5));
   background: linear-gradient(180deg, var(--color-primary-dark) 0%, var(--color-primary) 55%);
 }
 
@@ -117,23 +118,43 @@
   opacity: 0.8;
 }
 
+/* Wide enough for the toggle to sit between the close and flashlight buttons, like a camera app's
+   top bar, which gives its row to the viewfinder. */
+@media (min-width: 380px) {
+  .scan-camera {
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+  }
+
+  .scan-source {
+    min-height: 44px;
+    margin-bottom: var(--space-1);
+  }
+}
+
+/* Fills the camera area like a phone camera app: full width, growing into the height the controls
+   sheet leaves. Everything drawn on it (video, Quagga overlay, recognised box) uses a cover fit,
+   so the frame's shape doesn't move them off the image. */
 .scan-viewfinder {
+  --viewfinder-radius: 24px;
   position: relative;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 320px;
-  aspect-ratio: 4 / 3;
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.12);
+  max-width: 440px;
+  min-height: 220px;
+  max-height: 560px;
+  border-radius: var(--viewfinder-radius);
+  background: rgb(0 0 0 / 16%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
 }
 
 .scan-video {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: var(--radius-md);
+  border-radius: var(--viewfinder-radius);
 
   video {
     width: 100%;
@@ -160,8 +181,8 @@
 
 .scan-corner {
   position: absolute;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 4px solid #fff;
 }
 
@@ -170,7 +191,7 @@
   left: 0;
   border-right: none;
   border-bottom: none;
-  border-top-left-radius: var(--radius-md);
+  border-top-left-radius: var(--viewfinder-radius);
 }
 
 .scan-corner-tr {
@@ -178,7 +199,7 @@
   right: 0;
   border-left: none;
   border-bottom: none;
-  border-top-right-radius: var(--radius-md);
+  border-top-right-radius: var(--viewfinder-radius);
 }
 
 .scan-corner-bl {
@@ -186,7 +207,7 @@
   left: 0;
   border-right: none;
   border-top: none;
-  border-bottom-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--viewfinder-radius);
 }
 
 .scan-corner-br {
@@ -194,7 +215,7 @@
   right: 0;
   border-left: none;
   border-top: none;
-  border-bottom-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--viewfinder-radius);
 }
 
 .scan-barcode {
@@ -262,11 +283,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
   /* A sheet pulled up over the camera's bottom edge. */
   position: relative;
   margin-top: calc(-1 * var(--space-6));
-  padding: var(--space-5) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom));
+  padding: var(--space-4) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom));
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: var(--color-surface);
   box-shadow: 0 -8px 24px rgb(31 48 36 / 12%);
@@ -277,8 +298,8 @@
   color: var(--color-primary-dark);
 
   svg {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
   }
 }
 
@@ -316,7 +337,7 @@
   gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
   overflow: hidden;
-  border-radius: var(--radius-md);
+  border-radius: calc(var(--viewfinder-radius) - var(--space-2));
   background: var(--color-bg);
   color: var(--color-text);
   text-align: center;
@@ -368,7 +389,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: var(--radius-md);
+  border-radius: var(--viewfinder-radius);
 }
 
 .scan-recognized-frame,

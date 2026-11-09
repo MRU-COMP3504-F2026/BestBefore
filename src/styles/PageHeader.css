@@ -48,7 +48,14 @@
 
 .page-header-title {
   min-width: 0;
-  font-size: 26px;
-  font-weight: 750;
+  font-size: 30px;
+  font-weight: 800;
   line-height: 1.15;
+}
+
+/* A pushed screen (one with a back button) gets a compact bar title; tab roots keep the large one. */
+.page-header:has(.page-header-back) .page-header-title {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }

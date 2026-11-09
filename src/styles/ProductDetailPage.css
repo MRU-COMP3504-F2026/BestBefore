@@ -31,6 +31,12 @@
   }
 }
 
+/* With no picture, the category icon needs only a short banner, not a photo-sized frame. */
+.product-detail-image:has(.product-detail-image-icon) {
+  aspect-ratio: 16 / 7;
+  max-height: 180px;
+}
+
 .product-detail-image-green {
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
