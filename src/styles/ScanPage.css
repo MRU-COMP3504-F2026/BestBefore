@@ -16,8 +16,9 @@
   align-items: center;
   justify-content: center;
   /* Top padding clears the close and flashlight buttons (16px offset + 44px button). */
-  padding: calc(var(--space-10) + var(--space-6)) var(--space-5) var(--space-10);
-  background: var(--color-primary);
+  padding: calc(var(--space-10) + var(--space-6) + env(safe-area-inset-top)) var(--space-5)
+    calc(var(--space-10) + var(--space-4));
+  background: linear-gradient(180deg, var(--color-primary-dark) 0%, var(--color-primary) 55%);
 }
 
 /* Above the viewfinder, which would otherwise paint over these where they overlap. */
@@ -25,23 +26,35 @@
 .scan-torch {
   position: absolute;
   z-index: 1;
-  top: var(--space-4);
+  top: calc(var(--space-4) + env(safe-area-inset-top));
   left: var(--space-4);
   display: flex;
-  padding: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: none;
-  background: none;
+  border-radius: var(--radius-full);
+  background: rgb(0 0 0 / 18%);
   color: #fff;
   cursor: pointer;
+  transition: background-color 0.15s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 
   svg {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
+  }
+
+  &:hover {
+    background: rgb(0 0 0 / 28%);
   }
 
   &:focus-visible {
     outline: 2px solid #fff;
-    border-radius: var(--radius-sm);
+    outline-offset: 2px;
   }
 }
 
@@ -250,7 +263,13 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom));
+  /* A sheet pulled up over the camera's bottom edge. */
+  position: relative;
+  margin-top: calc(-1 * var(--space-6));
+  padding: var(--space-5) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--color-surface);
+  box-shadow: 0 -8px 24px rgb(31 48 36 / 12%);
 }
 
 .scan-controls-icon {
@@ -297,7 +316,7 @@
   gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-bg);
   color: var(--color-text);
   text-align: center;

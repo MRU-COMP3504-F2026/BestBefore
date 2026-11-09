@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: var(--space-8);
+  padding-top: var(--space-6);
 }
 
 .status-illustration {
@@ -71,19 +71,21 @@
 }
 
 .status-title {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .status-subtitle {
   margin-top: var(--space-2);
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
 }
 
 .status-caption {
-  margin-top: var(--space-2);
-  font-size: 18px;
+  margin-top: var(--space-1);
+  font-size: 16px;
   color: var(--color-text-muted);
 }
 
@@ -93,4 +95,15 @@
   gap: var(--space-3);
   width: 100%;
   margin-top: var(--space-8);
+}
+
+@media (max-height: 700px) {
+  .status-view {
+    padding-top: 0;
+  }
+
+  .status-illustration {
+    transform: scale(0.8);
+    margin: calc(-1 * var(--space-5)) 0 0;
+  }
 }
