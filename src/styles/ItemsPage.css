@@ -1,15 +1,42 @@
 .items {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 
   .page-header {
     margin-bottom: 0;
+  }
+
+  /* Add Item reads as an empty slot at the head of the list: a dashed card you fill in. */
+  > .button {
+    justify-content: flex-start;
+    min-height: 64px;
+    padding: var(--space-3) var(--space-4);
+    border: 1.5px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--color-primary-light) 45%, transparent);
+    box-shadow: none;
+    color: var(--color-primary-dark);
+
+    .button-icon {
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: #fff;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
+    }
   }
 }
 
 .items-list {
   list-style: none;
-  margin: 0;
+  margin: var(--space-1) 0 0;
   padding: 0;
 }

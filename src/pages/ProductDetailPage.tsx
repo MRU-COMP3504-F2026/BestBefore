@@ -107,14 +107,25 @@ export default function ProductDetailPage() {
     <div className="product-detail">
       <PageHeader title={item.name} backTo="/items" />
 
-      <ItemImage item={item} />
+      {/* The picture and the date, styled together as one tag. */}
+      <div className={`product-detail-tag product-detail-tag-${tone}`}>
+        <ItemImage item={item} />
 
-      <section className={`product-detail-expiry product-detail-expiry-${tone}`}>
-        <span className="product-detail-expiry-label">{EXPIRY_LABELS[tone]}</span>
-        <span className="product-detail-expiry-date">
-          {tone === 'red' ? 'Expired on' : 'Best before'} {formatDate(item.bestBefore)}
-        </span>
-      </section>
+        <section className={`product-detail-expiry product-detail-expiry-${tone}`}>
+          <span className="product-detail-expiry-label">{EXPIRY_LABELS[tone]}</span>
+          <span className="product-detail-expiry-date">
+            {tone === 'red' ? 'Expired on' : 'Best before'} {formatDate(item.bestBefore)}
+          </span>
+        </section>
+      </div>
+
+      <div className="product-detail-actions">
+        <Button variant="secondary" className="product-detail-edit" onClick={() => navigate(`/items/${item.id}/edit`)}>
+          Edit
+        </Button>
+
+        <DeleteItem item={item} />
+      </div>
 
       <dl className="product-detail-list">
         {detailRows(item).map(([label, value]) => (
@@ -124,12 +135,6 @@ export default function ProductDetailPage() {
           </div>
         ))}
       </dl>
-
-      <Button variant="secondary" onClick={() => navigate(`/items/${item.id}/edit`)}>
-        Edit
-      </Button>
-
-      <DeleteItem item={item} />
     </div>
   )
 }

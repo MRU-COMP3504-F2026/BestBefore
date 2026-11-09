@@ -1,20 +1,41 @@
+/* Home is a quiet utility screen in three layers: a small brand bar on the canvas, a raised white
+   panel holding the greeting and the one prominent Scan button, and a tinted sheet below holding
+   the soonest-expiring items on the shared cards. Elevation and surface tone, not ornament, keep
+   the three apart. */
 .home {
+  /* .app-content's bottom padding, which the sheet reaches through to the bottom of the screen. */
+  --home-bottom-space: calc(
+    var(--bottom-nav-height) + var(--bottom-nav-inset) + env(safe-area-inset-bottom) + var(--space-8)
+  );
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  /* At least a screen tall, so the sheet fills to the bottom even with few items. */
+  min-height: calc(100svh - var(--space-4) - env(safe-area-inset-top) - var(--home-bottom-space));
 }
 
 .home-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 48px;
 }
 
 .home-wordmark {
-  font-size: var(--text-title);
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--color-primary-dark);
+}
+
+/* Raised: white on the cream canvas with a soft shadow, the screen's starting point. */
+.home-start {
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid rgb(31 48 36 / 6%);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
 }
 
 .home-hero {
@@ -24,26 +45,66 @@
   gap: var(--space-4);
 }
 
+/* Same size and weight as the large titles on My Items, so Home reads as one of the tab roots. */
 .home-greeting {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--color-forest);
 }
 
+/* The basket as a plain glyph in the brand gold: no tile behind it, so it can't be mistaken for a
+   button next to the real profile button above. */
 .home-basket {
   flex-shrink: 0;
-  width: 120px;
-  height: 120px;
-  color: var(--color-primary-dark);
+  width: 44px;
+  height: 44px;
+  color: var(--color-basket);
+}
+
+/* The screen's one prominent action: the standard primary button, given a little more height. */
+.home-start > .button {
+  min-height: 56px;
+  margin-top: var(--space-5);
+}
+
+/* A faint green-tinted sheet running edge to edge and down past the nav, so the preview reads as
+   its own section while the white cards keep exactly the width they have on My Items. */
+.home-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-6) calc(-1 * var(--page-gutter)) calc(-1 * var(--home-bottom-space));
+  padding: var(--space-5) var(--page-gutter) calc(var(--home-bottom-space) + var(--space-4));
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  background: color-mix(in srgb, var(--color-primary-light) 55%, var(--color-surface-muted));
 }
 
 .home-section-title {
-  font-size: var(--text-heading);
-  font-weight: 700;
-  margin-bottom: var(--space-2);
+  font-size: var(--text-section);
+  font-weight: 750;
+  color: var(--color-text);
 }
 
 .home-item-list {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+@media (max-width: 360px) {
+  .home-start {
+    padding: var(--space-4);
+  }
+
+  .home-greeting {
+    font-size: 28px;
+  }
+
+  .home-basket {
+    width: 38px;
+    height: 38px;
+  }
 }

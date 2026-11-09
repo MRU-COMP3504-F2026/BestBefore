@@ -13,11 +13,27 @@
   --color-border: #d4d4d4;
   --color-divider: #e8e8e8;
   --color-bg: #fff;
+  /* The app canvas behind cards and grouped lists, a warm pantry cream so white surfaces lift off it. */
+  --color-surface-muted: #f6f4ee;
+  --color-surface: #fff;
+  /* The deepest brand green, for header bands and the nav bar; cream is the text on it. */
+  --color-forest: #2f4b38;
+  --color-cream: #fbf7ec;
+  --color-amber-ink: #7a4f0e;
 
   /* Shape */
   --radius-sm: 8px;
   --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
   --radius-full: 9999px;
+
+  /* Elevation, tinted with the brand green rather than plain black */
+  --shadow-sm: 0 1px 2px rgb(31 48 36 / 6%), 0 1px 1px rgb(31 48 36 / 4%);
+  --shadow-md: 0 4px 14px rgb(31 48 36 / 8%), 0 1px 3px rgb(31 48 36 / 6%);
+  --shadow-primary: 0 6px 16px rgb(59 94 69 / 28%);
+  --focus-ring: 0 0 0 3px rgb(79 122 90 / 28%);
 
   /* Spacing (4px scale) */
   --space-1: 4px;
@@ -30,20 +46,32 @@
   --space-10: 40px;
 
   /* Typography */
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI',
+    Roboto, 'Helvetica Neue', system-ui, sans-serif;
+  /* Rounded where the platform has it (SF Pro Rounded on Apple), matching the basket mark's soft
+     strokes; other platforms fall back to their display face. */
+  --font-display: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+    'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Helvetica Neue', system-ui, sans-serif;
   --text-caption: 13px;
   --text-body: 16px;
+  --text-section: 20px;
   --text-heading: 28px;
   --text-title: 40px;
 
   /* Layout */
   --app-max-width: 480px;
-  --bottom-nav-height: 64px;
+  --bottom-nav-height: 68px;
+  /* The floating nav's gap from the screen edges. */
+  --bottom-nav-inset: var(--space-3);
+  --page-gutter: var(--space-5);
 
-  font: var(--text-body) / 1.4 var(--font-sans);
+  font: var(--text-body) / 1.45 var(--font-sans);
   color-scheme: light;
   color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -58,6 +86,18 @@
 
 body {
   margin: 0;
+  background: var(--color-surface-muted);
+  /* Full-bleed header bands may reach past the column; clip (unlike hidden) keeps sticky working. */
+  overflow-x: clip;
+}
+
+/* Taps act at once, without the double-tap zoom delay. */
+a,
+button,
+input,
+select,
+label {
+  touch-action: manipulation;
 }
 
 #root {
@@ -69,4 +109,22 @@ h2,
 h3,
 p {
   margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
