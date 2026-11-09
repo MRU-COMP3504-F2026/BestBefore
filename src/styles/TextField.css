@@ -28,7 +28,7 @@
       box-shadow 0.15s;
 
     &::placeholder {
-      color: #8a8f88;
+      color: #747a72;
     }
 
     &:focus {
