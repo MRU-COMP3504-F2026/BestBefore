@@ -80,3 +80,27 @@ Tests do not need real secrets because the server test config uses placeholder v
 `npm run test:coverage`
 
 `npm run build`: client to dist/, server via server/tsconfig.json
+
+# Beta Features
+
+- **Accounts:** Register, log in and log out through Neon Auth. Every inventory route needs a signed-in user, and each user sees only their own items (auth environment flag true uses a test dev user without needed log in).
+
+- **Barcode Scanning:** Scan a product with the device camera. BestBefore checks its shared product catalog first, then Open Food Facts, UPCitemdb and, if a key is set, Go-UPC. It prefills the name, brand and barcode in an add item form.
+
+- **AI Vision:** Take a photo of an item that has no barcode. Gemini prefills the name, plus brand, category and quantity when it is confident, and the photo is kept on user's item.
+
+- **Best-before Suggestions:** The app suggests a date from the USDA FoodKeeper shelf-life data. Gemini can optionally help pick the FoodKeeper match. A suggested date is only used when you press "Use <date>"; otherwise user sets the date themselves.
+
+- **Manual Add and Edit:** Add items manually via an add item form, and edit name, brand, category, quantity and dates from the item detail page.
+
+- **Expiry Views:** Home previews the items expiring soonest and My Items lists everything, soonest first. Expired items show in red with "Expired on <date>".
+
+- **Deleting Items:** Delete items via option inside specific item detail pages or via removal option on an expired item's card in My Items.
+
+### Known Limitations
+
+- Forgot password is a placeholder and sends no email.
+
+- AI features need `GEMINI_API_KEY`. They are rate limited per user and use paid Gemini quota.
+
+- Suggested dates are estimates. Always check the date printed on the package.
