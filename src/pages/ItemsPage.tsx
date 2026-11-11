@@ -43,7 +43,7 @@ export default function ItemsPage() {
     document.title = 'BestBefore | My Inventory'
   }, [])
 
-  // 1. FILTER
+  // filter
   let processedData = data || [];
   if (data) {
     processedData = data.filter((item) => {
@@ -51,7 +51,7 @@ export default function ItemsPage() {
       return getExpiryState(item.bestBefore) === activeFilter;
     });
 
-    // 2. SORT
+    // sort
     processedData.sort((a, b) => {
       switch (sortOption) {
         case 'expiry-asc':

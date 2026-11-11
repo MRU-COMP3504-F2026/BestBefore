@@ -13,8 +13,8 @@ import '../styles/InventoryList.css'
 type InventoryListProps = {
   className?: string
   removeExpired?: boolean
-  data: InventoryItem[] // NEW: Passed from parent
-  activeFilter: string // NEW: Used to reset animations
+  data: InventoryItem[] 
+  activeFilter: string 
 }
 
 function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; removeExpired: boolean }) {
@@ -22,8 +22,6 @@ function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; remov
   const [confirming, setConfirming] = useState(false)
   const tone = expiryTone(item.bestBefore)
   
-  // Note: useItemImageSrc is a hook, but it's being called inside the JSX here.
-  // It's safer to call it at the top of InventoryItemCard:
   const imageSrc = useItemImageSrc(item)
 
   const card = (
