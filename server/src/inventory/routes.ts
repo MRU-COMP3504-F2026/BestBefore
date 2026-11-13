@@ -1,5 +1,5 @@
 import express from 'express'
-import { and, asc, eq, isNotNull } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { withFoodName } from '../../../testscripts/normalizer.js'
 import { requireAuth } from '../auth/requireAuth.js'
@@ -263,6 +263,41 @@ inventoryRouter.delete('/:id', requireAuth, async (req, res) => {
     const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
     console.error(`Inventory delete failed: ${err instanceof Error ? err.message : err}${cause}`)
     res.status(500).json({ error: "Couldn't delete your item. Please try again." })
+  }
+})
+
+
+// Most items one request may remove.
+const MAX_BULK_DELETE = 500
+
+// A list of item ids. The upper id bound is the largest value a Postgres integer holds, so an
+// oversized number is a 400 here rather than a database error.
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.number().int().min(1).max(2_147_483_647)).min(1).max(MAX_BULK_DELETE),
+})
+
+// Deletes several of the signed-in user's items in one statement and returns the ids actually
+// removed. Ids that are missing or belong to someone else are skipped, not an error, so they
+// can't be probed. Only inventory_items is written, as for a single delete.
+inventoryRouter.delete('/', requireAuth, async (req, res) => {
+  const parsed = bulkDeleteSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Choose at least one item to remove.' })
+    return
+  }
+  const ids = [...new Set(parsed.data.ids)]
+
+  try {
+    const removed = await db
+      .delete(inventoryItems)
+      .where(and(inArray(inventoryItems.id, ids), eq(inventoryItems.userId, res.locals.user!.id)))
+      .returning({ id: inventoryItems.id })
+
+    res.json({ ids: removed.map((row) => row.id) })
+  } catch (err) {
+    const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
+    console.error(`Inventory bulk delete failed: ${err instanceof Error ? err.message : err}${cause}`)
+    res.status(500).json({ error: "Couldn't remove your items. Please try again." })
   }
 })
 
