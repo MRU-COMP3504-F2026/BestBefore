@@ -157,3 +157,22 @@
   height: 20px;
   color: color-mix(in srgb, var(--color-text-muted) 70%, transparent);
 }
+
+.item-card-selected {
+  outline: 3px solid #4f7c59;
+}
+.item-card-check {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #9aa79d;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-weight: 700;
+  color: #fff;
+}
+.item-card-check-on {
+  background: #4f7c59;
+  border-color: #4f7c59;
+}
