@@ -1,6 +1,7 @@
 import request from 'supertest'
 import { lookupProduct } from '../../../testscripts/normalizer.js'
 import { app } from '../app.js'
+import { findItem } from '../food/items.js'
 import { LOOKUP_PER_MINUTE, resetLookupLimits } from '../food/rateLimit.js'
 
 // The items table is covered by items.test.ts, against a real Postgres.
@@ -125,6 +126,42 @@ describe('GET /api/food/barcode/:barcode', () => {
       imageUrl: 'https://images.test/milk.jpg',
       ingredients: 'Milk',
     })
+  })
+
+  // #183/#186: localized Open Facts fields in English when there is an English version.
+  it('asks Open Facts for English', async () => {
+    answer({ openFacts: OPEN_FACTS_HIT })
+
+    await lookup()
+
+    const [url] = fetchMock.mock.calls.find(([called]) => called.includes('openfoodfacts'))!
+    expect(new URL(url).searchParams.get('lc')).toBe('en')
+  })
+
+  // #186: a French-only category still gets our label, from the English tags.
+  it('labels a product whose category text is French from its English tags', async () => {
+    answer({
+      openFacts: {
+        ...OPEN_FACTS_HIT,
+        product: { ...OPEN_FACTS_HIT.product, categories: 'Produits laitiers, Laits', categories_tags: ['en:dairies', 'en:milks'] },
+      },
+    })
+
+    expect((await lookup()).body.category).toBe('Dairy')
+  })
+
+  // #186: the saved row is JSONB nobody checks on the way out. A malformed one is answered, not a crash.
+  it('answers a saved row whose category is malformed', async () => {
+    vi.mocked(findItem).mockResolvedValueOnce({
+      barcode: '00012345678905',
+      payload: { ...OPEN_FACTS_HIT.product, source: 'Open Facts', category: { fr: 'Laits' }, categoryTags: 'en:milks' },
+    } as never)
+
+    const response = await lookup()
+
+    expect(response.status).toBe(200)
+    expect(response.body.category).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('says not found only when every database answered', async () => {

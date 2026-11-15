@@ -301,4 +301,22 @@ describe('appCategory', () => {
   ])('%s -> %s', (text, label) => {
     expect(appCategory(text)).toBe(label)
   })
+
+  // #186: a category only in French ("Aliments pour bébés") gave no label, though the English tags say.
+  it('falls back to the English tags when the category text gives no label', () => {
+    expect(appCategory('Aliments pour bébés, Compotes', ['en:baby-foods', 'fr:compotes', 'en:fruit-purees'])).toBe(
+      'Produce',
+    )
+    expect(appCategory(null, ['en:dairies', 'en:milks'])).toBe('Dairy')
+    // Open Food Facts' top levels say nothing: these are not drinks.
+    expect(appCategory('Plant-based foods', ['en:plant-based-foods-and-beverages', 'en:plant-based-foods'])).toBeNull()
+    // The category text still wins when it gives a label.
+    expect(appCategory('Breakfast cereals', ['en:dairies'])).toBe('Pantry')
+  })
+
+  // #186: a saved JSONB row is not checked, so a malformed one must not throw.
+  it.each([[42], [{ en: 'Milks' }], [['Milks']]])('treats a malformed category %j as none', (category) => {
+    expect(appCategory(category, 'en:milks')).toBeNull()
+    expect(appCategory(category, [7, 'en:milks'])).toBe('Dairy')
+  })
 })

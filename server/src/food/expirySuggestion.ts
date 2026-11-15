@@ -105,8 +105,20 @@ const CATEGORY_RULES: [RegExp, string][] = [
 // specific, so they are read from the end. Open Food Facts contributors don't always follow
 // that, which is one reason this label is only a hint. Accents are folded first: \b ends a word at
 // any accented letter, so "Pâtes" would otherwise be read as "p" and "tes".
-export function appCategory(category: string | null): string | null {
-  for (const segment of categorySegments(category).reverse()) {
+// A category with no label (often French: "Produits laitiers") falls back to the record's English
+// tags, leaving out the broad top levels every product has ("Plant-based foods and beverages" is not
+// a drink). Both can come from a saved JSONB row, so anything that isn't text or a list counts as none.
+export function appCategory(category: unknown, tags?: unknown): string | null {
+  const text = typeof category === 'string' ? category : null
+  return (
+    labelFor(categorySegments(text).reverse()) ??
+    labelFor(tagSegments(tags as string[] | null).filter((segment) => !isBroad(segment)))
+  )
+}
+
+// The first segment, most specific first, that a rule recognises.
+function labelFor(segments: string[]): string | null {
+  for (const segment of segments) {
     const text = foldText(segment).toLowerCase()
     for (const [pattern, label] of CATEGORY_RULES) {
       if (pattern.test(text)) return label

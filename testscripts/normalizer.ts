@@ -110,8 +110,10 @@ const sources: ProductSource[] = [
       // Path segment, then a fields query. encodeURIComponent is
       // redundant for digits and keeps the path safe if the input
       // check is ever loosened.
+      // lc=en asks for the English version of localized fields where one
+      // exists. FoodKeeper is English, so a French name finds nothing.
       `https://world.openfoodfacts.org/api/v3/product/${encodeURIComponent(barcode)}` +
-      `?fields=${openFactsFields}`,
+      `?fields=${openFactsFields}&lc=en`,
     headers: () => ({
       "User-Agent": "BestBefore/0.1 (development playground)",
       Accept: "application/json",
@@ -822,6 +824,16 @@ export function aggregate(
 
   for (const field of mergedFields) {
     merged[field] = pick(products, field);
+  }
+
+  // A name that isn't English gives FoodKeeper nothing to search. A
+  // kept listing (so one that shares a word with Open Facts) with an
+  // English title names the same product in words the engine can read.
+  if (merged.name && !looksEnglish(merged.name)) {
+    const english = sourceOrder
+      .map((name) => products.find((product) => product.source === name)?.name)
+      .find((name) => name && looksEnglish(name));
+    if (english) merged.name = english;
   }
 
   // Only Open Facts has tags, so this is its list or null.
