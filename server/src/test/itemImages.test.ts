@@ -191,12 +191,13 @@ describe('AI Vision photos', () => {
 
   it('leaves no photo behind when the save itself fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    // With the user gone from Neon Auth, the insert fails on its foreign key.
+    // With the user gone from Neon Auth, the insert fails on its foreign key (asked to sign in
+    // again since #187).
     await db.execute(sql`DELETE FROM neon_auth."user" WHERE id = ${DEV_USER.id}`)
     try {
       const response = await post({ ...ITEM, photo: PHOTO })
 
-      expect(response.status).toBe(500)
+      expect(response.status).toBe(401)
       expect(await savedRows()).toEqual([])
     } finally {
       await db.execute(sql`INSERT INTO neon_auth."user" (id) VALUES (${DEV_USER.id})`)

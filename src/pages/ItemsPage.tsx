@@ -21,6 +21,10 @@ export default function ItemsPage() {
         Add Item
       </Button>
 
+      <Button variant="secondary" onClick={() => navigate('/items/remove')}>
+        Remove Items
+      </Button>
+
       <InventoryList className="items-list" removeExpired />
       
       

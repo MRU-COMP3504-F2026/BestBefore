@@ -1,5 +1,5 @@
 import express from 'express'
-import { and, asc, eq, isNotNull } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { withFoodName } from '../../../testscripts/normalizer.js'
 import { requireAuth } from '../auth/requireAuth.js'
@@ -9,6 +9,7 @@ import { appCategory, suggestionFromShelfLife, type ExpirySuggestion } from '../
 import { describesRecord, findItem, rememberPhotoItem } from '../food/items.js'
 import { isShareableText, isValidGtin, photoProduct, verifyPhotoProvenance } from '../food/photoItems.js'
 import { ItemImageError, itemImageColumns, MAX_IMAGE_URL_LENGTH, MAX_PHOTO_DATA_URL_LENGTH } from './itemImages.js'
+
 
 export const inventoryRouter = express.Router()
 
@@ -85,6 +86,13 @@ function itemId(raw: unknown): number | null {
   return Number.isSafeInteger(id) && id >= 1 ? id : null
 }
 
+// A Postgres foreign key violation (23503) on the owner column. Drizzle puts the driver's error on
+// `cause`.
+function isUnknownOwner(err: unknown): boolean {
+  const pg = err instanceof Error ? (err.cause as { code?: unknown; constraint?: unknown } | undefined) : undefined
+  return pg?.code === '23503' && pg.constraint === 'inventory_items_user_id_user_id_fk'
+}
+
 const NO_SAVED_SHELF_LIFE = 'No saved suggestion for this item. Check the package and enter the date.'
 
 // The signed-in user's items, soonest best-before first.
@@ -144,6 +152,13 @@ inventoryRouter.post('/', requireAuth, async (req, res) => {
   } catch (err) {
     const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
     console.error(`Inventory add failed: ${err instanceof Error ? err.message : err}${cause}`)
+    if (isUnknownOwner(err)) {
+      // The JWT verified, but its user isn't in this database's neon_auth.user: NEON_AUTH_URL (or
+      // VITE_NEON_AUTH_URL) and DATABASE_URL point at different Neon branches or projects.
+      console.error(`Inventory add: user ${userId} is not in this database. Check the Neon Auth and database URLs match.`)
+      res.status(401).json({ error: "Your sign-in doesn't match this server. Sign out and sign in again." })
+      return
+    }
     res.status(500).json({ error: "Couldn't save your item. Please try again." })
     return
   }
@@ -266,6 +281,41 @@ inventoryRouter.delete('/:id', requireAuth, async (req, res) => {
   }
 })
 
+
+// Most items one request may remove.
+const MAX_BULK_DELETE = 500
+
+// A list of item ids. The upper id bound is the largest value a Postgres integer holds, so an
+// oversized number is a 400 here rather than a database error.
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.number().int().min(1).max(2_147_483_647)).min(1).max(MAX_BULK_DELETE),
+})
+
+// Deletes several of the signed-in user's items in one statement and returns the ids actually
+// removed. Ids that are missing or belong to someone else are skipped, not an error, so they
+// can't be probed. Only inventory_items is written, as for a single delete.
+inventoryRouter.delete('/', requireAuth, async (req, res) => {
+  const parsed = bulkDeleteSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Choose at least one item to remove.' })
+    return
+  }
+  const ids = [...new Set(parsed.data.ids)]
+
+  try {
+    const removed = await db
+      .delete(inventoryItems)
+      .where(and(inArray(inventoryItems.id, ids), eq(inventoryItems.userId, res.locals.user!.id)))
+      .returning({ id: inventoryItems.id })
+
+    res.json({ ids: removed.map((row) => row.id) })
+  } catch (err) {
+    const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
+    console.error(`Inventory bulk delete failed: ${err instanceof Error ? err.message : err}${cause}`)
+    res.status(500).json({ error: "Couldn't remove your items. Please try again." })
+  }
+})
+
 // A best-before suggestion for one of the signed-in user's items bought on ?purchaseDate, from the
 // shelf life already saved for its barcode. Read only: no engine, no Gemini and no write, so an edit
 // never changes the shared row. No saved shelf life, or one the item no longer describes, is an
@@ -310,7 +360,7 @@ inventoryRouter.get('/:id/expiry-suggestion', requireAuth, async (req, res) => {
       brand: item.brand,
       barcode: item.barcode,
       // Our label as the user saved it, else the one the record's own category maps to.
-      category: item.category ?? appCategory(saved.payload.category),
+      category: item.category ?? appCategory(saved.payload.category, saved.payload.categoryTags),
       productCategory: saved.payload.category,
       categoryTags: saved.payload.categoryTags ?? null,
       ingredients: saved.payload.ingredients ?? null,

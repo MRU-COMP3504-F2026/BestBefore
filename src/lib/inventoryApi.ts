@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import {  useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { ApiError, apiFetch } from './api'
 import { getApiToken } from './authClient'
@@ -83,6 +83,13 @@ export async function deleteInventoryItem(id: number): Promise<void> {
   const body = await apiFetch<unknown>(`/inventory/${id}`, { method: 'DELETE' })
   z.object({ id: z.literal(id) }).parse(body)
 }
+// Deletes several of the signed-in user's items in one request and returns the ids the server
+// actually removed. Ids that were already gone are skipped, so the list can be shorter than the
+// one sent. Mirrors DELETE / in server/src/inventory/routes.ts.
+export async function deleteInventoryItems(ids: number[]): Promise<number[]> {
+  const body = await apiFetch<unknown>('/inventory', { method: 'DELETE', body: JSON.stringify({ ids }) })
+  return z.object({ ids: z.array(z.number()) }).parse(body).ids
+}
 
 // A best-before suggestion for one of the user's items bought on purchaseDate, from the shelf life
 // already saved for it. Only offered: nothing changes until the user accepts it and saves.
@@ -110,6 +117,15 @@ export async function fetchItemPhoto(id: number, signal?: AbortSignal): Promise<
 
 export function useInventory() {
   return useQuery({ queryKey: INVENTORY_QUERY_KEY, queryFn: fetchInventory })
+}
+
+// Removes the given items, then refetches the list so every page that shows it updates.
+export function useDeleteInventoryItems() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteInventoryItems,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: INVENTORY_QUERY_KEY }),
+  })
 }
 
 // Whole days from today to an ISO date; negative once it has passed.

@@ -157,7 +157,8 @@ describe('ItemsPage', () => {
       renderItems()
 
       await screen.findAllByRole('listitem')
-      expect(screen.getAllByRole('button', { name: /^Remove/ })).toHaveLength(1)
+      // expect(screen.getAllByRole('button', { name: /^Remove/ })).toHaveLength(1)
+      expect(screen.getAllByRole('button', { name: /^Remove (?!Items)/ })).toHaveLength(1)
       expect(screen.getByRole('button', { name: 'Remove Milk 2%' })).toBeInTheDocument()
       for (const name of ['Baby Spinach', 'Large Eggs', 'Old Cheddar', 'Diced Tomatoes']) {
         expect(screen.queryByRole('button', { name: `Remove ${name}` })).not.toBeInTheDocument()

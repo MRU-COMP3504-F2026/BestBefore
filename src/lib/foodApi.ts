@@ -86,9 +86,10 @@ const productFields = {
   brand: z.string().nullable(),
   description: z.string().nullable(),
   quantity: z.string().nullable(),
-  category: z.string().nullable(),
+  // A malformed saved row counts as no category, as on the server, rather than failing the scan.
+  category: z.string().nullable().catch(null),
   // Missing on records saved before the normalizer kept tags.
-  categoryTags: z.array(z.string()).nullable().optional(),
+  categoryTags: z.array(z.string()).nullable().optional().catch(null),
   imageUrl: z.string().nullable(),
   ingredients: z.string().nullable(),
 }

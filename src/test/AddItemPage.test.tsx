@@ -312,6 +312,13 @@ describe('AddItemPage', () => {
     })
 
     it('saves the accepted date with the mapped category, not the package size', async () => {
+      // "Expires", not "Expired": the suggested date has to be in the future. Only Date is faked, so
+      // userEvent and the debounce still run on real timers.
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2026, 10, 7, 12))
+      onTestFinished(() => {
+        vi.useRealTimers()
+      })
       fakeApi(SUGGESTED)
       const purchase = '2026-11-07'
       renderAddItem(MILK)

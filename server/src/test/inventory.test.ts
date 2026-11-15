@@ -177,4 +177,23 @@ describe('POST /api/inventory', () => {
     expect(response.status).toBe(500)
     expect(response.body).toEqual({ error: "Couldn't save your item. Please try again." })
   })
+
+  // #187: a valid JWT from a Neon Auth project whose users aren't in this database lists an empty
+  // inventory fine, but every add broke the owner foreign key and came back as a generic 500.
+  it('asks a signed-in user missing from this database to sign in again', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    stubInsert(async () => {
+      throw new Error('Failed query: insert into "inventory_items" ...', {
+        cause: Object.assign(new Error('insert or update violates foreign key constraint'), {
+          code: '23503',
+          constraint: 'inventory_items_user_id_user_id_fk',
+        }),
+      })
+    })
+
+    const response = await post(NEW_ITEM)
+
+    expect(response.status).toBe(401)
+    expect(response.body.error).toMatch(/sign out and sign in again/i)
+  })
 })
