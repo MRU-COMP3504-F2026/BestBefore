@@ -99,9 +99,7 @@ const CATEGORY_RULES: [RegExp, string][] = [
   [/\b(beverages?|drinks?|boissons?|sodas?|colas?|waters?|juices?|jus|coffees?|teas?)\b/, 'Beverages'],
   [/\b(breads?|bakery|baked goods|biscuits?|cookies|cakes?|pastries)\b/, 'Bakery'],
   [
-    // Shop-bought purees and compotes are shelf stable: "Fruit purees" as Produce kept applesauce
-    // from its commercial row.
-    /\b(pantry|groceries|cereals?|muesli|granola|pastas?|spaghetti|noodles?|rice|spreads?|sauces?|applesauces?|purees?|compotes?|ketchup|condiments?|canned|snacks?|crisps|pretzels?|chocolates?|confectioner(y|ies)|sweets?|grains?|legumes?|beans?|nuts?|almonds?|oils?)\b/,
+    /\b(pantry|groceries|cereals?|muesli|granola|pastas?|spaghetti|noodles?|rice|spreads?|sauces?|ketchup|condiments?|canned|snacks?|crisps|pretzels?|chocolates?|confectioner(y|ies)|sweets?|grains?|legumes?|beans?|nuts?|almonds?|oils?)\b/,
     'Pantry',
   ],
   [/\b(fruits?|vegetables?|produce)\b/, 'Produce'],
@@ -116,10 +114,36 @@ const CATEGORY_RULES: [RegExp, string][] = [
 // a drink). Both can come from a saved JSONB row, so anything that isn't text or a list counts as none.
 export function appCategory(category: unknown, tags?: unknown): string | null {
   const text = typeof category === 'string' ? category : null
-  return (
-    labelFor(categorySegments(text).reverse()) ??
-    labelFor(tagSegments(tags as string[] | null).filter((segment) => !isBroad(segment)))
-  )
+  const segments = categorySegments(text).reverse()
+  const tagged = tagSegments(tags as string[] | null).filter((segment) => !isBroad(segment))
+  const puree = pureeStorage([...segments, ...tagged])
+  if (puree) return puree === 'pantry' ? 'Pantry' : puree === 'freezer' ? 'Frozen' : null
+  return labelFor(segments) ?? labelFor(tagged)
+}
+
+// Purées and compotes are sold shelf stable, refrigerated and frozen, and FoodKeeper's only purée
+// row is commercial applesauce (Shelf Stable, 12 to 18 months). Only an explicit cue says which:
+// a cold one wins, and a purée with neither is unknown, so it gets no label and no pantry date.
+// Applesauce counts as shelf stable because FoodKeeper's own split is commercial or homemade, and a
+// scanned barcode is commercial.
+const PUREE = /\b(purees?|compotes?|applesauces?|apple sauces?)\b/
+const FROZEN_CUE = /\b(frozen|surgelees?|congelees?)\b/
+const FRIDGE_CUE = /\b(refrigerated|chilled|fresh|frais|fraiches?|refrigerees?)\b/
+const SHELF_STABLE_CUE = /\b(shelf stable|canned|jars?|jarred|pouch(es)?|cups?|applesauces?|apple sauces?)\b/
+
+// How a purée says it is kept, or null for anything that is not a purée.
+function pureeStorage(texts: string[]): 'pantry' | 'fridge' | 'freezer' | 'unknown' | null {
+  const text = texts.map(segmentKey).join(' | ')
+  if (!PUREE.test(text)) return null
+  if (FROZEN_CUE.test(text)) return 'freezer'
+  if (FRIDGE_CUE.test(text)) return 'fridge'
+  return SHELF_STABLE_CUE.test(text) ? 'pantry' : 'unknown'
+}
+
+// A pantry date for a purée that doesn't say it is shelf stable, whatever row the name reached.
+function isUnsafePantryPuree(storage: string, input: ExpiryInput): boolean {
+  const puree = pureeStorage([input.name, ...categoryText(input)])
+  return storage === 'pantry' && puree !== null && puree !== 'pantry'
 }
 
 // The first segment, most specific first, that a rule recognises.
@@ -420,6 +444,8 @@ function toSuggestion(result: HybridResult, fromName: boolean, input: ExpiryInpu
     return noDate(result.selected && isDrinkRow(result.selected.id) ? NO_DRINK_DATE : NO_SUGGESTION)
   }
 
+  if (isUnsafePantryPuree(result.range.storage, input)) return noDate(NO_SUGGESTION)
+
   const match = {
     ...result.range,
     storage: result.range.storage as Storage,
@@ -527,6 +553,7 @@ export function suggestionFromShelfLife(input: ExpiryInput, stored: unknown): Ex
   if (isUnfoundedNutritionDrink(shelfLife.foodKeeperId, input)) return noDate(NO_DRINK_DATE)
   if (isUnfounded(shelfLife.foodKeeperId, input)) return null
   if (sharesOnlyColor(shelfLife.foodKeeperId, productText(input))) return null
+  if (isUnsafePantryPuree(shelfLife.storage, input)) return null
 
   // Anything that no longer matches what FoodKeeper says now, length included, is not reused.
   const current = shelfLifeOf(shelfLife.foodKeeperId, shelfLife)
