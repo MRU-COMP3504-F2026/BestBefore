@@ -1,0 +1,10 @@
+/* Rendered after the routed page, so keep it in the app column and clear the fixed bottom nav. */
+.install-app {
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--page-gutter);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-inset) + env(safe-area-inset-bottom) + var(--space-3));
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+  text-align: center;
+}
