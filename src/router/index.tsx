@@ -14,6 +14,7 @@ import AddItemPage from '../pages/AddItemPage'
 import RequireAuth from '../components/RequireAuth'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import EditItemPage from '../pages/EditItemPage'
+import RemoveItemsPage from '../pages/RemoveItemsPage'
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
       {
         path: '/items',
         element: <ItemsPage />,
+      },
+      {
+        path: '/items/remove',
+        element: <RemoveItemsPage />,
       },
       {
         path: '/items/:id',
