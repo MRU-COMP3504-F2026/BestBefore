@@ -110,8 +110,10 @@ const sources: ProductSource[] = [
       // Path segment, then a fields query. encodeURIComponent is
       // redundant for digits and keeps the path safe if the input
       // check is ever loosened.
+      // lc=en asks for the English version of localized fields where one
+      // exists. FoodKeeper is English, so a French name finds nothing.
       `https://world.openfoodfacts.org/api/v3/product/${encodeURIComponent(barcode)}` +
-      `?fields=${openFactsFields}`,
+      `?fields=${openFactsFields}&lc=en`,
     headers: () => ({
       "User-Agent": "BestBefore/0.1 (development playground)",
       Accept: "application/json",
@@ -293,12 +295,13 @@ function productWasFound(
     case "UPCitemdb":
       // total: 0 and items: [] is their miss, delivered as 200.
       // Both are checked so a total without an item, or an item
-      // with a zero total, does not count.
+      // with a zero total, does not count. An item that isn't an
+      // object ([null]) has nothing to normalize, so it is a miss too.
       return (
         typeof data.total === "number" &&
         data.total > 0 &&
         Array.isArray(data.items) &&
-        data.items.length > 0
+        isRecord(data.items[0])
       );
 
     case "Go-UPC":
@@ -486,8 +489,10 @@ export function cleanTitle(name: string | null): string | null {
 const NOT_ENGLISH_WORDS =
   /\b(et|aux?|du|des|les?|la|de|avec|sans|und|mit|con|di|del|della|y)\b/i;
 
+// Letters outside a-z (an accent, "ß", Chinese, Cyrillic) or a combining
+// mark (an accent already decomposed) mean the text is not English.
 function looksEnglish(text: string): boolean {
-  return text.normalize("NFD") === text && !NOT_ENGLISH_WORDS.test(text);
+  return !/[^\P{L}a-zA-Z]|\p{M}/u.test(text) && !NOT_ENGLISH_WORDS.test(text);
 }
 
 // "Ingredients: Yellow creamer potatoes." -> "Yellow creamer potatoes".
@@ -822,6 +827,31 @@ export function aggregate(
 
   for (const field of mergedFields) {
     merged[field] = pick(products, field);
+  }
+
+  // A name that isn't English gives FoodKeeper nothing to search. A
+  // kept listing with an English title names the same product in words
+  // the engine can read, but only when it shares a word with Open Facts'
+  // name or two narrowest English tags other than the brand: "Gerber"
+  // alone, or another Gerber product, is not this purée. Broader tags
+  // ("en:baby-foods") fit every product of the line.
+  if (merged.name && !looksEnglish(merged.name)) {
+    const brand = new Set(products.flatMap((product) => words(product.brand)));
+    const food = new Set(
+      [
+        ...words(merged.name),
+        ...(openFacts?.categoryTags ?? []).slice(-2).flatMap((tag) => words(tag.slice(3))),
+      ].filter((word) => !brand.has(word)),
+    );
+    const english = sourceOrder
+      .map((name) => products.find((product) => product.source === name)?.name)
+      .find(
+        (name) =>
+          name &&
+          looksEnglish(name) &&
+          words(name).some((word) => food.has(word)),
+      );
+    if (english) merged.name = english;
   }
 
   // Only Open Facts has tags, so this is its list or null.

@@ -86,6 +86,13 @@ function itemId(raw: unknown): number | null {
   return Number.isSafeInteger(id) && id >= 1 ? id : null
 }
 
+// A Postgres foreign key violation (23503) on the owner column. Drizzle puts the driver's error on
+// `cause`.
+function isUnknownOwner(err: unknown): boolean {
+  const pg = err instanceof Error ? (err.cause as { code?: unknown; constraint?: unknown } | undefined) : undefined
+  return pg?.code === '23503' && pg.constraint === 'inventory_items_user_id_user_id_fk'
+}
+
 const NO_SAVED_SHELF_LIFE = 'No saved suggestion for this item. Check the package and enter the date.'
 
 // The signed-in user's items, soonest best-before first.
@@ -145,6 +152,13 @@ inventoryRouter.post('/', requireAuth, async (req, res) => {
   } catch (err) {
     const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
     console.error(`Inventory add failed: ${err instanceof Error ? err.message : err}${cause}`)
+    if (isUnknownOwner(err)) {
+      // The JWT verified, but its user isn't in this database's neon_auth.user: NEON_AUTH_URL (or
+      // VITE_NEON_AUTH_URL) and DATABASE_URL point at different Neon branches or projects.
+      console.error(`Inventory add: user ${userId} is not in this database. Check the Neon Auth and database URLs match.`)
+      res.status(401).json({ error: "Your sign-in doesn't match this server. Sign out and sign in again." })
+      return
+    }
     res.status(500).json({ error: "Couldn't save your item. Please try again." })
     return
   }
@@ -346,7 +360,7 @@ inventoryRouter.get('/:id/expiry-suggestion', requireAuth, async (req, res) => {
       brand: item.brand,
       barcode: item.barcode,
       // Our label as the user saved it, else the one the record's own category maps to.
-      category: item.category ?? appCategory(saved.payload.category),
+      category: item.category ?? appCategory(saved.payload.category, saved.payload.categoryTags),
       productCategory: saved.payload.category,
       categoryTags: saved.payload.categoryTags ?? null,
       ingredients: saved.payload.ingredients ?? null,

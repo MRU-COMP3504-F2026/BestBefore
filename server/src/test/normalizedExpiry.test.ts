@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import type { FinalRecord } from '../../../testscripts/normalizer.js'
-import { appCategory, suggestExpiry } from '../food/expirySuggestion.js'
+import { appCategory, suggestExpiry, suggestionFromShelfLife } from '../food/expirySuggestion.js'
 
 // Real normalizer output, captured live, through the real engine. See docs/scanflow-expiry.md.
 type Fixture = {
@@ -300,5 +300,108 @@ describe('appCategory', () => {
     ['', null],
   ])('%s -> %s', (text, label) => {
     expect(appCategory(text)).toBe(label)
+  })
+
+  // #186: a category only in French ("Aliments pour bébés") gave no label, though the English tags say.
+  it('falls back to the English tags when the category text gives no label', () => {
+    expect(appCategory('Aliments pour bébés', ['en:baby-foods', 'en:yogurts'])).toBe('Dairy')
+    expect(appCategory(null, ['en:dairies', 'en:milks'])).toBe('Dairy')
+    // Open Food Facts' top levels say nothing: these are not drinks.
+    expect(appCategory('Plant-based foods', ['en:plant-based-foods-and-beverages', 'en:plant-based-foods'])).toBeNull()
+    // The category text still wins when it gives a label.
+    expect(appCategory('Breakfast cereals', ['en:dairies'])).toBe('Pantry')
+  })
+
+  // #186: a saved JSONB row is not checked, so a malformed one must not throw.
+  it.each([[42], [{ en: 'Milks' }], [['Milks']]])('treats a malformed category %j as none', (category) => {
+    expect(appCategory(category, 'en:milks')).toBeNull()
+    expect(appCategory(category, [7, 'en:milks'])).toBe('Dairy')
+  })
+})
+
+// Purées come shelf stable, refrigerated or frozen, and FoodKeeper's only purée row is commercial
+// applesauce, 12 to 18 months in the pantry. Only an explicit cue may put a purée on it.
+describe('purées and their storage', () => {
+  beforeEach(() => {
+    vi.stubEnv('EXPIRY_AI_FALLBACK_ENABLED', 'false')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  const input = (name: string, productCategory: string, categoryTags: string[] = []) => ({
+    name,
+    brand: 'Brand',
+    barcode: '0000000000000',
+    category: appCategory(productCategory, categoryTags),
+    productCategory,
+    categoryTags,
+    purchaseDate: '2026-11-07',
+  })
+  // Only words that say how it is stored: not the word applesauce, and not a container.
+  const SHELF_STABLE = [
+    input('Unsweetened Applesauce', 'Shelf-stable foods, Applesauces', ['en:applesauces']),
+    input('Applesauce', 'Canned foods, Applesauces', ['en:canned-foods', 'en:applesauces']),
+  ]
+  const REFRIGERATED = [
+    input('Fresh Apple Puree', 'Refrigerated foods, Fruit purees', ['en:fruit-purees']),
+    input('Organic Applesauce', 'Chilled desserts, Applesauces', ['en:applesauces']),
+  ]
+  const FROZEN = input('Frozen Mango Puree', 'Frozen foods, Fruit purees', ['en:frozen-foods', 'en:fruit-purees'])
+  const AMBIGUOUS = [
+    input('Gerber Applesauce', 'Baby foods, Applesauces', ['en:baby-foods', 'en:fruit-purees', 'en:applesauces']),
+    input('Applesauce', 'Applesauces', ['en:applesauces']),
+    // Cups, pouches and jars of applesauce are sold refrigerated too.
+    input('Unsweetened Applesauce Cups', 'Fruit purees, Applesauces', ['en:fruit-purees', 'en:applesauces']),
+    input('Organic Apple Puree', 'Baby foods, Fruit purees', ['en:baby-foods', 'en:fruit-purees']),
+    input('Compote pomme', 'Aliments pour bébés, Compotes', ['en:baby-foods', 'fr:compotes', 'en:fruit-purees']),
+  ]
+
+  it.each(SHELF_STABLE.map((item) => [item.productCategory, item] as const))(
+    'dates applesauce filed under %s from the commercial row, in the pantry',
+    async (_category, item) => {
+      expect(item.category).toBe('Pantry')
+      expect(await suggestExpiry(item, 'test-user')).toMatchObject({
+        status: 'suggested',
+        matchedFood: 'Applesauce (commercial)',
+        storage: 'pantry',
+      })
+    },
+  )
+
+  it.each(REFRIGERATED.map((item) => [item.name, item] as const))(
+    'gives no pantry date to the refrigerated %s',
+    async (_name, item) => {
+      expect(item.category).not.toBe('Pantry')
+      const suggestion = await suggestExpiry(item, 'test-user')
+      expect(suggestion.status === 'suggested' && suggestion.storage).not.toBe('pantry')
+    },
+  )
+
+  it('labels a frozen purée Frozen and dates it in the freezer', async () => {
+    expect(FROZEN.category).toBe('Frozen')
+    expect(await suggestExpiry(FROZEN, 'test-user')).toMatchObject({ status: 'suggested', storage: 'freezer' })
+  })
+
+  it.each(AMBIGUOUS.map((item) => [item.name, item] as const))(
+    'offers no date for %s, which says nothing of how it is kept',
+    async (_name, item) => {
+      expect(item.category).toBeNull()
+      expect(await suggestExpiry(item, 'test-user')).toMatchObject({
+        status: 'none',
+        message: expect.stringMatching(/Check the package/),
+      })
+    },
+  )
+
+  // A commercial applesauce shelf life saved on a shared row must not come back for any other purée.
+  it('does not reuse a saved pantry shelf life for a purée that is not shelf stable', async () => {
+    const saved = await suggestExpiry(SHELF_STABLE[0], 'test-user')
+    const shelfLife = saved.status === 'suggested' ? saved.shelfLife : null
+    expect(suggestionFromShelfLife(SHELF_STABLE[0], shelfLife)).toMatchObject({ status: 'suggested', storage: 'pantry' })
+    for (const item of [...REFRIGERATED, FROZEN, ...AMBIGUOUS]) {
+      expect(suggestionFromShelfLife(item, shelfLife)).toBeNull()
+    }
   })
 })

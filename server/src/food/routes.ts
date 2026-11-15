@@ -59,13 +59,14 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
   }
 
   const saved = await findItem(barcode)
+  const savedCategory = saved && appCategory(saved.payload.category, saved.payload.categoryTags)
   if (saved && !isPhotoRecord(saved.payload)) {
     // A row saved before the normalizer completed names is shown as a lookup would build it now.
     // The row itself is left as it is. A photo row is answered below, as the user confirmed it.
-    res.json({ product: withFoodName(saved.payload), category: appCategory(saved.payload.category) })
+    res.json({ product: withFoodName(saved.payload), category: savedCategory })
     return
   }
-  const fromPhoto = saved ? { product: saved.payload, category: appCategory(saved.payload.category) } : null
+  const fromPhoto = saved ? { product: saved.payload, category: savedCategory } : null
 
   const slot = claimLookupSlot(res.locals.user!.id)
   if (!slot.ok && fromPhoto) {
@@ -86,7 +87,7 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
     const { results, final } = await lookupProduct(barcode)
     if (final) {
       await (fromPhoto ? replacePhotoItem(barcode, final) : rememberItem(barcode, final, !lookupHadFailure(results)))
-      res.json({ product: final, category: appCategory(final.category) })
+      res.json({ product: final, category: appCategory(final.category, final.categoryTags) })
     } else if (fromPhoto) {
       res.json(fromPhoto)
     } else if (lookupHadFailure(results)) {
