@@ -157,6 +157,52 @@ describe('EditItemPage', () => {
     expect(bestBeforeField()).toHaveValue('2026-12-01')
   })
 
+  // #186: the accepted date belongs to the user. Editing anything but the date bought keeps it, and
+  // asks for nothing.
+  it('keeps an accepted date through name, category and quantity edits', async () => {
+    stubApi()
+    renderEdit()
+    await screen.findByLabelText(/Product name/)
+
+    changeDateBought('2026-10-26')
+    await userEvent.click(await screen.findByRole('button', { name: 'Use Nov 22, 2026' }))
+    const name = screen.getByLabelText(/Product name/)
+    await userEvent.clear(name)
+    await userEvent.type(name, 'Aged Cheddar')
+    await userEvent.selectOptions(screen.getByLabelText(/Category/), 'Deli')
+    fireEvent.change(screen.getByLabelText(/Quantity/), { target: { value: '3' } })
+
+    expect(bestBeforeField()).toHaveValue('2026-11-22')
+    expect(suggestionCalls()).toHaveLength(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    await screen.findByText('Detail page')
+    expect(savedBody()).toEqual({
+      name: 'Aged Cheddar',
+      brand: 'Black Diamond',
+      category: 'Deli',
+      quantity: 3,
+      purchaseDate: '2026-10-26',
+      bestBefore: '2026-11-22',
+    })
+  })
+
+  it('drops the suggestion, and asks nothing more, when the date bought goes back to the saved one', async () => {
+    stubApi()
+    renderEdit()
+    await screen.findByLabelText(/Product name/)
+
+    changeDateBought('2026-10-26')
+    await userEvent.click(await screen.findByRole('button', { name: 'Use Nov 22, 2026' }))
+    changeDateBought(CHEDDAR.purchaseDate)
+
+    // The accepted date was counted from a date bought that no longer applies.
+    expect(bestBeforeField()).toHaveValue(CHEDDAR.bestBefore)
+    expect(screen.queryByText(/Suggested:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/The best before date is still/)).not.toBeInTheDocument()
+    expect(suggestionCalls()).toHaveLength(1)
+  })
+
   it('says so honestly when there is no saved suggestion', async () => {
     stubApi({
       suggestion: {

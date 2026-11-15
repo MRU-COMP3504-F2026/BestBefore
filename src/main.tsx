@@ -11,6 +11,10 @@ import { router } from './router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'
 import './styles/index.css'
+import { InstallApp } from './InstallApp'
+import { registerServiceWorker } from './lib/pwa'
+
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -18,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
       {/* Respects the OS "reduce motion" setting: movement is dropped, fades remain. */}
       <MotionConfig reducedMotion="user">
         <RouterProvider router={router} />
+        <InstallApp />
       </MotionConfig>
     </QueryClientProvider>
   </StrictMode>,

@@ -156,6 +156,38 @@ describe('merging sources that disagree', () => {
     expect(merged.description).not.toBeNull()
   })
 
+  // #183: Gerber baby food came back with only its French name, so FoodKeeper (English) had nothing
+  // to search. A matching reseller's English title is the better name.
+  it("prefers a matching listing's English name over a French Open Facts name", () => {
+    const merged = aggregate(
+      [
+        openFacts({ lang: 'fr', product_name: 'Purée de pommes et bananes', brands: 'Gerber' }),
+        upcItemDb({ title: 'Gerber Apple Banana Puree Baby Food, 4 oz', brand: 'Gerber' }),
+      ],
+      '1',
+    )
+
+    expect(merged.name).toBe('Gerber Apple Banana Puree Baby Food')
+    expect(merged.sources).toEqual(['Open Facts', 'UPCitemdb'])
+  })
+
+  it('keeps the Open Facts name when it is English or no listing name is', () => {
+    const english = aggregate(
+      [openFacts({ product_name: 'Apple Sauce', brands: 'Gerber' }), upcItemDb({ title: 'Gerber Applesauce' })],
+      '1',
+    )
+    const bothFrench = aggregate(
+      [
+        openFacts({ lang: 'fr', product_name: 'Purée de pommes', brands: 'Gerber' }),
+        upcItemDb({ title: 'Gerber purée de pommes' }),
+      ],
+      '1',
+    )
+
+    expect(english.name).toBe('Apple Sauce')
+    expect(bothFrench.name).toBe('Purée de pommes')
+  })
+
   it('keeps every listing when Open Facts has no name to check against', () => {
     const merged = aggregate(
       [goUpc({ name: 'Margarine', description: 'Spread.' }), upcItemDb({ title: 'Swimsuit', description: 'Swimwear.' })],

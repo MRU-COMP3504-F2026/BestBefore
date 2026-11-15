@@ -77,6 +77,20 @@ describe('lookupBarcode', () => {
     await expect(lookupBarcode('012345678905', signal())).resolves.toMatchObject({ product: null })
   })
 
+  // #186: what the server now answers for a malformed saved row (lookupRegressions.test.ts) instead
+  // of a 500. The browser has to read it too, or the scan still ends in "couldn't look up".
+  it('shows a saved product whose category fields are malformed, as having no category', async () => {
+    const product = { source: 'Open Facts', ...FIELDS, category: { fr: 'Laits' }, categoryTags: 'en:milks' }
+    vi.mocked(apiFetch).mockResolvedValue({ product, category: null })
+
+    await expect(lookupBarcode('012345678905', signal())).resolves.toEqual({
+      barcode: '012345678905',
+      product: { ...product, category: null, categoryTags: null },
+      category: null,
+      notice: null,
+    })
+  })
+
   it('rejects when the caller aborted', async () => {
     const abort = new AbortController()
     vi.mocked(apiFetch).mockImplementation(() => {

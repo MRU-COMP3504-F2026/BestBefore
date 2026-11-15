@@ -67,9 +67,11 @@ function getFoodKeeper(): FoodKeeper {
   return foodKeeper
 }
 
-// UPCitemdb and Go-UPC start every food at this Google taxonomy root. It would read as a
-// beverage for anything, and its comma would split it in two.
-const TAXONOMY_ROOT = /food,\s*beverages\s*&\s*tobacco/gi
+// UPCitemdb and Go-UPC start every food at this Google taxonomy root, and Open Food Facts many at
+// "Plant-based foods and beverages" (in French too). Each would read as a beverage for anything
+// (tofu), and the Google root's comma would split it in two.
+const TAXONOMY_ROOT =
+  /food,\s*beverages\s*&\s*tobacco|plant[- ]based foods and beverages|aliments et boissons [àa] base de v[ée]g[ée]taux/gi
 
 // One category trail as its segments, in the order the database gave them.
 function categorySegments(category: string | null): string[] {
@@ -91,8 +93,10 @@ const CATEGORY_RULES: [RegExp, string][] = [
   [/\b(seafoods?|fish|shellfish|shrimps?|salmon|tuna)\b/, 'Seafood'],
   [/\b(poultry|poultries|chickens?|turkeys?)\b/, 'Poultry'],
   [/\b(meats?|beef|pork|sausages?|bacon|hams?)\b/, 'Meat'],
-  [/\b(dairy|dairies|milks?|cheeses?|yogurts?|yoghurts?|skyrs?|butters?|creams?|eggs?)\b/, 'Dairy'],
-  [/\b(beverages?|drinks?|sodas?|colas?|waters?|juices?|coffees?|teas?)\b/, 'Beverages'],
+  [/\b(dairy|dairies|milks?|cheeses?|yogurts?|yoghurts?|yaourts?|skyrs?|butters?|creams?|eggs?)\b/, 'Dairy'],
+  // French words too: Open Food Facts' category text is often French ("Boissons, Jus de fruits",
+  // "Yaourts aux fruits"), and its "fruits" would otherwise make them Produce.
+  [/\b(beverages?|drinks?|boissons?|sodas?|colas?|waters?|juices?|jus|coffees?|teas?)\b/, 'Beverages'],
   [/\b(breads?|bakery|baked goods|biscuits?|cookies|cakes?|pastries)\b/, 'Bakery'],
   [
     /\b(pantry|groceries|cereals?|muesli|granola|pastas?|spaghetti|noodles?|rice|spreads?|sauces?|ketchup|condiments?|canned|snacks?|crisps|pretzels?|chocolates?|confectioner(y|ies)|sweets?|grains?|legumes?|beans?|nuts?|almonds?|oils?)\b/,
@@ -105,8 +109,46 @@ const CATEGORY_RULES: [RegExp, string][] = [
 // specific, so they are read from the end. Open Food Facts contributors don't always follow
 // that, which is one reason this label is only a hint. Accents are folded first: \b ends a word at
 // any accented letter, so "Pâtes" would otherwise be read as "p" and "tes".
-export function appCategory(category: string | null): string | null {
-  for (const segment of categorySegments(category).reverse()) {
+// A category with no label (often French: "Produits laitiers") falls back to the record's English
+// tags, leaving out the broad top levels every product has ("Plant-based foods and beverages" is not
+// a drink). Both can come from a saved JSONB row, so anything that isn't text or a list counts as none.
+export function appCategory(category: unknown, tags?: unknown): string | null {
+  const text = typeof category === 'string' ? category : null
+  const segments = categorySegments(text).reverse()
+  const tagged = tagSegments(tags as string[] | null).filter((segment) => !isBroad(segment))
+  const puree = pureeStorage([...segments, ...tagged])
+  if (puree) return puree === 'pantry' ? 'Pantry' : puree === 'freezer' ? 'Frozen' : null
+  return labelFor(segments) ?? labelFor(tagged)
+}
+
+// Purées and compotes are sold shelf stable, refrigerated and frozen, and FoodKeeper's only purée
+// row is commercial applesauce (Shelf Stable, 12 to 18 months). Only an explicit cue says which:
+// a cold one wins, and a purée with neither is unknown, so it gets no label and no pantry date.
+// Neither the word applesauce nor a container is a cue: refrigerated applesauce, cups and pouches
+// are sold too, and lookup data rarely says so. A missed date is safer than a wrong 18 months.
+const PUREE = /\b(purees?|compotes?|applesauces?|apple sauces?)\b/
+const FROZEN_CUE = /\b(frozen|surgelees?|congelees?)\b/
+const FRIDGE_CUE = /\b(refrigerated|chilled|fresh|frais|fraiches?|refrigerees?)\b/
+const SHELF_STABLE_CUE = /\b(shelf stable|canned|tinned|unrefrigerated|no refrigeration)\b/
+
+// How a purée says it is kept, or null for anything that is not a purée.
+function pureeStorage(texts: string[]): 'pantry' | 'fridge' | 'freezer' | 'unknown' | null {
+  const text = texts.map(segmentKey).join(' | ')
+  if (!PUREE.test(text)) return null
+  if (FROZEN_CUE.test(text)) return 'freezer'
+  if (FRIDGE_CUE.test(text)) return 'fridge'
+  return SHELF_STABLE_CUE.test(text) ? 'pantry' : 'unknown'
+}
+
+// A pantry date for a purée that doesn't say it is shelf stable, whatever row the name reached.
+function isUnsafePantryPuree(storage: string, input: ExpiryInput): boolean {
+  const puree = pureeStorage([input.name, ...categoryText(input)])
+  return storage === 'pantry' && puree !== null && puree !== 'pantry'
+}
+
+// The first segment, most specific first, that a rule recognises.
+function labelFor(segments: string[]): string | null {
+  for (const segment of segments) {
     const text = foldText(segment).toLowerCase()
     for (const [pattern, label] of CATEGORY_RULES) {
       if (pattern.test(text)) return label
@@ -402,6 +444,8 @@ function toSuggestion(result: HybridResult, fromName: boolean, input: ExpiryInpu
     return noDate(result.selected && isDrinkRow(result.selected.id) ? NO_DRINK_DATE : NO_SUGGESTION)
   }
 
+  if (isUnsafePantryPuree(result.range.storage, input)) return noDate(NO_SUGGESTION)
+
   const match = {
     ...result.range,
     storage: result.range.storage as Storage,
@@ -509,6 +553,7 @@ export function suggestionFromShelfLife(input: ExpiryInput, stored: unknown): Ex
   if (isUnfoundedNutritionDrink(shelfLife.foodKeeperId, input)) return noDate(NO_DRINK_DATE)
   if (isUnfounded(shelfLife.foodKeeperId, input)) return null
   if (sharesOnlyColor(shelfLife.foodKeeperId, productText(input))) return null
+  if (isUnsafePantryPuree(shelfLife.storage, input)) return null
 
   // Anything that no longer matches what FoodKeeper says now, length included, is not reused.
   const current = shelfLifeOf(shelfLife.foodKeeperId, shelfLife)
