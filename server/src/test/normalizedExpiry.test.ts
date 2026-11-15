@@ -304,9 +304,8 @@ describe('appCategory', () => {
 
   // #186: a category only in French ("Aliments pour bébés") gave no label, though the English tags say.
   it('falls back to the English tags when the category text gives no label', () => {
-    expect(appCategory('Aliments pour bébés, Compotes', ['en:baby-foods', 'fr:compotes', 'en:fruit-purees'])).toBe(
-      'Produce',
-    )
+    // Shop-bought purées are Pantry: as Produce, applesauce missed its commercial row.
+    expect(appCategory('Aliments pour bébés', ['en:baby-foods', 'fr:compotes', 'en:fruit-purees'])).toBe('Pantry')
     expect(appCategory(null, ['en:dairies', 'en:milks'])).toBe('Dairy')
     // Open Food Facts' top levels say nothing: these are not drinks.
     expect(appCategory('Plant-based foods', ['en:plant-based-foods-and-beverages', 'en:plant-based-foods'])).toBeNull()

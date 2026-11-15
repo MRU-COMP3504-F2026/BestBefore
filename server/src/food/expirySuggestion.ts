@@ -67,9 +67,11 @@ function getFoodKeeper(): FoodKeeper {
   return foodKeeper
 }
 
-// UPCitemdb and Go-UPC start every food at this Google taxonomy root. It would read as a
-// beverage for anything, and its comma would split it in two.
-const TAXONOMY_ROOT = /food,\s*beverages\s*&\s*tobacco/gi
+// UPCitemdb and Go-UPC start every food at this Google taxonomy root, and Open Food Facts many at
+// "Plant-based foods and beverages" (in French too). Each would read as a beverage for anything
+// (tofu), and the Google root's comma would split it in two.
+const TAXONOMY_ROOT =
+  /food,\s*beverages\s*&\s*tobacco|plant[- ]based foods and beverages|aliments et boissons [àa] base de v[ée]g[ée]taux/gi
 
 // One category trail as its segments, in the order the database gave them.
 function categorySegments(category: string | null): string[] {
@@ -91,11 +93,15 @@ const CATEGORY_RULES: [RegExp, string][] = [
   [/\b(seafoods?|fish|shellfish|shrimps?|salmon|tuna)\b/, 'Seafood'],
   [/\b(poultry|poultries|chickens?|turkeys?)\b/, 'Poultry'],
   [/\b(meats?|beef|pork|sausages?|bacon|hams?)\b/, 'Meat'],
-  [/\b(dairy|dairies|milks?|cheeses?|yogurts?|yoghurts?|skyrs?|butters?|creams?|eggs?)\b/, 'Dairy'],
-  [/\b(beverages?|drinks?|sodas?|colas?|waters?|juices?|coffees?|teas?)\b/, 'Beverages'],
+  [/\b(dairy|dairies|milks?|cheeses?|yogurts?|yoghurts?|yaourts?|skyrs?|butters?|creams?|eggs?)\b/, 'Dairy'],
+  // French words too: Open Food Facts' category text is often French ("Boissons, Jus de fruits",
+  // "Yaourts aux fruits"), and its "fruits" would otherwise make them Produce.
+  [/\b(beverages?|drinks?|boissons?|sodas?|colas?|waters?|juices?|jus|coffees?|teas?)\b/, 'Beverages'],
   [/\b(breads?|bakery|baked goods|biscuits?|cookies|cakes?|pastries)\b/, 'Bakery'],
   [
-    /\b(pantry|groceries|cereals?|muesli|granola|pastas?|spaghetti|noodles?|rice|spreads?|sauces?|ketchup|condiments?|canned|snacks?|crisps|pretzels?|chocolates?|confectioner(y|ies)|sweets?|grains?|legumes?|beans?|nuts?|almonds?|oils?)\b/,
+    // Shop-bought purees and compotes are shelf stable: "Fruit purees" as Produce kept applesauce
+    // from its commercial row.
+    /\b(pantry|groceries|cereals?|muesli|granola|pastas?|spaghetti|noodles?|rice|spreads?|sauces?|applesauces?|purees?|compotes?|ketchup|condiments?|canned|snacks?|crisps|pretzels?|chocolates?|confectioner(y|ies)|sweets?|grains?|legumes?|beans?|nuts?|almonds?|oils?)\b/,
     'Pantry',
   ],
   [/\b(fruits?|vegetables?|produce)\b/, 'Produce'],
