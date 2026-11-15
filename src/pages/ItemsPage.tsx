@@ -91,6 +91,10 @@ export default function ItemsPage() {
         Add Item
       </Button>
 
+      <Button variant="secondary" onClick={() => navigate('/items/remove')}>
+        Remove Items
+      </Button>
+
       <div className="custom-dropdown-container" ref={dropdownRef}>
         <span className="filter-label">View:</span>
         <button className="dropdown-toggle" onClick={() => setIsOpen(!isOpen)}>
@@ -123,13 +127,6 @@ export default function ItemsPage() {
         data={processedData}
         activeFilter={`${activeFilter}-${sortOption}`} // Resets animation when sort changes
       />
-      <Button variant="secondary" onClick={() => navigate('/items/remove')}>
-        Remove Items
-      </Button>
-
-      <InventoryList className="items-list" removeExpired />
-      
-      
     </div>
   )
 }
