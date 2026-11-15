@@ -5,16 +5,21 @@ import DeleteItemConfirm from './DeleteItemConfirm'
 import ItemCard from './ItemCard'
 import { categoryIcon } from '../lib/categoryIcon'
 import { formatDate } from '../lib/dates'
-import { expiryTone, type InventoryItem } from '../lib/inventoryApi'
+import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
 import { listItem } from '../lib/motion'
 import { useItemImageSrc } from '../lib/useItemImage'
 import '../styles/InventoryList.css'
 
 type InventoryListProps = {
   className?: string
+  // Show only the first `limit` items (they arrive soonest-expiring first).
+  limit?: number
+  // Offer a Remove action on cards whose best-before date has passed.
   removeExpired?: boolean
-  data: InventoryItem[] 
-  activeFilter: string 
+  // A filtered/sorted view of the inventory to show instead of the full list.
+  data?: InventoryItem[]
+  // Changing this replays the list's entry animation (e.g. on a new filter or sort).
+  activeFilter?: string
 }
 
 function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; removeExpired: boolean }) {
@@ -57,10 +62,33 @@ function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; remov
   )
 }
 
-export default function InventoryList({ className, removeExpired = false, data = [], activeFilter }: InventoryListProps)  {
+// The signed-in user's inventory as item cards, with loading, error and empty states.
+export default function InventoryList({ className, limit, removeExpired = false, data, activeFilter }: InventoryListProps) {
+  const inventory = useInventory()
+
+  if (inventory.isPending) {
+    return <p className="inventory-status">Loading your items…</p>
+  }
+  if (inventory.isError) {
+    return (
+      <p className="inventory-status inventory-status-error" role="alert">
+        Couldn't load your items. Please try again.
+      </p>
+    )
+  }
+  if (inventory.data.length === 0) {
+    return <p className="inventory-status">No items yet. Add one to start tracking it.</p>
+  }
+
+  const shown = data ?? inventory.data
+  if (shown.length === 0) {
+    return <p className="inventory-status">No items match this view.</p>
+  }
+  const items = limit === undefined ? shown : shown.slice(0, limit)
+
   return (
     <motion.ul className={className} key={activeFilter}>
-      {data.map((item, index) => (
+      {items.map((item, index) => (
         <motion.li key={item.id} className="inventory-list-item" layout {...listItem(index)}>
           <InventoryItemCard item={item} removeExpired={removeExpired} />
         </motion.li>

@@ -21,7 +21,7 @@ function getExpiryState(bestBefore: string): 'Expired' | 'Expiring-Soon' | 'Fres
 
 export default function ItemsPage() {
   const navigate = useNavigate()
-  const { data, isPending, isError } = useInventory()
+  const { data } = useInventory()
 
   const [activeFilter, setActiveFilter] = useState<'All' | 'Expired' | 'Expiring-Soon'>('All')
   const [sortOption, setSortOption] = useState<'expiry-asc' | 'expiry-desc' | 'alpha' | 'newest' | 'oldest'>('expiry-asc')
@@ -117,18 +117,12 @@ export default function ItemsPage() {
         )}
       </div>
 
-      {!isPending && !isError && processedData.length === 0 && (
-        <p className="inventory-status">No items match this view.</p>
-      )}
-
-      {!isPending && !isError && processedData.length > 0 && (
-        <InventoryList 
-          className="items-list" 
-          removeExpired 
-          data={processedData} 
-          activeFilter={`${activeFilter}-${sortOption}`} // Resets animation when sort changes
-        />
-      )}
+      <InventoryList
+        className="items-list"
+        removeExpired
+        data={processedData}
+        activeFilter={`${activeFilter}-${sortOption}`} // Resets animation when sort changes
+      />
     </div>
   )
 }
