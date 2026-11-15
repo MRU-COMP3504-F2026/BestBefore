@@ -339,25 +339,36 @@ describe('purées and their storage', () => {
     categoryTags,
     purchaseDate: '2026-11-07',
   })
-  const COMMERCIAL = input('Unsweetened Applesauce Cups', 'Fruit purees, Applesauces', ['en:fruit-purees', 'en:applesauces'])
+  // Only words that say how it is stored: not the word applesauce, and not a container.
+  const SHELF_STABLE = [
+    input('Unsweetened Applesauce', 'Shelf-stable foods, Applesauces', ['en:applesauces']),
+    input('Applesauce', 'Canned foods, Applesauces', ['en:canned-foods', 'en:applesauces']),
+  ]
   const REFRIGERATED = [
     input('Fresh Apple Puree', 'Refrigerated foods, Fruit purees', ['en:fruit-purees']),
     input('Organic Applesauce', 'Chilled desserts, Applesauces', ['en:applesauces']),
   ]
   const FROZEN = input('Frozen Mango Puree', 'Frozen foods, Fruit purees', ['en:frozen-foods', 'en:fruit-purees'])
   const AMBIGUOUS = [
+    input('Gerber Applesauce', 'Baby foods, Applesauces', ['en:baby-foods', 'en:fruit-purees', 'en:applesauces']),
+    input('Applesauce', 'Applesauces', ['en:applesauces']),
+    // Cups, pouches and jars of applesauce are sold refrigerated too.
+    input('Unsweetened Applesauce Cups', 'Fruit purees, Applesauces', ['en:fruit-purees', 'en:applesauces']),
     input('Organic Apple Puree', 'Baby foods, Fruit purees', ['en:baby-foods', 'en:fruit-purees']),
     input('Compote pomme', 'Aliments pour bébés, Compotes', ['en:baby-foods', 'fr:compotes', 'en:fruit-purees']),
   ]
 
-  it('dates shop-bought shelf-stable applesauce from the commercial row, in the pantry', async () => {
-    expect(COMMERCIAL.category).toBe('Pantry')
-    expect(await suggestExpiry(COMMERCIAL, 'test-user')).toMatchObject({
-      status: 'suggested',
-      matchedFood: 'Applesauce (commercial)',
-      storage: 'pantry',
-    })
-  })
+  it.each(SHELF_STABLE.map((item) => [item.productCategory, item] as const))(
+    'dates applesauce filed under %s from the commercial row, in the pantry',
+    async (_category, item) => {
+      expect(item.category).toBe('Pantry')
+      expect(await suggestExpiry(item, 'test-user')).toMatchObject({
+        status: 'suggested',
+        matchedFood: 'Applesauce (commercial)',
+        storage: 'pantry',
+      })
+    },
+  )
 
   it.each(REFRIGERATED.map((item) => [item.name, item] as const))(
     'gives no pantry date to the refrigerated %s',
@@ -368,25 +379,27 @@ describe('purées and their storage', () => {
     },
   )
 
-  it('labels a frozen purée Frozen and gives it no pantry date', async () => {
+  it('labels a frozen purée Frozen and dates it in the freezer', async () => {
     expect(FROZEN.category).toBe('Frozen')
-    const suggestion = await suggestExpiry(FROZEN, 'test-user')
-    expect(suggestion.status === 'suggested' && suggestion.storage).not.toBe('pantry')
+    expect(await suggestExpiry(FROZEN, 'test-user')).toMatchObject({ status: 'suggested', storage: 'freezer' })
   })
 
   it.each(AMBIGUOUS.map((item) => [item.name, item] as const))(
     'offers no date for %s, which says nothing of how it is kept',
     async (_name, item) => {
       expect(item.category).toBeNull()
-      expect(await suggestExpiry(item, 'test-user')).toMatchObject({ status: 'none' })
+      expect(await suggestExpiry(item, 'test-user')).toMatchObject({
+        status: 'none',
+        message: expect.stringMatching(/Check the package/),
+      })
     },
   )
 
-  // A commercial applesauce shelf life saved on a shared row must not come back for a cold purée.
+  // A commercial applesauce shelf life saved on a shared row must not come back for any other purée.
   it('does not reuse a saved pantry shelf life for a purée that is not shelf stable', async () => {
-    const saved = await suggestExpiry(COMMERCIAL, 'test-user')
+    const saved = await suggestExpiry(SHELF_STABLE[0], 'test-user')
     const shelfLife = saved.status === 'suggested' ? saved.shelfLife : null
-    expect(suggestionFromShelfLife(COMMERCIAL, shelfLife)).toMatchObject({ status: 'suggested', storage: 'pantry' })
+    expect(suggestionFromShelfLife(SHELF_STABLE[0], shelfLife)).toMatchObject({ status: 'suggested', storage: 'pantry' })
     for (const item of [...REFRIGERATED, FROZEN, ...AMBIGUOUS]) {
       expect(suggestionFromShelfLife(item, shelfLife)).toBeNull()
     }

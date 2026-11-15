@@ -124,12 +124,12 @@ export function appCategory(category: unknown, tags?: unknown): string | null {
 // Purées and compotes are sold shelf stable, refrigerated and frozen, and FoodKeeper's only purée
 // row is commercial applesauce (Shelf Stable, 12 to 18 months). Only an explicit cue says which:
 // a cold one wins, and a purée with neither is unknown, so it gets no label and no pantry date.
-// Applesauce counts as shelf stable because FoodKeeper's own split is commercial or homemade, and a
-// scanned barcode is commercial.
+// Neither the word applesauce nor a container is a cue: refrigerated applesauce, cups and pouches
+// are sold too, and lookup data rarely says so. A missed date is safer than a wrong 18 months.
 const PUREE = /\b(purees?|compotes?|applesauces?|apple sauces?)\b/
 const FROZEN_CUE = /\b(frozen|surgelees?|congelees?)\b/
 const FRIDGE_CUE = /\b(refrigerated|chilled|fresh|frais|fraiches?|refrigerees?)\b/
-const SHELF_STABLE_CUE = /\b(shelf stable|canned|jars?|jarred|pouch(es)?|cups?|applesauces?|apple sauces?)\b/
+const SHELF_STABLE_CUE = /\b(shelf stable|canned|tinned|unrefrigerated|no refrigeration)\b/
 
 // How a purée says it is kept, or null for anything that is not a purée.
 function pureeStorage(texts: string[]): 'pantry' | 'fridge' | 'freezer' | 'unknown' | null {

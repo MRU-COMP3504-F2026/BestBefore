@@ -119,39 +119,29 @@ describe('a product Open Facts only names in French', () => {
   })
   const ENGLISH_LISTING = upcBody({ title: 'Gerber Applesauce, 4 oz', brand: 'Gerber' })
 
-  it('is named, labelled, saved and dated in English from a matching listing', async () => {
+  it('is named and saved in English from a matching listing, with no pantry date', async () => {
     answer({ openFacts: FRENCH, upcItemDb: ENGLISH_LISTING })
 
     const found = await lookup()
 
     expect(found.status).toBe(200)
     expect(found.body.product.name).toBe('Gerber Applesauce')
-    // Fruit purées are shelf stable: a Produce label kept this from its commercial row.
-    expect(found.body.category).toBe('Pantry')
+    // Nothing says how it is kept, and applesauce is sold refrigerated too: no label, no date.
+    expect(found.body.category).toBeNull()
     expect((await row()).payload).toMatchObject({ name: 'Gerber Applesauce' })
 
     const suggestion = await suggest(formFor(found.body))
-    expect(suggestion.body).toMatchObject({
-      status: 'suggested',
-      matchedFood: 'Applesauce (commercial)',
-      confidence: 'high',
-      aiUsed: false,
-    })
-    // A sure English match is kept on the shared row for the next shopper.
-    expect((await row()).expirySuggestion).toMatchObject({ matchedFood: 'Applesauce (commercial)' })
+    expect(suggestion.body).toMatchObject({ status: 'none', message: expect.stringMatching(/Check the package/) })
+    expect((await row()).expirySuggestion).toBeNull()
   })
 
-  // The issue's own product, whose English listing title says "Baby Food". FoodKeeper has no baby
-  // food row, but the purée tags' Pantry label lets the applesauce row through.
-  it('dates a Gerber baby food whose English title says "Baby Food"', async () => {
+  // The issue's own product, whose English listing title says "Baby Food".
+  it('gives a Gerber baby food whose English title says "Baby Food" no pantry date', async () => {
     answer({ openFacts: FRENCH, upcItemDb: upcBody({ title: 'Gerber Applesauce Baby Food, 4 oz', brand: 'Gerber' }) })
     const found = await lookup()
     expect(found.body.product.name).toBe('Gerber Applesauce Baby Food')
 
-    expect((await suggest(formFor(found.body))).body).toMatchObject({
-      status: 'suggested',
-      matchedFood: 'Applesauce (commercial)',
-    })
+    expect((await suggest(formFor(found.body))).body).toMatchObject({ status: 'none' })
   })
 
   it.each([
@@ -237,7 +227,7 @@ describe('our label for a French category', () => {
     ['Produits laitiers, Yaourts', ['en:dairies', 'en:yogurts'], 'Dairy'],
     ['Produits laitiers, Yaourts aux fruits', ['en:dairies', 'en:fermented-milk-products', 'en:fruit-yogurts'], 'Dairy'],
     ['Boissons, Jus de fruits', ['en:beverages', 'en:plant-based-foods-and-beverages', 'en:fruit-juices'], 'Beverages'],
-    ['Aliments pour bébés, Compotes', PUREE_TAGS, 'Pantry'],
+    ['Aliments pour bébés, Compotes', PUREE_TAGS, null],
     // Open Food Facts' top level for every plant food, in English or French, is not a drink.
     ['Plant-based foods and beverages, Tofu', ['en:plant-based-foods-and-beverages', 'en:plant-based-foods', 'en:tofu'], null],
     ['Aliments et boissons à base de végétaux, Tofu', ['en:plant-based-foods-and-beverages', 'en:tofu'], null],
