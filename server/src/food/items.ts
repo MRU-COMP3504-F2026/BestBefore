@@ -81,7 +81,7 @@ export function describesRecord(product: FinalRecord | PhotoProduct, input: Expi
     input.name === product.name &&
     input.brand === product.brand &&
     input.productCategory === product.category &&
-    input.category === appCategory(product.category)
+    input.category === appCategory(product.category, product.categoryTags)
   )
 }
 

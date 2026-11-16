@@ -3,32 +3,44 @@
  * License: MIT (https://github.com/motiondivision/motion/blob/main/LICENSE.md)
  * Copyright (c) 2024 Motion B.V.
  */
-import { useState, type ReactNode } from 'react'
-import { motion } from 'motion/react'
-import { ChevronRightIcon } from './icons'
-import { spring, tap } from '../lib/motion'
-import '../styles/ItemCard.css'
+import { useState, type ReactNode } from "react";
+import { motion } from "motion/react";
+import { ChevronRightIcon } from "./icons";
+import { spring, tap } from "../lib/motion";
+import "../styles/ItemCard.css";
 
 type ItemCardProps = {
-  name: string
-  expires: string
-  icon: ReactNode
+  name: string;
+  expires: string;
+  icon: ReactNode;
+  selectable?: boolean;
+  selected?: boolean;
   // Red means the best-before date has passed.
-  tone?: 'green' | 'amber' | 'red'
+  tone?: "green" | "amber" | "red";
   // The item's picture. The icon shows while there is none and when it fails to load.
-  imageSrc?: string | null
-  onClick?: () => void
-}
+  imageSrc?: string | null;
+  onClick?: () => void;
+};
 
-export default function ItemCard({ name, expires, icon, tone = 'green', imageSrc, onClick }: ItemCardProps) {
+export default function ItemCard({
+  name,
+  expires,
+  icon,
+  tone = "green",
+  imageSrc,
+  selectable = false,
+  selected = false,
+  onClick,
+}: ItemCardProps) {
   // Remembered per link, so a new picture gets its own try.
-  const [failedSrc, setFailedSrc] = useState<string | null>(null)
-  const showImage = Boolean(imageSrc) && imageSrc !== failedSrc
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showImage = Boolean(imageSrc) && imageSrc !== failedSrc;
 
   return (
     <motion.button
       type="button"
-      className={`item-card item-card-${tone}`}
+      className={`item-card item-card-${tone}${selected ? " item-card-selected" : ""}`}
+      aria-pressed={selectable ? selected : undefined}
       onClick={onClick}
       whileTap={tap}
       transition={spring}
@@ -50,12 +62,21 @@ export default function ItemCard({ name, expires, icon, tone = 'green', imageSrc
         )}
       </span>
       <span className="item-card-body">
-        <span className="item-card-name">{name}</span>{' '}
+        <span className="item-card-name">{name}</span>{" "}
         <span className={`item-card-expires item-card-expires-${tone}`}>
-          {tone === 'red' ? `Expired on ${expires}` : `Expires ${expires}`}
+          {tone === "red" ? `Expired on ${expires}` : `Expires ${expires}`}
         </span>
       </span>
-      <ChevronRightIcon className="item-card-chevron" />
+      {selectable ? (
+        <span
+          className={`item-card-check${selected ? " item-card-check-on" : ""}`}
+          aria-hidden="true"
+        >
+          {selected ? "✓" : ""}
+        </span>
+      ) : (
+        <ChevronRightIcon className="item-card-chevron" />
+      )}
     </motion.button>
-  )
+  );
 }

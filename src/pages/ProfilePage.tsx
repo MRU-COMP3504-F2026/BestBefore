@@ -7,6 +7,9 @@ import { signOut, useAuthSession } from '../lib/authClient'
 import { AUTH_DISABLED } from '../lib/devAuth'
 import '../styles/ProfilePage.css'
 
+const BUG_REPORT_URL =
+  'https://github.com/MRU-COMP3504-F2026/BestBefore/issues/new?template=bug_report.yml'
+
 export default function ProfilePage() {
   useEffect(() => {
     document.title = 'BestBefore | My Profile'
@@ -42,10 +45,20 @@ export default function ProfilePage() {
         <p className="profile-email">{user.email}</p>
       </section>
 
-      {/* Nothing to log out of while the dev auth bypass is on. */}
-      <Button variant="secondary" onClick={onLogout} disabled={isLoggingOut || AUTH_DISABLED}>
-        Log out
-      </Button>
+      <div className="profile-actions">
+        <a
+          href={BUG_REPORT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#2b5329', fontWeight: 600, textDecoration: 'underline', fontSize: '15px' }}
+        >
+          Report a Bug ↗
+        </a>
+        {/* Nothing to log out of while the dev auth bypass is on. */}
+        <Button variant="secondary" onClick={onLogout} disabled={isLoggingOut || AUTH_DISABLED}>
+          Log out
+        </Button>
+      </div>
     </div>
   )
 }

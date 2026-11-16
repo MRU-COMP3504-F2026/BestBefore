@@ -46,7 +46,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       name: typeof payload.name === 'string' ? payload.name : undefined,
     }
     next()
-  } catch {
+  } catch (err) {
+    // Why, never the token: an expired JWT, a wrong issuer/audience (another Neon branch's token),
+    // or a key this auth URL doesn't publish.
+    const { code, claim } = (err ?? {}) as { code?: unknown; claim?: unknown }
+    console.warn(`Auth rejected: ${typeof code === 'string' ? code : 'unknown'}${typeof claim === 'string' ? ` (${claim})` : ''}`)
     res.status(401).json({ error: 'Unauthorized' })
   }
 }
