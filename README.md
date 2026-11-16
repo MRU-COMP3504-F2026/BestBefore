@@ -15,11 +15,15 @@ Google Folder : [Shared Google Folder link](https://drive.google.com/drive/folde
 - Fara Omidiji
 - Armandeep Grewal
 
-# ~~Jira~~ GitHub Projects
-
-Jira has been scrapped for GitHub Projects instead.
+# GitHub Projects
 
 GitHub Project Link: [BestBefore Project](https://github.com/orgs/MRU-COMP3504-F2026/projects/1/views/1?visibleFields=%5B%22Linked+pull+requests%22%2C%22Title%22%2C%22Assignees%22%2C%22Status%22%2C%22Sub-issues+progress%22%2C415268482%2C415268484%2C420712700%2C420713548%5D)
+
+# Developer Guide and User Guide
+
+- [User Guide](docs/user-guide.md) - installation, use, and bug reporting
+
+- [Developer Guide](docs/developer-guide.md) - setup, code layout, builds, tests, and releases
 
 # Getting Started (Clone, Build, Test, Run)
 
