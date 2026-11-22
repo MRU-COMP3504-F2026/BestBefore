@@ -1,12 +1,12 @@
 name: Bug Report
 description: File a bug report to help us improve BestBefore.
-title: "[BUG]: "
+title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting a bug! Please fill out the form below to help us fix it quickly.
+        Thank you for reporting a bug! Before submitting, please check the [Known Bugs & Limitations](docs/USER_GUIDE.md#6-known-bugs--limitations) section and open issues to avoid duplicates.
 
   - type: dropdown
     id: severity
@@ -14,10 +14,22 @@ body:
       label: Severity Level
       description: Select the severity level of this bug.
       options:
-        - "S1 - Critical (App crash, auth failure, DB connection loss)"
-        - "S2 - High (Core use case blocked, no workaround)"
-        - "S3 - Medium (Feature bug, operational fallback available)"
-        - "S4 - Low (Minor visual or layout issue)"
+        - Low (Minor visual glitch or typo)
+        - Medium (Feature behaves unexpectedly, but a workaround exists)
+        - High (Core feature like scanning or saving items is broken)
+        - Critical (App crash, data loss, or login failure)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Reproducibility / Frequency
+      description: How often does this issue happen?
+      options:
+        - Always (100% reproducible)
+        - Sometimes (Intermittent)
+        - Once (Could not reproduce again)
     validations:
       required: true
 
@@ -35,7 +47,7 @@ body:
     attributes:
       label: Steps to Reproduce
       description: What steps are required to recreate the issue?
-      placeholder: |
+      value: |
         1. Go to '...'
         2. Click on '...'
         3. See error
@@ -47,14 +59,35 @@ body:
     attributes:
       label: Expected vs. Actual Behavior
       description: What did you expect to happen versus what actually happened?
+      placeholder: |
+        Expected: ...
+        Actual: ...
     validations:
       required: true
 
-  - type: input
+  - type: textarea
     id: environment
     attributes:
       label: Environment / Device Details
-      placeholder: e.g., Chrome on macOS / Mobile Safari
+      description: Include your device, OS, browser, and whether you used the live site or local dev server.
+      placeholder: e.g., Chrome on macOS / Safari on iPadOS
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Screen Recording (Recommended)
+      description: Paste or drag-and-drop screenshots/videos showing the issue (especially helpful for UI or scanner glitches).
+      placeholder: Paste image here or drag and drop a file...
     validations:
       required: false
 
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console / Error Logs (Optional)
+      description: Paste any relevant browser console or terminal error messages below.
+      render: shell
+    validations:
+      required: false

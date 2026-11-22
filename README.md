@@ -15,11 +15,37 @@ Google Folder : [Shared Google Folder link](https://drive.google.com/drive/folde
 - Fara Omidiji
 - Armandeep Grewal
 
-# ~~Jira~~ GitHub Projects
-
-Jira has been scrapped for GitHub Projects instead.
+# GitHub Projects
 
 GitHub Project Link: [BestBefore Project](https://github.com/orgs/MRU-COMP3504-F2026/projects/1/views/1?visibleFields=%5B%22Linked+pull+requests%22%2C%22Title%22%2C%22Assignees%22%2C%22Status%22%2C%22Sub-issues+progress%22%2C415268482%2C415268484%2C420712700%2C420713548%5D)
+
+# Release Information
+
+**Current Release:** `v1.0.0-beta`  
+**Release Type:** Beta  
+**Live Application:** https://best-before-ten.vercel.app/
+
+This release contains the beta version of BestBefore, including its core grocery inventory management features, barcode scanning, AI Vision, best-before date suggestions, and user authentication.
+
+The release also includes the project's user and developer documentation, covering application usage, local setup, testing, building, and known limitations.
+
+## Release Documentation
+
+- [User Guide](docs/user-guide.md) - Installation, application usage, and bug reporting.
+- [Developer Guide](docs/developer-guide.md) - Development setup, application architecture, building, testing, and release instructions.
+
+## Git Tag
+
+This release is identified by the annotated Git tag `v1.0.0-beta`.
+
+To check out the tagged release after cloning the repository:
+
+```bash
+git fetch --tags
+git checkout v1.0.0-beta
+```
+
+The tag identifies the specific repository commit containing the application source code and release documentation.
 
 # Getting Started (Clone, Build, Test, Run)
 
