@@ -158,10 +158,10 @@ describe('AddItemPage from AI Vision', () => {
     expect(screen.queryByRole('button', { name: /^Use / })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/Best before date/)).toHaveValue('')
 
-    await userEvent.type(screen.getByLabelText(/Best before date/), '2026-11-20')
+    await userEvent.type(screen.getByLabelText(/Best before date/), '2099-11-20')
     await save()
     await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
-    expect(requestBody('/inventory')).toMatchObject({ name: 'Mystery Fruit', bestBefore: '2026-11-20' })
+    expect(requestBody('/inventory')).toMatchObject({ name: 'Mystery Fruit', bestBefore: '2099-11-20' })
   })
 
   it('goes back to the scanner on Cancel, without saving anything', async () => {
