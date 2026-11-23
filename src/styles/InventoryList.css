@@ -34,32 +34,23 @@
   }
 }
 
+.inventory-keep,
 .inventory-remove {
   flex-shrink: 0;
   min-width: 44px;
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, transparent);
+  border: 1px solid;
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
   font: inherit;
   font-size: 15px;
   font-weight: 650;
-  color: var(--color-danger);
   cursor: pointer;
   transition:
     background-color 0.15s,
     border-color 0.15s;
-
-  &:hover {
-    border-color: var(--color-danger);
-    background: var(--color-danger-light);
-  }
-
-  &:active {
-    background: var(--color-danger-light);
-  }
 
   &:focus-visible {
     outline: 2px solid var(--color-primary);
@@ -67,17 +58,59 @@
   }
 }
 
-.inventory-list-item .delete-confirm {
+.inventory-keep {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  color: var(--color-primary);
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+
+  &:hover,
+  &:active {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  }
+}
+
+.inventory-remove {
+  border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+  color: var(--color-danger);
+
+  &:hover {
+    border-color: var(--color-danger);
+  }
+
+  &:hover,
+  &:active {
+    background: var(--color-danger-light);
+  }
+}
+
+.inventory-list-item .delete-confirm,
+.inventory-list-item .keep-confirm,
+.inventory-kept-note {
   margin-top: var(--space-2);
 }
 
+.inventory-kept-note {
+  margin-bottom: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+
 /* On the narrowest phones Remove drops under its card, so the name and date keep the full width. */
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   .inventory-list-row {
     flex-wrap: wrap;
   }
 
-  .inventory-remove {
+  .inventory-list-row .item-card {
     flex: 1 0 100%;
+  }
+
+  .inventory-keep,
+  .inventory-remove {
+    flex: 1 0 0;
   }
 }

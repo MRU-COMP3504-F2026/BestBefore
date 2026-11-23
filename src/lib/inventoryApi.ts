@@ -16,6 +16,7 @@ const inventoryItemSchema = z.object({
   unit: z.string().nullable(),
   purchaseDate: z.string(),
   bestBefore: z.string(),
+  reminderDate: z.string().nullable().default(null),
   // 'product' is a link to the barcode lookup's image; 'photo' is the AI Vision still, read with
   // fetchItemPhoto. Missing on a server from before item pictures.
   imageSource: z.enum(['product', 'photo']).nullable().default(null),
@@ -75,6 +76,16 @@ export async function addInventoryItem(item: NewInventoryItem): Promise<Inventor
 // user's copy changes, never the shared product.
 export async function updateInventoryItem(id: number, edit: InventoryItemEdit): Promise<InventoryItem> {
   const body = await apiFetch<unknown>(`/inventory/${id}`, { method: 'PATCH', body: JSON.stringify(edit) })
+  return addedItemResponseSchema.parse(body).item
+}
+
+// keeps one of the signed-in users expired items and saves the day to be reminded again. returns
+// the row the server stored. best before date is never changed
+export async function keepInventoryItem(id: number, reminderDate: string): Promise<InventoryItem> {
+  const body = await apiFetch<unknown>(`/inventory/${id}/reminder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reminderDate }),
+  })
   return addedItemResponseSchema.parse(body).item
 }
 
@@ -141,4 +152,9 @@ export function expiryTone(bestBefore: string): 'green' | 'amber' | 'red' {
   const days = daysUntil(bestBefore)
   if (days < 0) return 'red'
   return days <= EXPIRING_SOON_DAYS ? 'amber' : 'green'
+}
+
+// The reminder date of an item that the user kept
+export function keptUntil(item: InventoryItem): string | null {
+  return item.reminderDate !== null && item.reminderDate > todayIsoDate() ? item.reminderDate : null
 }
