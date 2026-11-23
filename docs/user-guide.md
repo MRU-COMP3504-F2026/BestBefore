@@ -73,7 +73,7 @@ The dashboard includes:
 
 **Add an item by scanning its barcode**
 
-1. From the inventory, tap Add Item, then Scan Barcode.  
+1. From the Scan tab or in Home, tap Add Item, then Scan Barcode.  
 2. Allow camera access if prompted.  
 3. Point the camera at the barcode and hold steady. Use the on-screen frame as a guide.  
 4. When the barcode is read, BestBefore looks up the product and shows its name, brand, suggested category and photo (if available).  
@@ -84,10 +84,10 @@ If something goes wrong, add items manually.
 
 **Add an item manually**
 
-1. In the inventory, tap Add Item, then Add Item Manually.  
+1. In the Items tab, tap Add Item, then Add Item Manually.  
 2. Fill in the product information and the best-before date.  
-3. Tap submit. Missing or invalid fields are highlighted, and the item is not saved until they are fixed.  
-4. Tap Back to Inventory to see the updated list. You can cancel at any time before submitting.
+3. Tap Save Item. Missing or invalid fields are highlighted, and the item is not saved until they are fixed.  
+4. Tap Back to Items to see the updated list. You can cancel at any time before submitting.
 
 **Edit an item**
 
