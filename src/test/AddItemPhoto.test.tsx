@@ -27,9 +27,19 @@ const YOGURT: PhotoHandoff = {
   provenance: 'signed.token',
 }
 
+// Dates are relative to today: the add form needs best before on or after date bought (today by default),
+// so a fixed date would start failing once the calendar passes it.
+function isoInDays(days: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+const SOON = isoInDays(10)
+const LATER = isoInDays(14)
+
 const SUGGESTED = {
   status: 'suggested',
-  earliest: '2026-12-07',
+  earliest: SOON,
   latest: '2027-01-07',
   storage: 'fridge',
   label: 'Refrigerator',
@@ -114,10 +124,10 @@ describe('AddItemPage from AI Vision', () => {
     await waitFor(() => expect(callsTo('/food/expiry-suggestion')).toHaveLength(1))
     expect(requestBody('/food/expiry-suggestion')).toMatchObject({ category: 'Dairy', source: 'photo' })
 
-    await userEvent.click(await screen.findByRole('button', { name: `Use ${formatDate('2026-12-07')}` }))
+    await userEvent.click(await screen.findByRole('button', { name: `Use ${formatDate(SOON)}` }))
     await save()
     await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
-    expect(requestBody('/inventory')).toMatchObject({ category: 'Dairy', bestBefore: '2026-12-07' })
+    expect(requestBody('/inventory')).toMatchObject({ category: 'Dairy', bestBefore: SOON })
   })
 
   it('keeps a typed barcode out of the suggestion request', async () => {
@@ -139,12 +149,12 @@ describe('AddItemPage from AI Vision', () => {
     expect(await screen.findByText('Best before date is required')).toBeInTheDocument()
     expect(callsTo('/inventory')).toHaveLength(0)
 
-    await userEvent.click(screen.getByRole('button', { name: `Use ${formatDate('2026-12-07')}` }))
-    expect(screen.getByLabelText(/Best before date/)).toHaveValue('2026-12-07')
+    await userEvent.click(screen.getByRole('button', { name: `Use ${formatDate(SOON)}` }))
+    expect(screen.getByLabelText(/Best before date/)).toHaveValue(SOON)
     await save()
 
     await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
-    expect(requestBody('/inventory')).toMatchObject({ name: 'Apple', barcode: null, bestBefore: '2026-12-07' })
+    expect(requestBody('/inventory')).toMatchObject({ name: 'Apple', barcode: null, bestBefore: SOON })
   })
 
   it('leaves the date blank and says why when FoodKeeper has no match', async () => {
@@ -158,10 +168,10 @@ describe('AddItemPage from AI Vision', () => {
     expect(screen.queryByRole('button', { name: /^Use / })).not.toBeInTheDocument()
     expect(screen.getByLabelText(/Best before date/)).toHaveValue('')
 
-    await userEvent.type(screen.getByLabelText(/Best before date/), '2099-11-20')
+    await userEvent.type(screen.getByLabelText(/Best before date/), LATER)
     await save()
     await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
-    expect(requestBody('/inventory')).toMatchObject({ name: 'Mystery Fruit', bestBefore: '2099-11-20' })
+    expect(requestBody('/inventory')).toMatchObject({ name: 'Mystery Fruit', bestBefore: LATER })
   })
 
   it('goes back to the scanner on Cancel, without saving anything', async () => {
@@ -216,7 +226,7 @@ describe('AddItemPage from AI Vision', () => {
     await userEvent.type(screen.getByLabelText(/Quantity/), '4')
     await userEvent.selectOptions(screen.getByLabelText(/Category/), 'Deli')
     await userEvent.type(screen.getByLabelText(/^Barcode/), '012345678905')
-    await userEvent.type(screen.getByLabelText(/Best before date/), '2026-12-01')
+    await userEvent.type(screen.getByLabelText(/Best before date/), LATER)
     await save()
 
     await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
@@ -227,7 +237,7 @@ describe('AddItemPage from AI Vision', () => {
       category: 'Deli',
       quantity: 4,
       purchaseDate: todayIsoDate(),
-      bestBefore: '2026-12-01',
+      bestBefore: LATER,
       photoToken: 'signed.token',
     })
     expect(await screen.findByText(/Skyr/)).toBeInTheDocument()
@@ -235,7 +245,7 @@ describe('AddItemPage from AI Vision', () => {
 
   it('sends no provenance when the server gave none', async () => {
     renderPhoto()
-    await userEvent.type(screen.getByLabelText(/Best before date/), '2026-12-01')
+    await userEvent.type(screen.getByLabelText(/Best before date/), LATER)
     await save()
 
     await waitFor(() => expect(callsTo('/inventory')).toHaveLength(1))
@@ -277,11 +287,11 @@ describe('AddItemPage from AI Vision', () => {
   it('stays on the form with the edits kept when the save fails', async () => {
     fakeApi(SUGGESTED, true)
     renderPhoto(YOGURT)
-    await userEvent.type(screen.getByLabelText(/Best before date/), '2026-12-01')
+    await userEvent.type(screen.getByLabelText(/Best before date/), LATER)
     await save()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Couldn't save your item/)
     expect(screen.getByLabelText(/Brand/)).toHaveValue('Chobani')
-    expect(screen.getByLabelText(/Best before date/)).toHaveValue('2026-12-01')
+    expect(screen.getByLabelText(/Best before date/)).toHaveValue(LATER)
   })
 })
