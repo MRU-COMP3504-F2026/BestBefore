@@ -35,6 +35,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: 'Invalid email or password',
   USER_ALREADY_EXISTS: 'An account with this email already exists',
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'An account with this email already exists',
+  INVALID_TOKEN: 'This reset link is invalid or has expired. Request a new one.',
+  PASSWORD_TOO_SHORT: 'Password must be at least 8 characters',
 }
 
 export function toAuthResult(error: AuthError): AuthResult {
@@ -63,6 +65,21 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 export async function signOut(): Promise<AuthResult> {
   if (AUTH_DISABLED) return { ok: true }
   const { error } = await authClient.signOut()
+  return toAuthResult(error)
+}
+
+// Neon Auth emails the reset link (sender configured in Neon Console, not here). The link opens
+// Neon's endpoint, which redirects to redirectTo with ?token=... or ?error=INVALID_TOKEN.
+// Neon returns success for unknown emails too, so this never reveals whether an account exists.
+export async function requestPasswordReset(email: string, redirectTo: string): Promise<AuthResult> {
+  if (AUTH_DISABLED) return { ok: true }
+  const { error } = await authClient.requestPasswordReset({ email, redirectTo })
+  return toAuthResult(error)
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<AuthResult> {
+  if (AUTH_DISABLED) return { ok: true }
+  const { error } = await authClient.resetPassword({ newPassword, token })
   return toAuthResult(error)
 }
 

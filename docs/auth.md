@@ -122,8 +122,40 @@ npm run db:migrate    # applies it to DATABASE_URL
    that branch), or add preview domains by hand. Neon's docs disagree on whether wildcards like
    `https://*.vercel.app` are supported; check the console.
 4. Configure the `user.before_create` webhook on production (see above).
-5. Before launch: turn off "Allow Localhost" on production and set up custom SMTP (needed for password reset /
-   verification emails later).
+5. Before launch: turn off "Allow Localhost" on production. Set up custom SMTP (see Password reset below); the shared
+   default sender is rate-limited and cannot be relied on for reset links.
+
+## Password reset (forgot password)
+
+Neon Auth sends the reset email, so the app has no mail code and no email provider credentials. Neon's
+`request-password-reset` and `reset-password` endpoints are called from the browser through the Better Auth client
+(`requestPasswordReset` / `resetPassword` in `src/lib/authClient.ts`). Neon's `resetPasswordForEmail` SDK wrapper is
+not fully supported, so don't use it.
+
+Flow:
+
+1. `/forgot-password` (`src/pages/ForgotPassword.tsx`) sends the email plus `redirectTo = <app origin>/reset-password`.
+   The confirmation text is the same whether or not the account exists (Neon/Better Auth behaviour).
+2. Neon emails a link to `<NEON_AUTH_URL>/reset-password/<token>?callbackURL=<redirectTo>`. Links expire after 1 hour.
+3. Neon redirects to `/reset-password?token=<token>`, or `?error=INVALID_TOKEN` if the link is bad or expired.
+4. `/reset-password` (`src/pages/ResetPassword.tsx`) posts the token and the new password (8+ characters).
+
+Setup (Neon Console, per branch):
+
+- **Settings → Better Auth → Sign-in with Email** must be on (password reset is part of it).
+- **Trusted domains**: the app origin must be allowed, or Neon refuses the `redirectTo`. Localhost is pre-approved.
+  Production needs its exact origin, and Vercel previews need a wildcard (see Neon's "Configure trusted domains").
+- **Custom SMTP** (Settings → Better Auth → Email provider → Custom SMTP provider): host, port, username, password,
+  sender email and sender name, from a provider you control. Neon's own templates are used. A free SMTP option
+  for a school project is Brevo or Gmail with an app password; check the provider's current free-tier limits and
+  sender verification rules before relying on them. Neon's CLI can also set it:
+  `neon neon-auth config email-provider update --type standard --host <host> --port <port> --username <user> --password <pw> --sender-email <addr> --sender-name "BestBefore"`.
+- Optional: **Revoke sessions on password reset** signs the user out of other sessions after a reset.
+
+No `.env` variable is used for password reset; SMTP credentials live in Neon, not in this repo.
+
+To test the flow end to end, request a reset for a test account, open the emailed link, and set a new password.
+Check the message in the inbox of the SMTP sender account, and check that the link leads to `/reset-password`.
 
 ## Test account
 
