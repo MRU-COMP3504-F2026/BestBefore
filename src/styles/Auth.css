@@ -85,11 +85,12 @@
   text-underline-offset: 2px;
 }
 
-/* Forgot password sits in the field's label row; padding gives it a finger-sized target. */
-.auth-link-small {
-  margin: -10px -8px -10px 0;
+/* Forgot password sits below the login form, centred; the link keeps a finger-sized target. */
+.auth-forgot {
+  margin: var(--space-3) 0 0;
   padding: 10px 8px;
-  font-size: 13px;
+  text-align: center;
+  font-size: 14px;
 }
 
 .auth-error {

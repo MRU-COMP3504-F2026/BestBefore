@@ -72,11 +72,6 @@ export default function Login() {
           autoComplete="current-password"
           disabled={isSubmitting}
           error={errors.password?.message}
-          labelAction={
-            <Link to="/forgot-password" className="auth-link auth-link-small">
-              Forgot password?
-            </Link>
-          }
           {...register('password')}
         />
 
@@ -90,6 +85,12 @@ export default function Login() {
           {isSubmitting ? 'Logging in…' : 'Log in'}
         </button>
       </form>
+
+      <p className="auth-forgot">
+        <Link to="/forgot-password" className="auth-link">
+          Forgot password?
+        </Link>
+      </p>
 
       <div className="auth-divider">
         <span>or</span>
