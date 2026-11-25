@@ -26,7 +26,7 @@ BestBefore is a Progressive Web App (PWA), so no traditional installation or add
 2. Tap Install app (or Add to Home screen).  
 3. Tap Install. A BestBefore icon appears on your home screen.
 
-   **iPhone / iPad (Safari):**
+**iPhone / iPad (Safari):**
 
 1. Tap the Share button (the square with an arrow).  
 2. Scroll down and tap Add to Home Screen.  
@@ -47,8 +47,8 @@ BestBefore is a Progressive Web App (PWA), so no traditional installation or add
 
 1. Go to the BestBefore URL. Open the URL (https\://best-before-ten.vercel.app/) in your browser.  
 2. Add BestBefore to your home screen. Then open BestBefore from the new icon. From now on, just tap the icon to open it.  
-3. Create an account. First login, tap Sign Up, enter your email address and a password, then tap Create Account.  
-4. Log in. enter your email and password and tap Log In.  
+3. Create an account. On the log-in screen, tap Create an account, enter your email address and a password, then tap Create account.  
+4. Log in. Enter your email and password, then tap Log in.  
 5. Start adding food. After you log in, your inventory dashboard opens. It's empty at first. 
 
 ## **How to use the software**
@@ -77,7 +77,7 @@ The dashboard includes:
 2. Allow camera access if prompted.  
 3. Point the camera at the barcode and hold steady. Use the on-screen frame as a guide.  
 4. When the barcode is read, BestBefore looks up the product and shows its name, brand, suggested category and photo (if available).  
-5. Enter the best-before date with the date picker and make an edit you would like..  
+5. Enter the best-before date with the date picker, and make any edits you would like.  
 6. Tap Save. The item now appears in your inventory.
 
 If something goes wrong, add items manually.
@@ -91,7 +91,12 @@ If something goes wrong, add items manually.
 
 **Edit an item**
 
-Open an item and update its details, or remove it.
+1. In the inventory, tap the item to open its details.  
+2. Tap Edit. The edit form opens with the item's current details.  
+3. Change any of the fields you need: product name, brand, category, quantity, date bought, or best before date. The barcode cannot be changed.  
+4. If you change the date bought, BestBefore suggests a best before date based on the USDA FoodKeeper guide. Tap Use with that date to accept it, or type in your own date.  
+5. Tap Save Changes to keep your edits, or Cancel to leave without saving.  
+6. To delete the item instead, tap Delete on the item's details page, then tap Delete item to confirm.
 
 ### **Delete expired items**
 
@@ -102,7 +107,7 @@ There are two ways to delete items: remove a single expired item straight from t
 Expired items are marked in red on the inventory list, with a label such as "Expired on Nov 14, 2026".
 
 1. On the inventory page, find the expired item (red stripe and red date label).  
-2. A red Remove button appears beside the item. \[confirm: shown automatically for expired items, or revealed by a swipe/tap\]  
+2. A red Remove button appears beside the item.  
 3. Tap Remove. The item is deleted and disappears from the list.
 
 #### **Remove several items at once**
@@ -110,7 +115,7 @@ Expired items are marked in red on the inventory list, with a label such as "Exp
 1. On the inventory page, tap Remove Items, next to Add Item. This opens the Remove Items screen, which lists every item in your inventory with a checkbox on the right of each one. Use the back arrow at the top left to return to the inventory without removing anything.  
 2. Choose the items to remove in one of three ways:  
    * Select all ticks for every item in the list.  
-   * Select expired ticks only the items that are past their best-before date (the red ones), which is the quickest way to clear out expired food.  
+   * Select expired, which ticks only the items that are past their best-before date (the red ones). This is the quickest way to clear out expired food.  
    * Tap a checkbox to tick or untick an individual item. You can also use Select all or Select expired first and then untick any item you want to keep.  
 3. Check the button at the bottom of the list. It shows how many items are ticked, for example Remove selected (3). While nothing is ticked it reads Remove selected (0) and is greyed out, so you cannot remove anything by accident.  
 4. Tap Remove selected to delete the ticked items. The items disappear from your inventory. Removal is permanent. 
@@ -143,7 +148,7 @@ The following features are planned for future development but are not yet availa
 
 If something in BestBefore stops working, or behaves in a way you did not expect, you can let our team know right from the app. You do not need a technical background to send a report. 
 
-**Step 01: Open the Bug Report Form** 
+**Step 1: Open the Bug Report Form** 
 
 1. Open BestBefore and go to your Profile page (tap the Profile icon in the menu).  
 2. Tap the Report a Bug button.  
@@ -152,11 +157,11 @@ If something in BestBefore stops working, or behaves in a way you did not expect
 
 \*(Note: You will need to sign in to a free GitHub account to submit the form.)\* 
 
-**Step 02: Fill Out What Happened**
+**Step 2: Fill Out What Happened**
 
 Before starting a new report, glance at the **Known Bugs & Limitations** list below to make sure it is not an issue we are already working on. Otherwise, fill in the boxes on the form using everyday language:
 
-* **Title:**Write a short summary of the problem at the top (for example:   
+* **Title:** Write a short summary of the problem at the top (for example:   
   "\[Bug\]: Barcode scanner will not open on my iPhone").
 
  
