@@ -5,6 +5,7 @@ import NotFoundPage from '../pages/404'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
 import ForgotPassword from '../pages/ForgotPassword'
+import ResetPassword from '../pages/ResetPassword'
 import ScanPage from '../pages/ScanPage'
 import ScanAddedPage from '../pages/ScanAddedPage'
 import ScanFailedPage from '../pages/ScanFailedPage'
@@ -81,6 +82,10 @@ export const router = createBrowserRouter([
   {
     path: '/forgot-password',
     element: <ForgotPassword />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPassword />,
   },
   {
     path: '*',

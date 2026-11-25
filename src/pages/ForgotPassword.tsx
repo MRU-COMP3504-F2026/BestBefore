@@ -3,9 +3,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
+import { motion } from 'motion/react'
 import Logo from '../components/Logo'
 import TextField from '../components/TextField'
-import { mockForgotPassword } from '../lib/mockAuth'
+import { requestPasswordReset } from '../lib/authClient'
+import { errorReveal } from '../lib/motion'
 import '../styles/Auth.css'
 
 const forgotPasswordSchema = z.object({
@@ -20,6 +22,7 @@ export default function ForgotPassword() {
   }, [])
 
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -27,9 +30,14 @@ export default function ForgotPassword() {
   } = useForm<ForgotPasswordValues>({ resolver: zodResolver(forgotPasswordSchema) })
 
   const onSubmit = async (values: ForgotPasswordValues) => {
-    const result = await mockForgotPassword()
+    setFormError(null)
+    // The emailed link returns to /reset-password on this origin.
+    const redirectTo = new URL('/reset-password', window.location.origin).toString()
+    const result = await requestPasswordReset(values.email, redirectTo)
     if (result.ok) {
       setSentTo(values.email)
+    } else {
+      setFormError(result.error)
     }
   }
 
@@ -58,6 +66,12 @@ export default function ForgotPassword() {
             error={errors.email?.message}
             {...register('email')}
           />
+
+          {formError && (
+            <motion.p className="auth-error auth-form-error" role="alert" {...errorReveal}>
+              {formError}
+            </motion.p>
+          )}
 
           <button type="submit" className="auth-submit" disabled={isSubmitting}>
             {isSubmitting ? 'Sending…' : 'Send reset link'}
