@@ -43,6 +43,13 @@
       "when": 1794099433662,
       "tag": "0005_item_images",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794849113656,
+      "tag": "0006_tricky_vulture",
+      "breakpoints": true
     }
   ]
 }

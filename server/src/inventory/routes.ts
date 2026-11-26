@@ -1,5 +1,5 @@
 import express from 'express'
-import { and, asc, eq, isNotNull, inArray } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, inArray, lt } from 'drizzle-orm'
 import { z } from 'zod'
 import { withFoodName } from '../../../testscripts/normalizer.js'
 import { requireAuth } from '../auth/requireAuth.js'
@@ -9,6 +9,7 @@ import { appCategory, suggestionFromShelfLife, type ExpirySuggestion } from '../
 import { describesRecord, findItem, rememberPhotoItem } from '../food/items.js'
 import { isShareableText, isValidGtin, photoProduct, verifyPhotoProvenance } from '../food/photoItems.js'
 import { ItemImageError, itemImageColumns, MAX_IMAGE_URL_LENGTH, MAX_PHOTO_DATA_URL_LENGTH } from './itemImages.js'
+
 
 
 export const inventoryRouter = express.Router()
@@ -25,6 +26,7 @@ const ITEM_COLUMNS = {
   unit: inventoryItems.unit,
   purchaseDate: inventoryItems.purchaseDate,
   bestBefore: inventoryItems.bestBefore,
+  reminderDate: inventoryItems.reminderDate,
   imageSource: inventoryItems.imageSource,
   imageUrl: inventoryItems.imageUrl,
   createdAt: inventoryItems.createdAt,
@@ -79,6 +81,9 @@ const editItemSchema = z
     message: 'Best before date is before the purchase date',
     path: ['bestBefore'],
   })
+
+// What keeping an expired item sends: only the day to be reminded again.
+const keepItemSchema = z.object({ reminderDate: z.iso.date() })
 
 // A route id, or null for anything that can't be one.
 function itemId(raw: unknown): number | null {
@@ -222,34 +227,44 @@ inventoryRouter.get('/:id/photo', requireAuth, async (req, res) => {
 // Saves the signed-in user's edits to one of their own items and returns the row as stored. Only
 // inventory_items is written, and only the row this user owns: 404 for anyone else's, as for a
 // missing one, so ids can't be probed.
-inventoryRouter.patch('/:id', requireAuth, async (req, res) => {
+inventoryRouter.patch('/:id/reminder', requireAuth, async (req, res) => {
   const id = itemId(req.params.id)
-  const parsed = editItemSchema.safeParse(req.body)
+  const parsed = keepItemSchema.safeParse(req.body)
   if (id === null) {
     res.status(404).json({ error: 'Item not found.' })
     return
   }
   if (!parsed.success) {
-    res.status(400).json({ error: "That item isn't valid. Check the details and try again." })
+    res.status(400).json({ error: 'Send the reminder date as YYYY-MM-DD.' })
     return
   }
+  const { reminderDate } = parsed.data
+  const owned = and(eq(inventoryItems.id, id), eq(inventoryItems.userId, res.locals.user!.id))
 
   try {
+    // One statement, so the reminder is only ever saved after the best-before date as stored.
     const [item] = await db
       .update(inventoryItems)
-      .set(parsed.data)
-      .where(and(eq(inventoryItems.id, id), eq(inventoryItems.userId, res.locals.user!.id)))
+      .set({ reminderDate })
+      .where(and(owned, lt(inventoryItems.bestBefore, reminderDate)))
       .returning(ITEM_COLUMNS)
 
-    if (!item) {
+    if (item) {
+      res.json({ item })
+      return
+    }
+
+    // Nothing was written: no such item for this user, or the date isn't after its best-before.
+    const [existing] = await db.select({ id: inventoryItems.id }).from(inventoryItems).where(owned)
+    if (!existing) {
       res.status(404).json({ error: 'Item not found.' })
       return
     }
-    res.json({ item })
+    res.status(400).json({ error: 'Choose a reminder date after the best-before date.' })
   } catch (err) {
     const cause = err instanceof Error && err.cause instanceof Error ? ` (${err.cause.message})` : ''
-    console.error(`Inventory edit failed: ${err instanceof Error ? err.message : err}${cause}`)
-    res.status(500).json({ error: "Couldn't save your changes. Please try again." })
+    console.error(`Inventory keep failed: ${err instanceof Error ? err.message : err}${cause}`)
+    res.status(500).json({ error: "Couldn't save your reminder. Please try again." })
   }
 })
 

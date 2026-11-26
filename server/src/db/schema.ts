@@ -67,6 +67,7 @@ export const inventoryItems = pgTable(
     unit: text('unit'),
     purchaseDate: date('purchase_date').notNull(),
     bestBefore: date('best_before').notNull(),
+    reminderDate: date('reminder_date'),
     imageSource: text('image_source').$type<'product' | 'photo'>(),
     imageUrl: text('image_url'),
     photo: bytea('photo'),

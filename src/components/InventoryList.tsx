@@ -5,9 +5,10 @@ import DeleteItemConfirm from './DeleteItemConfirm'
 import ItemCard from './ItemCard'
 import { categoryIcon } from '../lib/categoryIcon'
 import { formatDate } from '../lib/dates'
-import { expiryTone, useInventory, type InventoryItem } from '../lib/inventoryApi'
+import { expiryTone, keptUntil, useInventory, type InventoryItem } from '../lib/inventoryApi'
 import { listItem } from '../lib/motion'
 import { useItemImageSrc } from '../lib/useItemImage'
+import KeepItemConfirm from './KeepItemConfirm'
 import '../styles/InventoryList.css'
 
 type InventoryListProps = {
@@ -24,9 +25,9 @@ type InventoryListProps = {
 
 function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; removeExpired: boolean }) {
   const navigate = useNavigate()
-  const [confirming, setConfirming] = useState(false)
+  const [action, setAction] = useState<'keep' | 'remove' | null>(null)
   const tone = expiryTone(item.bestBefore)
-  
+
   const imageSrc = useItemImageSrc(item)
 
   const card = (
@@ -42,22 +43,46 @@ function InventoryItemCard({ item, removeExpired }: { item: InventoryItem; remov
 
   if (!removeExpired || tone !== 'red') return card
 
+  // A kept item isn't asked about again until its reminder date arrives.
+  const reminder = keptUntil(item)
+  if (reminder !== null) {
+    return (
+      <>
+        {card}
+        <p className="inventory-kept-note">Kept. Reminder on {formatDate(reminder)}.</p>
+      </>
+    )
+  }
+
   return (
     <>
       <div className="inventory-list-row">
         {card}
-        {!confirming && (
-          <button
-            type="button"
-            className="inventory-remove"
-            aria-label={`Remove ${item.name}`}
-            onClick={() => setConfirming(true)}
-          >
-            Remove
-          </button>
+        {action === null && (
+          <>
+            <button
+              type="button"
+              className="inventory-keep"
+              aria-label={`Keep ${item.name}`}
+              onClick={() => setAction('keep')}
+            >
+              Keep
+            </button>
+            <button
+              type="button"
+              className="inventory-remove"
+              aria-label={`Remove ${item.name}`}
+              onClick={() => setAction('remove')}
+            >
+              Remove
+            </button>
+          </>
         )}
       </div>
-      {confirming && <DeleteItemConfirm item={item} onCancel={() => setConfirming(false)} />}
+      {action === 'keep' && (
+        <KeepItemConfirm item={item} onCancel={() => setAction(null)} onKept={() => setAction(null)} />
+      )}
+      {action === 'remove' && <DeleteItemConfirm item={item} onCancel={() => setAction(null)} />}
     </>
   )
 }
