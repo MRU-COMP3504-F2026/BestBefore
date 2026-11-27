@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { ApiError, apiFetch } from './api'
 import { getApiToken } from './authClient'
+import {
+  claimProductPreload,
+  clearProductPreload,
+  readProductPreload,
+  writeProductPreload,
+} from './productPreload'
 
 // AI Vision (Beta): one photo in, at most one food out. Mirrors server/src/food/foodSchema.ts.
 const identificationSchema = z.discriminatedUnion('identified', [
@@ -104,6 +110,32 @@ const barcodeLookupSchema = z.object({
   category: z.string().nullable(),
 })
 
+const preloadResponseSchema = z.object({
+  products: z.array(barcodeLookupSchema.extend({ barcode: z.string() })),
+})
+
+const storedPreloadSchema = preloadResponseSchema.extend({ userId: z.string() })
+
+function storedPreload() {
+  const stored = storedPreloadSchema.safeParse(readProductPreload())
+  return stored.success ? stored.data : null
+}
+
+
+export async function preloadProducts(userId: string): Promise<void> {
+  const stored = storedPreload()
+
+  if (stored && stored.userId !== userId) clearProductPreload()
+  if (!claimProductPreload(userId)) return
+
+  try {
+    const body = await apiFetch<unknown>('/food/preload')
+    writeProductPreload({ userId, products: preloadResponseSchema.parse(body).products })
+  } catch {
+    // A list saved earlier for this user stays as it is.
+  }
+}
+
 export type ProductRecord = z.infer<typeof productRecordSchema>
 
 // Handed from the scanner to the add form. product is null when the lookup found nothing, and
@@ -153,10 +185,15 @@ export const LOOKUP_TIMEOUT_MS = 12_000
 // aborting through `signal` rejects.
 export async function lookupBarcode(barcode: string, signal: AbortSignal): Promise<ScanHandoff> {
   const missing = (notice: string): ScanHandoff => ({ barcode, product: null, category: null, notice })
+  const preloaded = storedPreload()?.products.find((entry) => entry.barcode === barcode.padStart(14, '0'))
   const timeout = new AbortController()
   const timer = setTimeout(() => timeout.abort(), LOOKUP_TIMEOUT_MS)
   const onAbort = () => timeout.abort()
   signal.addEventListener('abort', onAbort)
+
+   if (preloaded) {
+    return { barcode, product: preloaded.product, category: preloaded.category, notice: null }
+  }
 
   try {
     const body = await apiFetch<unknown>(`/food/barcode/${encodeURIComponent(barcode)}`, {

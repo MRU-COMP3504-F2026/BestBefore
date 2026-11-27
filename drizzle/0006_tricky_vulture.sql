@@ -1,1 +1,1 @@
-ALTER TABLE "inventory_items" ADD COLUMN "reminder_date" date;
+ALTER TABLE "inventory_items" ADD COLUMN "reminder_date" date; 

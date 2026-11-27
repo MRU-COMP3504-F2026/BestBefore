@@ -11,6 +11,7 @@ import {
   rememberItem,
   rememberShelfLife,
   replacePhotoItem,
+  findPreloadItems
 } from './items.js'
 import { isPhotoRecord, signPhotoProvenance } from './photoItems.js'
 import { claimIdentifySlot, claimLookupSlot } from './rateLimit.js'
@@ -57,6 +58,31 @@ foodRouter.get('/barcode/:barcode', requireAuth, async (req, res) => {
     res.status(400).json({ error: "That barcode isn't valid." })
     return
   }
+
+// The products the client keeps in local storage: the ones this user has most of, topped up with
+// everyone's. Each entry is what GET /barcode/:barcode answers for that saved product, so a scan
+// answered from local storage looks the same as one answered here.
+foodRouter.get('/preload', requireAuth, async (_req, res) => {
+  try {
+    const rows = await findPreloadItems(res.locals.user!.id)
+    res.json({
+      products: rows.flatMap((row) =>
+        row.barcode === null
+          ? []
+          : [
+              {
+                barcode: row.barcode,
+                product: withFoodName(row.payload),
+                category: appCategory(row.payload.category, row.payload.categoryTags),
+              },
+            ],
+      ),
+    })
+  } catch (err) {
+    console.error(`Product preload failed: ${err instanceof Error ? err.message : err}`)
+    res.status(500).json({ error: "Couldn't load your frequent products." })
+  }
+})
 
   const saved = await findItem(barcode)
   const savedCategory = saved && appCategory(saved.payload.category, saved.payload.categoryTags)

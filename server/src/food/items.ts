@@ -1,7 +1,7 @@
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { FinalRecord } from '../../../testscripts/normalizer.js'
 import { db } from '../db/index.js'
-import { items } from '../db/schema.js'
+import { inventoryItems, items } from '../db/schema.js'
 import { appCategory, type ExpiryInput, type ShelfLife } from './expirySuggestion.js'
 import { isPhotoRecord, PHOTO_SOURCE, photoKey, type PhotoProduct } from './photoItems.js'
 
@@ -165,6 +165,7 @@ export async function findPhotoMatch(alias: string, timeoutMs: number = ITEM_DB_
   )
 }
 
+
 // A product database's record replaces one a user confirmed from a photo. The shelf life is cleared
 // with it, since it was worked out from the photo's name. Only lands while the row is still the
 // photo's, so a lookup saved meanwhile is never overwritten.
@@ -182,4 +183,32 @@ export async function replacePhotoItem(
         .where(and(eq(items.barcode, canonicalBarcode(barcode)), sql`${items.payload}->>'source' = ${PHOTO_SOURCE}`)),
     timeoutMs,
   )
+}
+// Pre-load
+export const PRELOAD_SIZE = 20
+
+function frequentItems(userId?: string) {
+  return db
+    .select({ id: items.id, barcode: items.barcode, payload: items.payload })
+    .from(inventoryItems)
+    .innerJoin(items, eq(items.barcode, sql`lpad(${inventoryItems.barcode}, 14, '0')`))
+    .where(
+      and(
+        userId === undefined ? undefined : eq(inventoryItems.userId, userId),
+        // inventory_items keeps the code as scanned or typed. lpad would cut a longer value down to
+        // 14 characters, so only real barcodes are joined.
+        sql`${inventoryItems.barcode} ~ '^[0-9]{8,14}$'`,
+        sql`${items.payload}->>'source' is distinct from ${PHOTO_SOURCE}`,
+      ),
+    )
+    .groupBy(items.id)
+    .orderBy(desc(sql`count(*)`), asc(items.id))
+    .limit(PRELOAD_SIZE)
+}
+
+// The user's most frequent products, topped up from everyone's until there are PRELOAD_SIZE.
+export async function findPreloadItems(userId: string) {
+  const [own, everyone] = await Promise.all([frequentItems(userId), frequentItems()])
+  const seen = new Set(own.map((row) => row.id))
+  return [...own, ...everyone.filter((row) => !seen.has(row.id))].slice(0, PRELOAD_SIZE)
 }

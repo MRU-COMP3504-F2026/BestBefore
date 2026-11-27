@@ -1,6 +1,7 @@
 import { createAuthClient } from '@neondatabase/auth'
 import { BetterAuthReactAdapter } from '@neondatabase/auth/react/adapters'
 import { AUTH_DISABLED, DEV_USER } from './devAuth'
+import { clearProductPreload } from './productPreload'
 
 // Neon Auth (managed Better Auth). The browser talks to the Neon Auth URL directly;
 // our Express API only verifies the JWTs it issues (see server/src/auth).
@@ -63,6 +64,8 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 export async function signOut(): Promise<AuthResult> {
   if (AUTH_DISABLED) return { ok: true }
   const { error } = await authClient.signOut()
+  // The preloaded products are this user's, so they don't stay in the browser.
+  if (!error) clearProductPreload()
   return toAuthResult(error)
 }
 
